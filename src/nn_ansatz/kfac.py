@@ -22,8 +22,6 @@ def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint):
         params = [p - g for p, g in zip(params, grads)]
         params = tree_unflatten(tree, params)
 
-        
-
         return [params, *state[1:]]
 
     state = [*substate, lr, damping, norm_constraint]

@@ -71,13 +71,11 @@ def are_we_loading(load_it, load_dir):
     return False
 
 
-def are_we_pretraining(root, system, pretrain, pre_lr, n_pre_it):
+def are_we_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_hyperparameter_name):
     pretrain_dir = os.path.join(root, system, 'pretrained')
-    hyperparameter_name = '%s_%s.pk' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
-    pretrain_path = os.path.join(pretrain_dir, hyperparameter_name)
+    hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
+    pretrain_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
     make_dir(pretrain_dir)
-    print(pretrain_path)
-    print(os.path.exists(pretrain_path))
     if pretrain or not os.path.exists(pretrain_path):
         return False, pretrain_path
     return True, pretrain_path
@@ -155,16 +153,17 @@ def setup(system: str = 'Be',
         name = today
 
     loading = are_we_loading(load_it, load_dir)
+    ansatz_hyperparameter_name = '%s_%s_%s_%s' % (n2n(n_sh, 's'), n2n(n_ph, 'p'), n2n(n_layers, 'l'), n2n(n_det, 'det'))
     if loading:
         exp_dir = load_dir
     else:
-        hyperparameter_name = '%s_%s_%s_%s' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'))
-        exp_dir = os.path.join(root, system, name, hyperparameter_name)
+        hyperparameter_name = '%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'))
+        exp_dir = os.path.join(root, system, name, hyperparameter_name + ansatz_hyperparameter_name)
         make_dir(exp_dir)
         run = 'run%i' % len(os.listdir(exp_dir))
         exp_dir = os.path.join(exp_dir, run)
 
-    load_pretrain, pre_path = are_we_pretraining(root, system, pretrain, pre_lr, n_pre_it)
+    load_pretrain, pre_path = are_we_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_hyperparameter_name)
 
     events_dir = os.path.join(exp_dir, 'events')
     timing_dir = os.path.join(events_dir, 'timing')
