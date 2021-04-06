@@ -14,7 +14,7 @@ from .systems import SystemAnsatz
 from .pretraining import pretrain_wf
 from .vmc import create_energy_fn, create_grad_function
 # from .utils import *
-from .kfac import create_natural_gradients_fn, kfac
+from .optimisers import create_natural_gradients_fn, kfac
 from .utils import Logging, load_pk, save_pk
 
 
