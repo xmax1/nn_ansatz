@@ -1,9 +1,7 @@
 
 import jax
 import jax.numpy as jnp
-from jax import lax, vmap, jit, grad, value_and_grad
-
-import numpy as np
+from jax import lax, vmap, jit, grad
 from jax.tree_util import tree_unflatten, tree_flatten
 
 
@@ -102,7 +100,11 @@ def compute_potential_energy_i(walkers, r_atoms, z_atoms):
 
 
 def local_kinetic_energy_i(wf):
+    """
+    FUNCTION SLIGHTLY ADAPTED FROM DEEPMIND JAX FERMINET IMPLEMTATION
+    https://github.com/deepmind/ferminet/tree/jax
 
+    """
     def _lapl_over_f(params, walkers, d0s):
         walkers = walkers.reshape(-1)
         n = walkers.shape[0]

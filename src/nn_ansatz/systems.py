@@ -89,8 +89,20 @@ class SystemAnsatz():
     def atom_positions(self):
         return [x for x in self.r_atoms.split(self.n_atoms, axis=0)]
 
-    def initialise_walkers(self, n_walkers: int=1024):
-        return initialise_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
+    def initialise_walkers(self, params=None, d0s=None, equilibrate=None, walkers=None, n_walkers: int=1024):
+        if walkers is None:
+            return initialise_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
+        if len(walkers) == n_walkers:
+            return walkers
+        if params is None or d0s is None or equilibrate is None:
+            exit('If the number of loaded walkers is not equal to the number of requested walkers \n'
+                 'params, d0s and equilibrate function must be passed to initialize walkers function for equilibration')
+        n_replicate = math.ceil(len(walkers) / n_walkers)
+        walkers = jnp.stack([walkers for i in range(n_replicate)], axis=0)
+        key = rnd.PRNGKey(0)  # this may be an issue if we double the batch size and then double the available gpus.
+        walkers = equilibrate(params, walkers, d0s, key, n_it=1000)
+        return walkers
+
 
 
 def initialise_walkers(ne_atoms, atom_positions, n_walkers):

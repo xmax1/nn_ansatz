@@ -7,6 +7,15 @@ from .parameters import expand_d0s, initialise_d0s
 
 
 def create_wf(mol):
+    """
+
+    Notes:
+        - Only creator which does NOT pass out vmapped / jitted functions
+        - Some functions (compute_local_energy) need to be vmapped from the top
+        - The behaviour of stacked jit is not known (it could be efficient, just haven't tested)
+        - This is not relevant for the orbitals, for example, but this function is maintained for now as all functions
+        not jitted or vmapped until a more elegant way emerges
+    """
     n_up, n_down, r_atoms, n_el = mol.n_up, mol.n_down, mol.r_atoms, mol.n_el
     masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph)
 
@@ -133,7 +142,7 @@ compute_ae_vectors = vmap(compute_ae_vectors_i, in_axes=(0, None))
 
 def drop_diagonal_i(square):
     """
-    for proof of this awesomeness go to debugging/drop_diagonal where compared with masking method
+    for proof of this function go to debugging/drop_diagonal where compared with masking method
     """
     n = square.shape[0]
     split1 = jnp.split(square, n, axis=0)
@@ -283,30 +292,30 @@ def env_sigma_i(sigmas: jnp.array,
     # return jnp.exp(-jnp.linalg.norm(exponent, axis=-1))
 
     # SIGMA BROADCAST VERSION
-    # n_spin, n_atom, _ = ae_vectors.shape
-    # ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
-    # outs = []
-    # for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
-    #     activations.append(ae_vector)
-    #     pre_activation = jnp.matmul(ae_vector, sigma) + d0
-    #     exponent = pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F')
-    #     out = jnp.exp(-jnp.linalg.norm(exponent, axis=1))
-    #     outs.append(out)
-    # return jnp.concatenate(outs, axis=-1)
+    n_spin, n_atom, _ = ae_vectors.shape
+    ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
+    outs = []
+    for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
+        activations.append(ae_vector)
+        pre_activation = jnp.matmul(ae_vector, sigma) + d0
+        exponent = pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F')
+        out = jnp.exp(-jnp.linalg.norm(exponent, axis=1))
+        outs.append(out)
+    return jnp.concatenate(outs, axis=-1)
 
     # SIGMA LOOPY
-    n_spins, n_atom, _ = ae_vectors.shape
-    ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
-    m_layer = []
-    for i, ae_vector in enumerate(ae_vectors):
-        ki_layer = []
-        for sigma, d0 in zip(sigmas[i], d0s[i]):
-            activations.append(ae_vector)
-            pre_activation = jnp.matmul(ae_vector, sigma) + d0
-            out = jnp.exp(-jnp.linalg.norm(pre_activation, axis=1))
-            ki_layer.append(out)
-        m_layer.append(jnp.stack(ki_layer, axis=-1).reshape(n_spins, -1, n_spins))
-    return jnp.stack(m_layer, axis=-1)
+    # n_spins, n_atom, _ = ae_vectors.shape
+    # ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
+    # m_layer = []
+    # for i, ae_vector in enumerate(ae_vectors):
+    #     ki_layer = []
+    #     for sigma, d0 in zip(sigmas[i], d0s[i]):
+    #         activations.append(ae_vector)
+    #         pre_activation = jnp.matmul(ae_vector, sigma) + d0
+    #         out = jnp.exp(-jnp.linalg.norm(pre_activation, axis=1))
+    #         ki_layer.append(out)
+    #     m_layer.append(jnp.stack(ki_layer, axis=-1).reshape(n_spins, -1, n_spins))
+    # return jnp.stack(m_layer, axis=-1)
 
 
 

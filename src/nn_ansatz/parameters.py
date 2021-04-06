@@ -98,12 +98,14 @@ def initialise_params(key,
 
     # env_sigma
     key, *subkeys = rnd.split(key, num=3)
-    # params['envelopes']['sigma']['up'] = init_linear(subkeys[0], (n_det, n_up, n_atoms, 3, 3), bias=False)
-    # params['envelopes']['sigma']['down'] = init_linear(subkeys[1], (n_det, n_down, n_atoms, 3, 3), bias=False)
-    # SIGMA LOOPY list(atom1, atom2)... atom1 = list( (3x3) n_det x n_spins)
+    # SIGMA BROADCAST
     params['envelopes']['sigma'] = OrderedDict()
-    params['envelopes']['sigma']['up'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_up)] for _ in range(n_atoms)]
-    params['envelopes']['sigma']['down'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_down)] for _ in range(n_atoms)]
+    params['envelopes']['sigma']['up'] = init_linear(subkeys[0], (n_det, n_up, n_atoms, 3, 3), bias=False)
+    params['envelopes']['sigma']['down'] = init_linear(subkeys[1], (n_det, n_down, n_atoms, 3, 3), bias=False)
+    # SIGMA LOOPY list(atom1, atom2)... atom1 = list( (3x3) n_det x n_spins)
+    # params['envelopes']['sigma'] = OrderedDict()
+    # params['envelopes']['sigma']['up'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_up)] for _ in range(n_atoms)]
+    # params['envelopes']['sigma']['down'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_down)] for _ in range(n_atoms)]
 
 
     # env_pi
@@ -126,37 +128,39 @@ def initialise_d0s(mol):
     n_layers, n_sh, n_ph, n_det = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det
     n_el, n_pairwise, n_atoms, n_up, n_down = mol.n_el, mol.n_pairwise, mol.n_atoms, mol.n_up, mol.n_down
 
-    params = OrderedDict()
+    d0s = OrderedDict()
 
     # initial layers
-    params['split0'] = jnp.zeros((1, n_sh))
-    params['s0'] = jnp.zeros((n_el, n_sh))
-    params['p0'] = jnp.zeros((n_pairwise, n_ph))
+    d0s['split0'] = jnp.zeros((1, n_sh))
+    d0s['s0'] = jnp.zeros((n_el, n_sh))
+    d0s['p0'] = jnp.zeros((n_pairwise, n_ph))
 
     # intermediate layers
-    params['intermediate'] = [[jnp.zeros((1, n_sh)),
+    d0s['intermediate'] = [[jnp.zeros((1, n_sh)),
                                jnp.zeros((n_el, n_sh)),
                                jnp.zeros((n_pairwise, n_ph))]
                                for _ in range(n_layers)]
 
-    params['envelopes'] = OrderedDict()
-    params['envelopes']['linear'] = [jnp.zeros((n_up, n_det * n_up)),
+    d0s['envelopes'] = OrderedDict()
+    d0s['envelopes']['linear'] = [jnp.zeros((n_up, n_det * n_up)),
                                      jnp.zeros((n_down, n_det * n_down))]
 
     # SIGMA BROADCAST
-    # params['envelopes']['sigma'] = [[jnp.zeros((n_up, 3 * n_det * n_up)) for _ in range(n_atoms)],
-    #                                 [jnp.zeros((n_down, 3 * n_det * n_down)) for _ in range(n_atoms)]]
-    params['envelopes']['sigma'] = OrderedDict()
-    params['envelopes']['sigma']['up'] = [[jnp.zeros((n_up, 3)) for _ in range(n_det * n_up)] for _ in range(n_atoms)]
-    params['envelopes']['sigma']['down'] = [[jnp.zeros((n_down, 3)) for _ in range(n_det * n_down)] for _ in range(n_atoms)]
+    d0s['envelopes']['sigma'] = OrderedDict()
+    d0s['envelopes']['sigma']['up'] = [jnp.zeros((n_up, 3 * n_det * n_up)) for _ in range(n_atoms)]
+    d0s['envelopes']['sigma']['down'] = [jnp.zeros((n_down, 3 * n_det * n_down)) for _ in range(n_atoms)]
 
+    # SIGMA LOOPY
+    # d0s['envelopes']['sigma'] = OrderedDict()
+    # d0s['envelopes']['sigma']['up'] = [[jnp.zeros((n_up, 3)) for _ in range(n_det * n_up)] for _ in range(n_atoms)]
+    # d0s['envelopes']['sigma']['down'] = [[jnp.zeros((n_down, 3)) for _ in range(n_det * n_down)] for _ in range(n_atoms)]
 
-    # params['envelopes']['pi'] = [[jnp.squeeze(x, axis=-1) for x in jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det*n_up, axis=1)],
+    # d0s['envelopes']['pi'] = [[jnp.squeeze(x, axis=-1) for x in jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det*n_up, axis=1)],
     #                              [jnp.squeeze(x, axis=-1) for x in jnp.split(jnp.zeros((n_down, n_det * n_down)), n_det*n_down, axis=1)]]
-    params['envelopes']['pi'] = [jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det * n_up, axis=1),
+    d0s['envelopes']['pi'] = [jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det * n_up, axis=1),
                                  jnp.split(jnp.zeros((n_down, n_det * n_down)), n_det * n_down, axis=1)]
 
-    return params
+    return d0s
 
 
 def expand_d0s(d0s, n_walkers):

@@ -13,7 +13,7 @@ from jax.experimental.optimizers import adam
 from .vmc import create_energy_fn
 from .sampling import to_prob, create_sampler
 from .parameters import initialise_d0s, expand_d0s
-
+from .utils import save_pk
 
 def pretrain_wf(params,
                 wf,
@@ -24,6 +24,7 @@ def pretrain_wf(params,
                 n_it: int = 1000,
                 lr: float = 1e-4,
                 n_eq_it: int = 500,
+                pre_path=None,
                 seed=1,
                 **kwargs):
     key = rnd.PRNGKey(seed)
@@ -31,6 +32,7 @@ def pretrain_wf(params,
     print('READ ME: Be careful here, '
           '(see env_sigma_i() in ferminet) wf samples and mixed samples energies diverge'
           'if the sigma and pi parameters are not set up in a very particular way\n')
+
     time.sleep(1)
     d0s_pre = expand_d0s(initialise_d0s(mol), len(walkers)//2)
     d0s = expand_d0s(initialise_d0s(mol), len(walkers))
@@ -64,8 +66,8 @@ def pretrain_wf(params,
               % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), loss_value, acceptance, mix_acceptance))
         # steps.set_postfix(E=f'{e_locs.mean():.6f}')
 
-    with open('params.pk', 'wb') as f:
-        pk.dump(params, f)
+    if not pre_path is None:
+        save_pk([params, walkers], pre_path)
 
     return params, wf_walkers
 

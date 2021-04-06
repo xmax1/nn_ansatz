@@ -146,11 +146,11 @@ def setup(system: str = 'Be',
     # root = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'experiments')
     root = os.path.join(os.getcwd(), 'experiments')
 
-    if not exp:
-        root = os.path.join(root, 'junk')
-
     if len(name) == 0:
         name = today
+
+    if not exp:
+        name = 'junk'
 
     loading = are_we_loading(load_it, load_dir)
     ansatz_hyperparameter_name = '%s_%s_%s_%s' % (n2n(n_sh, 's'), n2n(n_ph, 'p'), n2n(n_layers, 'l'), n2n(n_det, 'det'))

@@ -66,6 +66,11 @@ def run_vmc(r_atoms=None,
 
     if load_pretrain:
         params, walkers = load_pk(pre_path)
+        walkers = mol.initialise_walkers(walkers=walkers,
+                                         n_walkers=n_walkers,
+                                         equilibrate=equilibrate,
+                                         params=params,
+                                         d0s=d0s)
     else:
         walkers = mol.initialise_walkers(n_walkers=n_walkers)
         params, walkers = pretrain_wf(params,
@@ -75,19 +80,16 @@ def run_vmc(r_atoms=None,
                                       walkers,
                                       n_it=n_pre_it,
                                       lr=pre_lr,
-                                      n_eq_it=n_pre_it)
-        save_pk([params, walkers], pre_path)
-
-    params = initialise_params(key, mol)
-    walkers = mol.initialise_walkers(n_walkers=n_walkers)
+                                      n_eq_it=n_pre_it,
+                                      pre_path=pre_path)
 
     grad_fn = create_grad_function(wf, mol)
 
     if opt == 'kfac':
         update, get_params, kfac_update, state = kfac(kfac_wf, wf, mol, params, walkers, d0s,
-                                                       lr=lr,
-                                                       damping=damping,
-                                                       norm_constraint=norm_constraint)
+                                                      lr=lr,
+                                                      damping=damping,
+                                                      norm_constraint=norm_constraint)
     else:
         init, update, get_params = adam(lr)
         state = init(params)
@@ -103,18 +105,8 @@ def run_vmc(r_atoms=None,
         if opt == 'kfac':
             grads, state = kfac_update(step, grads, state, walkers, d0s)
 
-        # for g in grads:
-        #     print(jnp.mean(jnp.abs(g)))
-
-        # p1 = params
         state = update(step, grads, state)
         params = get_params(state)
-
-        # t1, map1 = tree_util.tree_flatten(p1)
-        # t2, map2 = tree_util.tree_flatten(params)
-        #
-        # for i, j in zip(t1, t2):
-        #     print(jnp.mean(jnp.abs(i - j)))
 
         steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
 
@@ -123,7 +115,5 @@ def run_vmc(r_atoms=None,
                    params=params,
                    e_locs=e_locs,
                    acceptance=acceptance)
-
-
 
 
