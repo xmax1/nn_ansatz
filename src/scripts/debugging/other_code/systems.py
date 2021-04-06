@@ -11,7 +11,7 @@ __all__ = ['Molecule']
 
 angstrom = 1 / 0.52917721092
 
-_SYSTEMS = toml.loads(resources.read_text('deepqmc.data', 'systems.toml'))
+_SYSTEMS = toml.loads(resources.read_text('deepqmc.data', 'systems_data.toml'))
 _SYSTEM_FACTORIES = {
     'Hn': lambda n, dist: {
         'coords': np.hstack(

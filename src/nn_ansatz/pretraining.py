@@ -10,33 +10,37 @@ import jax.numpy as jnp
 import jax.random as rnd
 from jax.experimental.optimizers import adam
 
-from .vmc import create_energy_function
+from .vmc import create_energy_fn
 from .sampling import to_prob, create_sampler
+from .parameters import initialise_d0s, expand_d0s
 
 
-def pretrain(params,
-             wf,
-             wf_orbitals,
-             mol,
-             walkers,
-             step_size: float = 0.02,
-             n_it: int = 1000,
-             lr: float = 1e-4,
-             seed=1):
+def pretrain_wf(params,
+                wf,
+                wf_orbitals,
+                mol,
+                walkers,
+                step_size: float = 0.02,
+                n_it: int = 1000,
+                lr: float = 1e-4,
+                n_eq_it: int = 500,
+                seed=1,
+                **kwargs):
     key = rnd.PRNGKey(seed)
 
     print('READ ME: Be careful here, '
-          'for some reason (see env_sigma_i() in ferminet) wf samples and mixed samples energies diverge.'
-          'if the sigma and pi parameters are not set up in a very particular way\n'
-          'Doesn\'t seem to be an issue?!' )
+          '(see env_sigma_i() in ferminet) wf samples and mixed samples energies diverge'
+          'if the sigma and pi parameters are not set up in a very particular way\n')
     time.sleep(1)
+    d0s_pre = expand_d0s(initialise_d0s(mol), len(walkers)//2)
+    d0s = expand_d0s(initialise_d0s(mol), len(walkers))
 
-    compute_local_energy = create_energy_function(wf, mol)
+    compute_local_energy = create_energy_fn(wf, mol)
     loss_function, sampler = create_pretrain_loss_and_sampler(wf, wf_orbitals, mol)
     loss_function = value_and_grad(loss_function)
     wf_sampler, equilibrate = create_sampler(wf, mol, correlation_length=10)
 
-    walkers = equilibrate(params, walkers, key, n_it=10, step_size=step_size)
+    walkers = equilibrate(params, walkers, d0s, key, n_it=n_eq_it, step_size=step_size)
     wf_walkers = jnp.array(walkers, copy=True)
 
     init, update, get_params = adam(lr)
@@ -46,15 +50,15 @@ def pretrain(params,
     for step in steps:
         key, *subkeys = rnd.split(key, num=3)
 
-        loss_value, grads = loss_function(params, walkers)
+        loss_value, grads = loss_function(params, walkers, d0s)
         state = update(step, grads, state)
         params = get_params(state)
 
-        wf_walkers, acceptance, step_size = wf_sampler(params, wf_walkers, subkeys[0], step_size)
-        e_locs = compute_local_energy(params, wf_walkers)
+        wf_walkers, acceptance, step_size = wf_sampler(params, wf_walkers, d0s, subkeys[0], step_size)
+        e_locs = compute_local_energy(params, wf_walkers, d0s)
 
-        walkers, mix_acceptance = sampler(params, walkers, subkeys[1], step_size)
-        e_locs_mixed = compute_local_energy(params, walkers)
+        walkers, mix_acceptance = sampler(params, walkers, d0s_pre, subkeys[1], step_size)
+        e_locs_mixed = compute_local_energy(params, walkers, d0s)
 
         print('step %i | e_mean %.2f | e_mixed %.2f | loss %.2f | wf_acc %.2f | mix_acc %.2f |'
               % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), loss_value, acceptance, mix_acceptance))
@@ -68,8 +72,8 @@ def pretrain(params,
 
 def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: int=10):
 
-    wf = jit(vmap(wf, in_axes=(None, 0)))
-    wf_orbitals = jit(vmap(wf_orbitals, in_axes=(None, 0)))
+    vwf = jit(vmap(wf, in_axes=(None, 0, 0)))
+    vwf_orbitals = jit(vmap(wf_orbitals, in_axes=(None, 0, 0)))
 
     def _pyscf_call(walkers):
         walkers = walkers.reshape((-1, 3))
@@ -98,21 +102,19 @@ def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: i
         ao_values = _pyscf_call(walkers)
         up_dets, down_dets = _hf_orbitals(ao_values)
 
-        spin_ups = up_dets ** 2
-        spin_downs = down_dets ** 2
+        spin_ups = up_dets**2
+        spin_downs = down_dets**2
 
         p_up = jnp.diagonal(spin_ups, axis1=-2, axis2=-1).prod(-1)
         p_down = jnp.diagonal(spin_downs, axis1=-2, axis2=-1).prod(-1)
-        # p_up = spin_ups.prod(1).prod(1)
-        # p_down = spin_downs.prod(1).prod(1)
 
         probabilities = p_up * p_down
 
         return probabilities
 
-    def _loss_function(params, walkers):
+    def _loss_function(params, walkers, d0s):
 
-        wf_up_dets, wf_down_dets = wf_orbitals(params, walkers)
+        wf_up_dets, wf_down_dets = vwf_orbitals(params, walkers, d0s)
         n_det = wf_up_dets.shape[1]
 
         ao_values = _pyscf_call(walkers)
@@ -120,7 +122,6 @@ def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: i
         up_dets = tile_labels(up_dets, n_det)
         down_dets = tile_labels(down_dets, n_det)
 
-        # print(wf_up_dets.shape, up_dets.shape)
         loss = mse_error(up_dets, wf_up_dets)
         loss += mse_error(down_dets, wf_down_dets)
         return loss
@@ -128,6 +129,7 @@ def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: i
     def _step_metropolis_hastings(params,
                                   curr_walkers_wf,
                                   curr_probs_wf,
+                                  d0s,
                                   curr_walkers_hf,
                                   new_walkers_hf,
                                   curr_probs_hf,
@@ -138,7 +140,7 @@ def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: i
 
         # next sample
         new_walkers_wf = curr_walkers_wf + rnd.normal(subkeys[0], shape) * step_size
-        new_probs_wf = to_prob(wf(params, new_walkers_wf))
+        new_probs_wf = to_prob(vwf(params, new_walkers_wf, d0s))
 
         # update sample
         alpha_wf = new_probs_wf / curr_probs_wf
@@ -159,12 +161,13 @@ def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: i
 
     step_metropolis_hastings = jit(_step_metropolis_hastings)
 
-    def _sample_metropolis_hastings(params, walkers, key, step_size):
+    def _sample_metropolis_hastings(params, walkers, d0s, key, step_size):
+
         curr_walkers_wf, curr_walkers_hf = jnp.split(walkers, 2, axis=0)
+
         shape = curr_walkers_wf.shape
 
-        curr_amps_wf = wf(params, curr_walkers_wf)
-        curr_probs_wf = to_prob(curr_amps_wf)
+        curr_probs_wf = to_prob(vwf(params, curr_walkers_wf, d0s))
         curr_probs_hf = _compute_orbital_probability(curr_walkers_hf)
 
         acceptance_total_wf = 0.
@@ -179,6 +182,7 @@ def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: i
                 step_metropolis_hastings(params,
                                          curr_walkers_wf,
                                          curr_probs_wf,
+                                         d0s,
                                          curr_walkers_hf,
                                          new_walkers_hf,
                                          curr_probs_hf,

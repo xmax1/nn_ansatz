@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from jax import random as rnd
 from jax import jit, vmap
 
-from .vmc import create_energy_function
+from .vmc import create_energy_fn
 
 
 def to_prob(amplitudes):
@@ -25,17 +25,18 @@ def initialize_samples(ne_atoms, atom_positions, n_samples):
     ups = np.concatenate(ups, axis=1)
     downs = np.concatenate(downs, axis=1)
     curr_sample = np.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
+    print(curr_sample.shape)
     return curr_sample
 
 
 def create_sampler(wf, mol, correlation_length: int=10):
 
-    vwf = vmap(wf, in_axes=(None, 0))
+    vwf = vmap(wf, in_axes=(None, 0, 0))
 
-    def _sample_metropolis_hastings_loop(params, curr_walkers, key, step_size):
+    def _sample_metropolis_hastings_loop(params, curr_walkers, d0s, key, step_size):
 
         shape = curr_walkers.shape
-        curr_probs = to_prob(vwf(params, curr_walkers))
+        curr_probs = to_prob(vwf(params, curr_walkers, d0s))
 
         acceptance_total = 0.
         for _ in range(correlation_length):
@@ -43,7 +44,7 @@ def create_sampler(wf, mol, correlation_length: int=10):
 
             # next sample
             new_walkers = curr_walkers + rnd.normal(subkeys[0], shape) * step_size
-            new_probs = to_prob(vwf(params, new_walkers))
+            new_probs = to_prob(vwf(params, new_walkers, d0s))
 
             # update sample
             alpha = new_probs / curr_probs
@@ -60,25 +61,25 @@ def create_sampler(wf, mol, correlation_length: int=10):
 
     jit_sample_metropolis_hastings_loop = jit(_sample_metropolis_hastings_loop)
 
-    def _sample_metropolis_hastings(params, walkers, key, step_size):
+    def _sample_metropolis_hastings(params, walkers, d0s, key, step_size):
         """
         Notes:
             - This has to be done this way because adjust_step_size contains control flow
         """
 
-        walkers, acceptance, step_size = jit_sample_metropolis_hastings_loop(params, walkers, key, step_size)
+        walkers, acceptance, step_size = jit_sample_metropolis_hastings_loop(params, walkers, d0s, key, step_size)
         step_size = adjust_step_size(step_size, acceptance)
 
         return walkers, acceptance, step_size
 
-    compute_energy = create_energy_function(wf, mol)
+    compute_energy = create_energy_fn(wf, mol)
 
-    def _equilibrate(params, walkers, key, n_it=1000, step_size=0.02 ** 2):
+    def _equilibrate(params, walkers, d0s, key, n_it=1000, step_size=0.02 ** 2):
 
         for i in range(n_it):
             key, subkey = rnd.split(key)
-            e_locs = compute_energy(params, walkers)
-            walkers, acc, step_size = _sample_metropolis_hastings(params, walkers, key, step_size)
+            e_locs = compute_energy(params, walkers, d0s)
+            walkers, acc, step_size = _sample_metropolis_hastings(params, walkers, d0s, subkey, step_size)
 
             print('step %i energy %.4f acceptance %.2f' % (i, jnp.mean(e_locs), acc))
 

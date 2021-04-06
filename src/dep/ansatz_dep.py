@@ -2,23 +2,16 @@ import jax.numpy as jnp
 from jax import vmap
 import numpy as np
 
-from .utils import remove_aux
-from .parameters import expand_d0s, initialise_d0s
 
+def create_wf(mol, kfac=False):
 
-def create_wf(mol):
     n_up, n_down, r_atoms, n_el = mol.n_up, mol.n_down, mol.r_atoms, mol.n_el
     masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph)
 
-    # for when the time comes to refactor and remove all the d0s
-    # d0s = expand_d0s(initialise_d0s(mol), mol.n_walkers)
-
-    def _wf_orbitals(params, walkers, d0s):
+    def _wf_orbitals(params, walkers):
 
         if len(walkers.shape) == 1:  # this is a hack to get around the jvp
-            walkers = walkers.reshape(n_up + n_down, 3)
-
-        activations = []
+            walkers = walkers.reshape(n_up+n_down, 3)
 
         ae_vectors = compute_ae_vectors_i(walkers, r_atoms)
 
@@ -26,50 +19,41 @@ def create_wf(mol):
 
         single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *masks[0])
 
-        split = linear_split(params['split0'], split, activations, d0s['split0'])
-        single = linear(params['s0'], single_mixed, split, activations, d0s['s0'])
-        pairwise = linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
+        split = linear_split(params['split0'], split)
+        single = linear(params['s0'], single_mixed, split)
+        pairwise = linear_pairwise(params['p0'], pairwise)
 
-        for (split_params, s_params, p_params), (split_per, s_per, p_per), mask \
-                in zip(params['intermediate'], d0s['intermediate'], masks[1:]):
+        for (split_params, s_params, p_params), mask in zip(params['intermediate'], masks[1:]):
+
             single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *mask)
 
-            split = linear_split(split_params, split, activations, split_per)
-            single = linear(s_params, single_mixed, split, activations, s_per) + single
-            pairwise = linear_pairwise(p_params, pairwise, activations, p_per) + pairwise
+            split = linear_split(split_params, split)
+            single = linear(s_params, single_mixed, split) + single
+            pairwise = linear_pairwise(p_params, pairwise) + pairwise
 
         ae_up, ae_down = jnp.split(ae_vectors, [n_up], axis=0)
         data_up, data_down = jnp.split(single, [n_up], axis=0)
 
-        factor_up = env_linear_i(params['envelopes']['linear'][0], data_up, activations, d0s['envelopes']['linear'][0])
-        factor_down = env_linear_i(params['envelopes']['linear'][1], data_down, activations, d0s['envelopes']['linear'][1])
+        factor_up = env_linear_i(params['envelopes']['linear'][0], data_up)
+        factor_down = env_linear_i(params['envelopes']['linear'][1], data_down)
 
-        exp_up = env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'])
-        exp_down = env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'])
+        exp_up = env_sigma_i(params['envelopes']['sigma'][0], ae_up)
+        exp_down = env_sigma_i(params['envelopes']['sigma'][1], ae_down)
 
-        orb_up = env_pi_i(params['envelopes']['pi'][0], factor_up, exp_up, activations, d0s['envelopes']['pi'][0])
-        orb_down = env_pi_i(params['envelopes']['pi'][1], factor_down, exp_down, activations, d0s['envelopes']['pi'][1])
-        return orb_up, orb_down, activations
+        orb_up = env_pi_i(params['envelopes']['pi'][0], factor_up, exp_up)
+        orb_down = env_pi_i(params['envelopes']['pi'][1], factor_down, exp_down)
+        return orb_up, orb_down
 
-    def _wf(params, walkers, d0s):
+    def _wf(params, walkers):
 
-        orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
+        orb_up, orb_down = _wf_orbitals(params, walkers)
         log_psi = logabssumdet(orb_up, orb_down)
         return log_psi
 
-    def _kfac_wf(params, walkers, d0s):
-
-        orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
-        log_psi = logabssumdet(orb_up, orb_down)
-        return log_psi, activations
-
-    wf_orbitals = remove_aux(_wf_orbitals, axis=1)
-
-    return _wf, _kfac_wf, wf_orbitals
+    return _wf, _wf_orbitals
 
 
 def create_masks(n_atom, n_electrons, n_up, n_layers, n_sh, n_ph):
-
     n_sh_in, n_ph_in = 4 * n_atom, 4
 
     masks = [create_masks_layer(n_sh_in, n_ph_in, n_electrons, n_up)]
@@ -139,7 +123,7 @@ def drop_diagonal_i(square):
     split1 = jnp.split(square, n, axis=0)
     upper = [jnp.split(split1[i], [j], axis=1)[1] for i, j in zip(range(0, n), range(1, n))]
     lower = [jnp.split(split1[i], [j], axis=1)[0] for i, j in zip(range(1, n), range(1, n))]
-    arr = [ls[i] for i in range(n-1) for ls in (upper, lower)]
+    arr = [ls[i] for i in range(n - 1) for ls in (upper, lower)]
     result = jnp.concatenate(arr, axis=1)
     return jnp.squeeze(result)
 
@@ -176,79 +160,47 @@ def compute_inputs_i(walkers, ae_vectors):
 compute_inputs = vmap(compute_inputs_i, in_axes=(0, 0))
 
 
-def linear_split(p: jnp.array,
-                 data: jnp.array,
-                 activations: list,
-                 d0: jnp.array) -> jnp.array:
-
-    activation = data
-    activations.append(activation)
-    pre_activation = jnp.dot(data, p) + d0
-    return pre_activation
+def linear_split(p: jnp.array, data: jnp.array) -> jnp.array:
+    return jnp.dot(data, p)
 
 
 def linear(p: jnp.array,
            data: jnp.array,
-           split: jnp.array,
-           activations: list,
-           d0: jnp.array) -> jnp.array:
-
+           split: jnp.array) -> jnp.array:
     bias = jnp.ones((*data.shape[:-1], 1))
-    activation = jnp.concatenate([data, bias], axis=-1)
-    activations.append(activation)
-
-    pre_activation = jnp.dot(activation, p) + d0
-    return jnp.tanh(pre_activation + split)
+    data = jnp.concatenate([data, bias], axis=-1)
+    return jnp.tanh(jnp.dot(data, p) + split)
 
 
 def linear_pairwise(p: jnp.array,
-                    data: jnp.array,
-                    activations: list,
-                    d0: jnp.array) -> jnp.array:
-
+                    data: jnp.array) -> jnp.array:
     bias = jnp.ones((*data.shape[:-1], 1))
-    activation = jnp.concatenate([data, bias], axis=-1)
-    activations.append(activation)
-
-    pre_activation = jnp.dot(activation, p) + d0
-    return jnp.tanh(pre_activation)
+    data = jnp.concatenate([data, bias], axis=-1)
+    return jnp.tanh(jnp.dot(data, p))
 
 
 def env_linear_i(params: jnp.array,
-                 data: jnp.array,
-                 activations: list,
-                 d0: jnp.array) -> jnp.array:
-    # params (k * i, f)
+                 data: jnp.array) -> jnp.array:
+    # params (k, i, f)
     # data (j, f)
 
-    n_spins = data.shape[0]
-
-    # data = jnp.transpose(data)
-    # bias = jnp.ones((1, data.shape[-1]))
-    # data = jnp.concatenate((data, bias), axis=0)
-    # pre_activations = jnp.dot(params, data)
-
-    bias = jnp.ones((n_spins, 1))
-    activation = jnp.concatenate((data, bias), axis=1)
-    activations.append(activation)
-    pre_activations = jnp.matmul(activation, params) + d0
-    pre_activations = jnp.transpose(pre_activations).reshape(-1, n_spins, n_spins)
+    data = jnp.transpose(data)
+    bias = jnp.ones((1, data.shape[-1]))
+    data = jnp.concatenate((data, bias), axis=0)
+    out = jnp.dot(params, data)
 
     # bias = jnp.ones((data.shape[0], 1))
     # data = jnp.concatenate((data, bias), axis=1)
     # out = jnp.einsum('jf,kif->kij', data, params)
     # print(out.shape)
-    # print(params.shape, pre_activations.shape, activation.shape)
-    return pre_activations
+    return out
 
 
 env_linear = vmap(env_linear_i, in_axes=(None, 0))
 
 
 def env_sigma_i(sigmas: jnp.array,
-                ae_vectors: jnp.array,
-                activations: list,
-                d0s: jnp.array) -> jnp.array:
+                ae_vectors: jnp.array) -> jnp.array:
     """
 
     Notes:
@@ -280,65 +232,37 @@ def env_sigma_i(sigmas: jnp.array,
     # ae_vectors (n_spin, n_atom, 3)
 
     # exponent = jnp.einsum('jmv,kimvc->jkimc', ae_vectors, sigma)
+
     # return jnp.exp(-jnp.linalg.norm(exponent, axis=-1))
 
-    # SIGMA BROADCAST VERSION
-    # n_spin, n_atom, _ = ae_vectors.shape
-    # ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
-    # outs = []
-    # for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
-    #     activations.append(ae_vector)
-    #     pre_activation = jnp.matmul(ae_vector, sigma) + d0
-    #     exponent = pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F')
-    #     out = jnp.exp(-jnp.linalg.norm(exponent, axis=1))
-    #     outs.append(out)
-    # return jnp.concatenate(outs, axis=-1)
+    n_spin, n_atom, _ = ae_vectors.shape
 
-    # SIGMA LOOPY
-    n_spins, n_atom, _ = ae_vectors.shape
     ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
-    m_layer = []
-    for i, ae_vector in enumerate(ae_vectors):
-        ki_layer = []
-        for sigma, d0 in zip(sigmas[i], d0s[i]):
-            activations.append(ae_vector)
-            pre_activation = jnp.matmul(ae_vector, sigma) + d0
-            out = jnp.exp(-jnp.linalg.norm(pre_activation, axis=1))
-            ki_layer.append(out)
-        m_layer.append(jnp.stack(ki_layer, axis=-1).reshape(n_spins, -1, n_spins))
-    return jnp.stack(m_layer, axis=-1)
+
+    outs = []
+    for ae_vector, sigma in zip(ae_vectors, sigmas):
+        exponent = jnp.matmul(ae_vector, sigma).reshape(n_spin, 3, -1, n_spin, 1, order='F')
+        out = jnp.exp(-jnp.linalg.norm(exponent, axis=1))
+        outs.append(out)
+
+    return jnp.concatenate(outs, axis=-1)
 
 
-
-def env_pi_i(pis: jnp.array,
+def env_pi_i(pi: jnp.array,
              factor: jnp.array,
-             exponential: jnp.array,
-             activations: list,
-             d0s) -> jnp.array:
+             exponential: jnp.array) -> jnp.array:
     # exponential (j k i m)
     # factor (k i j)
 
-    n_spins, n_det = exponential.shape[:2]
-
-    # EINSUM METHOD (does not work with kfac)
     # orbitals = factor * jnp.einsum('jkim,kim->kij', exponential, pi)
 
-    # MATRIX METHOD (does not work with kfac, yet)
-    # shape = exponential.shape
-    # activation = exponential.reshape(shape[0], -1)
-    # activations.append(activation)
-    # pre_activations = activation * pi + d0
-    # orbitals = pre_activations.reshape(shape).sum(-1)
+    shape = exponential.shape
+    exponential = exponential.reshape(shape[0], -1)
+    orbitals = exponential * pi
+    orbitals = orbitals.reshape(shape).sum(-1)
 
-    exponential = [jnp.squeeze(x, axis=(1, 2))
-                   for y in jnp.split(exponential, n_spins, axis=2)
-                   for x in jnp.split(y, n_det, axis=1)]
-
-    [activations.append(x) for x in exponential]
-    # [print((e @ pi).shape, d0.shape) for pi, e, d0 in zip(pis, exponential, d0s)]
-    orbitals = jnp.stack([(e @ pi) + d0 for pi, e, d0 in zip(pis, exponential, d0s)], axis=-1)
     # print(factor.shape, orbitals.shape)
-    return factor * jnp.transpose(orbitals.reshape(n_spins, n_det, n_spins), (1, 2, 0))
+    return factor * jnp.transpose(orbitals, (1, 2, 0))
 
 
 env_pi = vmap(env_pi_i, in_axes=(None, 0, 0))
@@ -367,8 +291,11 @@ def mixer_i(single: jnp.array,
             pairwise_up_mask,
             pairwise_down_mask):
     # single (n_samples, n_el, n_single_features)
-    # pairwise (n_samples, n_pairwise, n_pairwise_features)
+    # pairwise (n_samples, n_el, n_pairwise_features)
+    # spin_up_mask = self.spin_up_mask.repeat((n_samples, 1, 1))
+    # spin_down_mask = self.spin_down_mask.repeat((n_samples, 1, 1))
 
+    # print(single.shape, pairwise.shape, single_up_mask.shape, pairwise_up_mask.shape)
     # --- Single summations
     # up
     sum_spin_up = single_up_mask * single

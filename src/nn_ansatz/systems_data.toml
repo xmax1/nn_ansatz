@@ -1,0 +1,31 @@
+
+[LiH]
+r_atoms = [[0.0, 0.0, 0.0], [1.595, 0.0, 0.0]]
+z_atoms = [3.0, 1.0]
+n_el_atoms = [3, 1]
+n_el = 4
+
+[He]
+r_atoms = [[0.0, 0.0, 0.0]]
+z_atoms = [2.0]
+n_el_atoms = [2]
+n_el = 2
+
+[Be]
+r_atoms = [[0.0, 0.0, 0.0]]
+z_atoms = [4.0]
+n_el_atoms = [4]
+n_el = 4
+
+[B]
+r_atoms = [[0.0, 0.0, 0.0]]
+z_atoms = [5.0]
+n_el_atoms = [5]
+n_el = 5
+
+[C]
+r_atoms = [[0.0, 0.0, 0.0]]
+z_atoms = [6.0]
+n_el_atoms = [6]
+n_el = 6
+

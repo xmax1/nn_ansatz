@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import math
 from pyscf import dft, gto
 from pyscf.scf import RHF
+import jax.random as rnd
 
 
 def create_atom(r_atoms, z_atom):
@@ -32,6 +33,7 @@ class SystemAnsatz():
         n_down = n_el - n_up
 
         self.n_el = n_el
+        self.n_pairwise = n_el**2 - n_el
         self.n_up = n_up
         self.n_down = n_down
         self.spin = n_up - n_down  # will this be different for molecules?
@@ -43,12 +45,14 @@ class SystemAnsatz():
         self.r_atoms = r_atoms
 
         if n_el_atoms is None:
-            self.n_el_atoms = [int(x) for x in z_atoms]
+            n_el_atoms = jnp.array([int(x) for x in z_atoms])
+        self.n_el_atoms = n_el_atoms
 
         print('System: \n',
               'n_atoms = %i \n' % self.n_atoms,
-              'n_up    = %i \n' % n_up,
-              'n_down  = %i \n' % n_down)
+              'n_up    = %i \n' % self.n_up,
+              'n_down  = %i \n' % self.n_down,
+              'n_el    = %i \n' % self.n_el)
 
         print('Ansatz: \n',
               'n_layers = %i \n' % n_layers,
@@ -86,10 +90,10 @@ class SystemAnsatz():
         return [x for x in self.r_atoms.split(self.n_atoms, axis=0)]
 
     def initialise_walkers(self, n_walkers: int=1024):
-        return initialize_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
+        return initialise_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
 
 
-def initialize_walkers(ne_atoms, atom_positions, n_walkers):
+def initialise_walkers(ne_atoms, atom_positions, n_walkers):
     r""" Initialises walkers for pretraining
 
         Usage:
@@ -101,21 +105,27 @@ def initialize_walkers(ne_atoms, atom_positions, n_walkers):
             n_walkers (int): number of walkers
 
         Returns:
-            walkers (np.array): walker positions (n_walkers, n_elec, 3)
+            walkers (np.array): walker positions (n_walkers, n_el, 3)
 
         """
+    key = rnd.PRNGKey(1)
     ups = []
     downs = []
     for ne_atom, atom_position in zip(ne_atoms, atom_positions):
         for e in range(ne_atom):
+            key, subkey = rnd.split(key)
+
             if e % 2 == 0:  # fill up the orbitals alternating up down
-                curr_sample_up = np.random.normal(loc=atom_position, scale=1., size=(n_walkers, 1, 3))
+                # curr_sample_up = np.random.normal(loc=atom_position, scale=1., size=(n_walkers, 1, 3))
+                curr_sample_up = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
                 ups.append(curr_sample_up)
             else:
-                curr_sample_down = np.random.normal(loc=atom_position, scale=1., size=(n_walkers, 1, 3))
+                curr_sample_down = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
+                # curr_sample_down = np.random.normal(loc=atom_position, scale=1., size=(n_walkers, 1, 3))
                 downs.append(curr_sample_down)
-    ups = np.concatenate(ups, axis=1)
-    downs = np.concatenate(downs, axis=1)
-    curr_sample = np.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
-    return jnp.array(curr_sample)
+
+    ups = jnp.concatenate(ups, axis=1)
+    downs = jnp.concatenate(downs, axis=1)
+    curr_sample = jnp.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
+    return curr_sample
 
