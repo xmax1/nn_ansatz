@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from jax import vmap, jit, grad
 from jax.experimental.optimizers import adam
 from jax import tree_util
-from tqdm import trange
+from tqdm.notebook import trange
 
 
 from .sampling import create_sampler
@@ -22,6 +22,9 @@ def run_vmc(r_atoms=None,
             z_atoms=None,
             n_el=None,
             n_el_atoms=None,
+            periodic_boundaries=False,
+            cell_basis=None,
+            unit_cell_length=None,
 
             opt: str = 'kfac',
             lr: float = 1e-4,
@@ -39,6 +42,7 @@ def run_vmc(r_atoms=None,
             pre_lr: float = 1e-4,
             n_pre_it: int = 1000,
             load_pretrain: bool = False,
+            pretrain: bool = False,
             pre_path: str = '',
 
             seed: int = 369,
@@ -51,6 +55,9 @@ def run_vmc(r_atoms=None,
     mol = SystemAnsatz(r_atoms,
                        z_atoms,
                        n_el,
+                       unit_cell_length=unit_cell_length,
+                       cell_basis=cell_basis,
+                       periodic_boundaries=periodic_boundaries,
                        n_el_atoms=n_el_atoms,
                        n_layers=n_layers,
                        n_sh=n_sh,
@@ -64,24 +71,32 @@ def run_vmc(r_atoms=None,
 
     sampler, equilibrate = create_sampler(wf, mol, correlation_length=10)
 
-    if load_pretrain:
-        params, walkers = load_pk(pre_path)
-        walkers = mol.initialise_walkers(walkers=walkers,
-                                         n_walkers=n_walkers,
-                                         equilibrate=equilibrate,
-                                         params=params,
-                                         d0s=d0s)
-    else:
-        walkers = mol.initialise_walkers(n_walkers=n_walkers)
-        params, walkers = pretrain_wf(params,
-                                      wf,
-                                      wf_orbitals,
-                                      mol,
-                                      walkers,
-                                      n_it=n_pre_it,
-                                      lr=pre_lr,
-                                      n_eq_it=n_pre_it,
-                                      pre_path=pre_path)
+    walkers = mol.initialise_walkers(n_walkers=n_walkers)
+
+    if pretrain:  # this logic is ugly but need to include case where we want to skip pretraining
+        if load_pretrain:
+            params, walkers = load_pk(pre_path)
+            walkers = mol.initialise_walkers(walkers=walkers,
+                                             n_walkers=n_walkers,
+                                             equilibrate=equilibrate,
+                                             params=params,
+                                             d0s=d0s)
+        else:
+            params, walkers = pretrain_wf(params,
+                                          wf,
+                                          wf_orbitals,
+                                          mol,
+                                          walkers,
+                                          n_it=n_pre_it,
+                                          lr=pre_lr,
+                                          n_eq_it=n_pre_it,
+                                          pre_path=pre_path)
+
+    walkers = mol.initialise_walkers(walkers=walkers,
+                                     n_walkers=n_walkers,
+                                     equilibrate=equilibrate,
+                                     params=params,
+                                     d0s=d0s)
 
     grad_fn = create_grad_function(wf, mol)
 
@@ -90,9 +105,12 @@ def run_vmc(r_atoms=None,
                                                       lr=lr,
                                                       damping=damping,
                                                       norm_constraint=norm_constraint)
-    else:
+    elif opt == 'adam':
         init, update, get_params = adam(lr)
+        update = jit(update)
         state = init(params)
+    else:
+        exit('Optimiser not available')
 
     steps = trange(0, n_it, initial=0, total=n_it, desc='training', disable=None)
     for step in steps:
@@ -109,6 +127,7 @@ def run_vmc(r_atoms=None,
         params = get_params(state)
 
         steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
+        steps.refresh()
 
         logger.log(step,
                    opt_state=state,

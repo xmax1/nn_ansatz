@@ -1,4 +1,11 @@
 
+[Li]
+r_atoms = [[0.0, 0.0, 0.0]]
+cell_basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
+z_atoms = [3.0]
+n_el_atoms = [3]
+n_el = 3
+
 [LiH]
 r_atoms = [[0.0, 0.0, 0.0], [1.595, 0.0, 0.0]]
 z_atoms = [3.0, 1.0]
@@ -29,3 +36,11 @@ z_atoms = [6.0]
 n_el_atoms = [6]
 n_el = 6
 
+[LiSolid]
+periodic_boundaries = true
+cell_basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
+unit_cell_length = 7.407726
+r_atoms = [[0.5, 0.5, 0.5]]
+z_atoms = [3.0]
+n_el_atoms = [3]
+n_el = 3

@@ -71,7 +71,7 @@ def are_we_loading(load_it, load_dir):
     return False
 
 
-def are_we_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_hyperparameter_name):
+def are_we_loading_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_hyperparameter_name):
     pretrain_dir = os.path.join(root, system, 'pretrained')
     hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
     pretrain_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
@@ -87,23 +87,41 @@ def make_dir(path):
     os.makedirs(path)
 
 
-def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms):
-    if system in systems_data:
+def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length, ignore_toml):
+    if ignore_toml or not system in systems_data:
+        if n_el is None and n_el_atoms is None:
+            if system == 'Be':
+                n_el = 4
+            else:
+                exit('Need number of electrons as minimum input or system in toml file')
+        print('Assuming atomic system')
+        n_el_atoms = jnp.array([n_el]) if n_el is not None else n_el_atoms
+        n_el = n_el if n_el is not None else int(jnp.sum(n_el_atoms))
+        if r_atoms is None:
+            r_atoms = jnp.array([[0.0, 0.0, 0.0]])
+        if z_atoms is None:
+            z_atoms = jnp.ones((1,)) * n_el
+        return r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length
+    else:
         d = systems_data[system]
-        return jnp.array(d['r_atoms']), jnp.array(d['z_atoms']), d['n_el'], jnp.array(d['n_el_atoms'])
-    if n_el is None and n_el_atoms is None:
-        if system == 'Be':
-            n_el = 4
-        else:
-            exit('Need number of electrons as minimum input or system in toml file')
-    print('Assuming atomic system')
-    n_el_atoms = jnp.array([n_el]) if n_el is not None else n_el_atoms
-    n_el = n_el if n_el is not None else int(jnp.sum(n_el_atoms))
-    if r_atoms is None:
-        r_atoms = jnp.array([[0.0, 0.0, 0.0]])
-    if z_atoms is None:
-        z_atoms = jnp.ones((1,)) * n_el
-    return r_atoms, z_atoms, n_el, n_el_atoms
+        return jnp.array(d['r_atoms']), \
+               jnp.array(d['z_atoms']), \
+               d['n_el'], \
+               jnp.array(d['n_el_atoms']), \
+               d.get('periodic_boundaries'), \
+               jnp.array(d.get('cell_basis')), \
+               d.get('unit_cell_length'),
+
+
+def get_run(exp_dir):
+    exps = os.listdir(exp_dir)
+    nums = [int(e[-1]) for e in exps if 'run' in e]
+    trial = 0
+    while True:
+        if trial not in nums:
+            break
+        trial += 1
+    return trial
 
 
 def setup(system: str = 'Be',
@@ -116,6 +134,10 @@ def setup(system: str = 'Be',
           z_atoms=None,
           n_el=None,
           n_el_atoms=None,
+          ignore_toml=False,
+          periodic_boundaries=False,
+          cell_basis=None,
+          unit_cell_length=None,
 
           opt: str = 'kfac',
           lr: float = 1e-4,
@@ -157,13 +179,13 @@ def setup(system: str = 'Be',
     if loading:
         exp_dir = load_dir
     else:
-        hyperparameter_name = '%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'))
+        hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
         exp_dir = os.path.join(root, system, name, hyperparameter_name + ansatz_hyperparameter_name)
         make_dir(exp_dir)
-        run = 'run%i' % len(os.listdir(exp_dir))
+        run = 'run%i' % get_run(exp_dir)
         exp_dir = os.path.join(exp_dir, run)
 
-    load_pretrain, pre_path = are_we_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_hyperparameter_name)
+    load_pretrain, pre_path = are_we_loading_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_hyperparameter_name)
 
     events_dir = os.path.join(exp_dir, 'events')
     timing_dir = os.path.join(events_dir, 'timing')
@@ -171,7 +193,8 @@ def setup(system: str = 'Be',
     opt_state_dir = os.path.join(models_dir, 'opt_state')
     [make_dir(x) for x in [events_dir, models_dir, opt_state_dir]]
 
-    r_atoms, z_atoms, n_el, n_el_atoms = get_system(system, r_atoms, z_atoms, n_el, n_el_atoms)
+    r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length \
+        = get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length, ignore_toml)
 
     config = {'version': version,
               'seed': seed,
@@ -186,12 +209,17 @@ def setup(system: str = 'Be',
               'pre_path': pre_path,
               'timing_dir': timing_dir,
 
-              # SYSTEM & ANSATZ
+              # SYSTEM
               'system': system,
               'r_atoms': r_atoms,
               'z_atoms': z_atoms,
               'n_el': n_el,
               'n_el_atoms': n_el_atoms,
+              'periodic_boundaries': periodic_boundaries,
+              'cell_basis': cell_basis,
+              'unit_cell_length': unit_cell_length,
+
+              # ANSATZ
               'n_layers': n_layers,
               'n_sh': n_sh,
               'n_ph': n_ph,
@@ -211,6 +239,7 @@ def setup(system: str = 'Be',
               'pre_lr': pre_lr,
               'n_pre_it': n_pre_it,
               'load_pretrain': load_pretrain,
+              'pretrain': pretrain
 
     }
 
@@ -225,6 +254,14 @@ def setup(system: str = 'Be',
 def save_pk(data, path):
     with open(path, 'wb') as f:
         pk.dump(data, f)
+
+
+def compute_last10(e_means):
+    n_it = len(e_means)
+    if n_it < 10:
+        return float(jnp.mean(jnp.array(e_means)))
+    idx = n_it // 10
+    return float(jnp.mean(jnp.array(e_means[-idx:])))
 
 
 class Logging():
@@ -245,6 +282,7 @@ class Logging():
         self.models_dir = models_dir
 
         self.times = {}
+        self.e_means = []
 
     def log(self,
             step,
@@ -265,10 +303,14 @@ class Logging():
         if e_locs is not None:
             e_mean = float(jnp.mean(e_locs))
             e_std = float(jnp.std(e_locs))
+            self.e_means.append(e_mean)
             self.writer.add_scalar('e_mean', e_mean, step)
             self.writer.add_scalar('e_std', e_std, step)
+            e_mean_mean = compute_last10(self.e_means)
+            self.writer.add_scalar('e_mean_mean', e_mean_mean, step)
             self.printer['e_mean'] = e_mean
             self.printer['e_std'] = e_std
+            self.printer['e_mean_mean'] = e_mean_mean
 
         if acceptance is not None:
             self.writer.add_scalar('acceptance', float(acceptance), step)
@@ -312,7 +354,7 @@ class Logging():
     def print_pretty(self, step):
         string = 'step %i |' % step
         for k, val in self.printer.items():
-            string += ' %s %.2f |' % (k, val)
+            string += ' %s %.4f |' % (k, val)
         print(string)
 
 

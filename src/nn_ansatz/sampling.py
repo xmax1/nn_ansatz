@@ -11,25 +11,29 @@ def to_prob(amplitudes):
     return jnp.exp(amplitudes)**2
 
 
-def initialize_samples(ne_atoms, atom_positions, n_samples):
-    ups = []
-    downs = []
-    for ne_atom, atom_position in zip(ne_atoms, atom_positions):
-        for e in range(ne_atom):
-            if e % 2 == 0:  # fill up the orbitals alternating up down
-                curr_sample_up = np.random.normal(loc=atom_position, scale=1., size=(n_samples, 1, 3))
-                ups.append(curr_sample_up)
-            else:
-                curr_sample_down = np.random.normal(loc=atom_position, scale=1., size=(n_samples, 1, 3))
-                downs.append(curr_sample_down)
-    ups = np.concatenate(ups, axis=1)
-    downs = np.concatenate(downs, axis=1)
-    curr_sample = np.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
-    print(curr_sample.shape)
-    return curr_sample
+def create_step(mol):
+
+    def _no_boundaries_step(walkers, key, shape, step_size):
+        return walkers + rnd.normal(key, shape) * step_size
+
+    def _periodic_boundaries_step(walkers, key, shape, step_size):
+        walkers = walkers + rnd.normal(key, shape) * step_size
+        talkers = walkers.dot(mol.inv_cell_basis)
+        talkers = jnp.fmod(talkers, 1.)
+        talkers = jnp.where(talkers < 0, talkers + 1., talkers)
+        talkers = talkers.dot(mol.cell_basis)
+        return talkers
+
+    if mol.periodic_boundaries:
+        return _periodic_boundaries_step
+    return _no_boundaries_step
 
 
-def create_sampler(wf, mol, correlation_length: int=10):
+def create_sampler(wf,
+                   mol,
+                   correlation_length: int=10):
+
+    step = create_step(mol)
 
     vwf = vmap(wf, in_axes=(None, 0, 0))
 
@@ -43,7 +47,7 @@ def create_sampler(wf, mol, correlation_length: int=10):
             key, *subkeys = rnd.split(key, num=3)
 
             # next sample
-            new_walkers = curr_walkers + rnd.normal(subkeys[0], shape) * step_size
+            new_walkers = step(curr_walkers, subkeys[0], shape, step_size)
             new_probs = to_prob(vwf(params, new_walkers, d0s))
 
             # update sample
@@ -94,6 +98,3 @@ def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
     else:
         step_size += 0.001
     return step_size
-
-
-

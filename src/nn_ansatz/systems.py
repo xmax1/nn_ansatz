@@ -16,6 +16,9 @@ class SystemAnsatz():
                  r_atoms,
                  z_atoms,
                  n_el,
+                 cell_basis=None,
+                 periodic_boundaries=False,
+                 unit_cell_length=None,
                  n_layers=2,
                  n_sh=64,
                  n_ph=16,
@@ -84,12 +87,21 @@ class SystemAnsatz():
 
         # sampling
         self.step_size = step_size
+        self.periodic_boundaries = periodic_boundaries
+        if periodic_boundaries:
+            primitive_vector_length = jnp.sqrt(jnp.sum(cell_basis[0]**2))
+            print('LENGTH PRIMITIVE CELL', primitive_vector_length)
+            self.cell_basis = unit_cell_length * cell_basis
+            self.inv_cell_basis = jnp.linalg.pinv(self.cell_basis)
+            self.r_atoms = self.r_atoms * unit_cell_length
+
+
 
     @property
     def atom_positions(self):
         return [x for x in self.r_atoms.split(self.n_atoms, axis=0)]
 
-    def initialise_walkers(self, params=None, d0s=None, equilibrate=None, walkers=None, n_walkers: int=1024):
+    def initialise_walkers(self, params=None, d0s=None, equilibrate=None, walkers=None, n_walkers: int=1024, n_it=64):
         if walkers is None:
             return initialise_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
         if len(walkers) == n_walkers:
@@ -97,10 +109,11 @@ class SystemAnsatz():
         if params is None or d0s is None or equilibrate is None:
             exit('If the number of loaded walkers is not equal to the number of requested walkers \n'
                  'params, d0s and equilibrate function must be passed to initialize walkers function for equilibration')
-        n_replicate = math.ceil(len(walkers) / n_walkers)
-        walkers = jnp.stack([walkers for i in range(n_replicate)], axis=0)
+        n_replicate = math.ceil(n_walkers / len(walkers))
+        walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)
+        walkers = walkers[:n_walkers, ...]
         key = rnd.PRNGKey(0)  # this may be an issue if we double the batch size and then double the available gpus.
-        walkers = equilibrate(params, walkers, d0s, key, n_it=1000)
+        walkers = equilibrate(params, walkers, d0s, key, n_it=n_it)
         return walkers
 
 
@@ -128,12 +141,10 @@ def initialise_walkers(ne_atoms, atom_positions, n_walkers):
             key, subkey = rnd.split(key)
 
             if e % 2 == 0:  # fill up the orbitals alternating up down
-                # curr_sample_up = np.random.normal(loc=atom_position, scale=1., size=(n_walkers, 1, 3))
                 curr_sample_up = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
                 ups.append(curr_sample_up)
             else:
                 curr_sample_down = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
-                # curr_sample_down = np.random.normal(loc=atom_position, scale=1., size=(n_walkers, 1, 3))
                 downs.append(curr_sample_down)
 
     ups = jnp.concatenate(ups, axis=1)

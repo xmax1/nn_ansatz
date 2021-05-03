@@ -81,19 +81,22 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
             # chol_dmaa = jnp.linalg.cholesky(dmaa)
             # chol_dmss = jnp.linalg.cholesky(dmss)
 
-            # chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
-            # chol_dmss = jax.scipy.linalg.cho_factor(dmss)
+            dmaa = (dmaa + jnp.transpose(dmaa)) / 2.
+            dmss = (dmss + jnp.transpose(dmss)) / 2.
 
-            # inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.ones((maa.shape[0], maa.shape[0])))  # , check_finite=False for performance
-            # inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.ones((mss.shape[0], mss.shape[0])))
+            chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
+            chol_dmss = jax.scipy.linalg.cho_factor(dmss)
 
-            # ng = inv_dmaa @ g @ inv_dmss / sl_factor
+            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
+            inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
 
-            vals_dmaa, vecs_dmaa = jnp.linalg.eigh(dmaa)
-            vals_dmss, vecs_dmss = jnp.linalg.eigh(dmss)
+            ng = inv_dmaa @ g @ inv_dmss / sl_factor
 
-            tmp = (jnp.transpose(vecs_dmaa) @ g @ vecs_dmss) / (vals_dmaa[:, None] * vals_dmss[None, :])
-            ng = vecs_dmaa @ tmp @ jnp.transpose(vecs_dmss)
+            # vals_dmaa, vecs_dmaa = jnp.linalg.eigh(dmaa)
+            # vals_dmss, vecs_dmss = jnp.linalg.eigh(dmss)
+            #
+            # tmp = (jnp.transpose(vecs_dmaa) @ g @ vecs_dmss) / (vals_dmaa[:, None] * vals_dmss[None, :])
+            # ng = vecs_dmaa @ tmp @ jnp.transpose(vecs_dmss)
 
             ngs.append(ng)
             new_maas.append(maa)
