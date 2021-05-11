@@ -22,6 +22,8 @@ def create_wf(mol):
     # for when the time comes to refactor and remove all the d0s
     # d0s = expand_d0s(initialise_d0s(mol), mol.n_walkers)
 
+    compute_inputs_i = create_compute_inputs_i(mol)
+
     def _wf_orbitals(params, walkers, d0s):
 
         if len(walkers.shape) == 1:  # this is a hack to get around the jvp
@@ -156,33 +158,50 @@ def drop_diagonal_i(square):
 # drop_diagonal = vmap(drop_diagonal_i, in_axes=(0,))
 
 
-def compute_inputs_i(walkers, ae_vectors):
-    """
-    Notes:
-        Previous masking code for dropping the diagonal
-            # mask = jnp.expand_dims(~jnp.eye(n_electrons, dtype=bool), axis=(0, 3))
-            # mask = jnp.repeat(jnp.repeat(mask, n_samples, axis=0), 3, axis=-1)
-            # ee_vectors = ee_vectors[mask].reshape(n_samples, n_electrons ** 2 - n_electrons, 3)
-    """
-    n_electrons, n_atoms = ae_vectors.shape[:2]
 
-    ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
-    single_inputs = jnp.concatenate([ae_vectors, ae_distances], axis=-1)
-    single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
+def create_compute_inputs_i(mol):
 
-    re1 = jnp.expand_dims(walkers, axis=1)
-    re2 = jnp.transpose(re1, [1, 0, 2])
-    ee_vectors = re1 - re2
-    # print(ee_vectors.shape)
-    ee_vectors = drop_diagonal_i(ee_vectors)
-    # print(ee_vectors.shape)
-    ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
-    pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
+    def _compute_ee_vectors(walkers):
+        re1 = jnp.expand_dims(walkers, axis=1)
+        re2 = jnp.transpose(re1, [1, 0, 2])
+        ee_vectors = re1 - re2
+        return ee_vectors
 
-    return single_inputs, pairwise_inputs
+    def _compute_ee_vectors_periodic(walkers):
+        unit_cell_walkers = walkers.dot(mol.inv_real_basis)  # translate to the unit cell
+        # tmp = jnp.bitwise_and(unit_cell_walkers > 1., unit_cell_walkers < 0.)
+        # assert not jnp.any(tmp)  # does not work with tracing because it is input dependent
+        unit_cell_ee_vectors = _compute_ee_vectors(unit_cell_walkers)
+        min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - jnp.around(unit_cell_ee_vectors / 0.5) * 1.  # 1 is length of unit cell put it here for clarity
+        min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(mol.real_basis)
+        return min_image_ee_vectors
+
+    # compute_ee_vectors = _compute_ee_vectors if not mol.periodic_boundaries else _compute_ee_vectors_periodic
+    compute_ee_vectors = _compute_ee_vectors
 
 
-compute_inputs = vmap(compute_inputs_i, in_axes=(0, 0))
+    def compute_inputs_i(walkers, ae_vectors):
+        """
+        Notes:
+            Previous masking code for dropping the diagonal
+                # mask = jnp.expand_dims(~jnp.eye(n_electrons, dtype=bool), axis=(0, 3))
+                # mask = jnp.repeat(jnp.repeat(mask, n_samples, axis=0), 3, axis=-1)
+                # ee_vectors = ee_vectors[mask].reshape(n_samples, n_electrons ** 2 - n_electrons, 3)
+        """
+        n_electrons, n_atoms = ae_vectors.shape[:2]
+
+        ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
+        single_inputs = jnp.concatenate([ae_vectors, ae_distances], axis=-1)
+        single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
+
+        ee_vectors = compute_ee_vectors(walkers)
+        ee_vectors = drop_diagonal_i(ee_vectors)
+        ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
+        pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
+
+        return single_inputs, pairwise_inputs
+
+    return compute_inputs_i
 
 
 def linear_split(p: jnp.array,

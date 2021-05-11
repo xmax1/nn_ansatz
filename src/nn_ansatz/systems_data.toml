@@ -38,9 +38,9 @@ n_el = 6
 
 [LiSolid]
 periodic_boundaries = true
-cell_basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
+real_basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
 unit_cell_length = 7.407726
-r_atoms = [[0.5, 0.5, 0.5]]
+r_atoms = [[0.25, 0.25, 0.25]]
 z_atoms = [3.0]
 n_el_atoms = [3]
 n_el = 3

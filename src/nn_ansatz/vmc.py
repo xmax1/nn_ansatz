@@ -4,7 +4,10 @@ import jax
 import jax.numpy as jnp
 from jax import lax, vmap, jit, grad
 from jax.tree_util import tree_unflatten, tree_flatten
-from itertools import chain, combinations_with_replacement
+from itertools import chain, combinations, combinations_with_replacement, product
+
+import math
+from jax.scipy.special import erfc
 
 @jit
 def sgd(params, grads, lr=1e-4):
@@ -59,56 +62,87 @@ def create_energy_fn(wf, mol):
     return jit(_compute_local_energy)
 
 
-def all_translations(cv1, cv2, cv3):
-    return [cv1, cv1 + cv2, cv1 - cv2, cv1 + cv3, cv1 - cv3,
-            cv1 + cv2 + cv3, cv1 + cv2 - cv3, cv1 - cv2 + cv3, cv1 - cv2 - cv3]
 
 
-def compute_volume(cv1, cv2, cv3):
-    cross = jnp.cross(cv2, cv3, axisa=0, axisb=0)
-    box = cross @ cv1
-    volume = jnp.abs(box.squeeze())
-    return volume
+def vector_sub(v1, v2, axis=-2):
+    return jnp.expand_dims(v1, axis=axis) - jnp.expand_dims(v2, axis=axis-1)
 
+def vector_add(v1, v2, axis=-2):
+    return jnp.expand_dims(v1, axis=axis) + jnp.expand_dims(v2, axis=axis-1)
 
-def generate_vectors(vector_set, n):
-    # lattice vectors
-    lattice_vectors = list(
-        chain.from_iterable(combinations_with_replacement(vector_set, i) for i in range(1, n + 1)))
-    lattice_vectors = [jnp.sum(jnp.concatenate(x, axis=-1), axis=-1) for x in lattice_vectors]
-    lattice_vectors = jnp.array([x for x in lattice_vectors if not jnp.sum(jnp.zeros(3, ) == x) == 3])
-    return lattice_vectors
+def compute_distances(v1, v2):
+    inter_vector = vector_sub(v1, v2)
+    return jnp.sqrt(jnp.sum(inter_vector**2, axis=-1))
 
 def inner(v1, v2):
-    return jnp.sum(v1 * v2, axis=-1, keepdims=True)
+    return jnp.sum(v1 * v2, axis=-1)
+
+
+def generate_real_lattice(real_basis, rcut, reciprocal_height):
+    # from pyscf, some logic to set the number of imgs away from simulation cell. Adapted version confirmed in notion
+    nimgs = jnp.ceil(rcut*reciprocal_height + 1.1).astype(int)
+    img_range = jnp.arange(-nimgs, nimgs+1)
+    img_sets = list(product(*[img_range, img_range, img_range]))
+    # first axis is the number of lattice vectors, second is the integers to scale the primitive vectors, third is the resulting set of vectors
+    # then sum over those
+    # print(len(img_sets))
+    img_sets = jnp.concatenate([jnp.array(x)[None, :, None] for x in img_sets if not jnp.sum(jnp.array(x) == 0) == 3], axis=0)
+    # print(img_sets.shape)
+    imgs = jnp.sum(img_sets * real_basis, axis=1)
+    
+    # generate all the single combinations of the basis vectors
+    v = jnp.split(real_basis, 3, axis=0)
+    z = jnp.zeros_like(v[0])
+    vecs = product(*[[-v[0], z, v[0]],[-v[1], z, v[1]], [-v[2], z, v[2]]])
+    vecs = jnp.array(list(vecs)).squeeze().sum(-2)  # sphere around the origin
+
+    # if a sphere around the image is within rcut then keep it
+    lengths = jnp.linalg.norm(vecs[None, ...] + imgs[:, None, :], axis=-1)
+    mask = jnp.any(lengths < rcut, axis=1)
+    nimgs = len(imgs)
+    imgs = imgs[mask]
+    return imgs
+
+
+def generate_reciprocal_lattice(reciprocal_basis, mesh):
+    # 3D uniform grids
+    rx = jnp.fft.fftfreq(mesh[0], 1./mesh[0])
+    ry = jnp.fft.fftfreq(mesh[1], 1./mesh[1])
+    rz = jnp.fft.fftfreq(mesh[2], 1./mesh[2])
+    base = (rx, ry, rz)
+    cartesian_product = jnp.array(list(product(*base)))  # another worse version of this is available in cartesian_prod(...)
+    cartesian_product = jnp.array([x for x in cartesian_product if not jnp.sum(x == 0) == 3])  # filter the zero vector
+    reciprocal_lattice = jnp.dot(cartesian_product, reciprocal_basis)
+    return reciprocal_lattice
+
+
+
+
 
 def create_potential_energy(mol):
+    """
+
+    Notes:
+        - May need to shift the origin to the center to enforce the spherical sum condition
+        - I am now returning to length of unit cell units which is different to the unit cell length I was using before. How does this affect the computation?
+        - Is the reciprocal height computed in the correct way?
+    """
     if mol.periodic_boundaries:
-        cv1, cv2, cv3 = mol.cell_basis.split(3, axis=1)  # (3, 1) vectors
-        # translations = all_translations(cv1, cv2, cv3)
-        # translations.extend(all_translations(-cv1, cv2, cv3))
-        # translations.extend([cv2, cv2 + cv3, cv2 - cv3, -cv2, -cv2 + cv3, -cv2 - cv3])
-        # translations.extend([cv3, -cv3])
-        # translation_vectors = jnp.concatenate(translations, axis=-1).transpose()
-        # translation_vectors = jnp.expand_dims(translation_vectors, axis=0)
-        #
-        n = 3
-        vector_set = [cv1, -cv1, cv2, -cv2, cv3, -cv3]
-        lattice_vectors = generate_vectors(vector_set, n)
+        
+        real_basis = mol.real_basis
+        reciprocal_basis = mol.reciprocal_basis
+        kappa = mol.kappa
+        mesh = [mol.reciprocal_cut for i in range(3)]
+        volume = mol.volume
 
-        volume = compute_volume(cv1, cv2, cv3)
-        kappa = 1.
-        constant = jnp.pi / (kappa ** 2 * volume)
+        real_lattice = generate_real_lattice(real_basis, mol.real_cut, mol.reciprocal_height)  # (n_lattice, 3)
+        reciprocal_lattice = generate_reciprocal_lattice(reciprocal_basis, mesh)
+        rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
+        rl_factor = (4*jnp.pi / volume) * jnp.exp(- rl_inner_product / (4*kappa**2)) / rl_inner_product  
 
-        # reciprocal vectors
-        rv1 = 2 * jnp.pi * jnp.cross(cv2, cv3, axisa=0, axisb=0) / volume
-        rv2 = jnp.pi * jnp.cross(cv3, cv1, axisa=0, axisb=0) / volume
-        rv3 = jnp.pi * jnp.cross(cv1, cv2, axisa=0, axisb=0) / volume
-        vector_set = [x.transpose() for x in (rv1, -rv1, rv2, -rv2, rv3, -rv3)]
-        reciprocal_vectors = generate_vectors(vector_set, n)
-        reciprocal_factors = (4*jnp.pi / volume) * \
-                             jnp.exp(- inner(reciprocal_vectors, reciprocal_vectors) / (4*kappa**2)) / \
-                             inner(reciprocal_vectors, reciprocal_vectors)
+        e_charges = jnp.array([-1. for i in range(mol.n_el)])
+        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0)  # (n_particle, )
+        q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
         def compute_potential_energy_solid_i(walkers, r_atoms, z_atoms):
 
@@ -124,31 +158,33 @@ def create_potential_energy(mol):
                 - compute the pe of the cell nuclei with nuclei outside
             """
 
-            ex_walkers = (jnp.expand_dims(walkers, axis=1) + lattice_vectors).reshape(-1, 3)  # (n_el * 26, 3)
-            ex_r_atoms = (jnp.expand_dims(r_atoms, axis=1) + lattice_vectors).reshape(-1, 3)  # (n_atom * 26, 3)
-            ex_z_atoms = jnp.expand_dims(z_atoms, axis=0).repeat(len(lattice_vectors), axis=0)  # (n_atom * 26, 1)
+            # put the walkers and r_atoms together
+            walkers = jnp.concatenate([r_atoms, walkers], axis=0)  # (n_particle, 3)
 
-            potential_energy = compute_potential_energy_i(walkers, r_atoms, z_atoms)
+            # compute the Rs0 term
+            p_p_vectors = vector_sub(walkers, walkers)
+            p_p_distances = compute_distances(walkers, walkers)
+            # p_p_distances[p_p_distances < 1e-16] = 1e200  # doesn't matter, diagonal dropped, this is just here to suppress the error
+            Rs0 = jnp.tril(erfc(kappa * p_p_distances) / p_p_distances, k=-1)  # is half the value
 
-            ex_e_e_dist = batched_cdist_l2(walkers, ex_walkers)
-            # erfc = lax.erfc(kappa * ex_e_e_dist)
-            # potential_energy += 0.5 * jnp.sum(erfc / ex_e_e_dist)
-            inner = reciprocal_vectors @
-            potential_energy += 0.5 * jnp.sum(1. / ex_e_e_dist)
+            # compute the Rs > 0 term
+            ex_walkers = vector_add(walkers, real_lattice)  # (n_particle, n_lattice, 3)
+            tmp = walkers[:, None, None, :] - ex_walkers[None, ...]  # (n_particle, n_particle, n_lattice, 3)
+            ex_distances = jnp.sqrt(jnp.sum(tmp**2, axis=-1))  
+            Rs1 = jnp.sum(erfc(kappa * ex_distances) / ex_distances, axis=-1)
+            real_sum = (q_q * (Rs0 + 0.5 * Rs1)).sum((-1, -2))
+            
+            # compute the constant factor
+            self_interaction = - 0.5 * jnp.diag(q_q * 2 * kappa / jnp.sqrt(jnp.pi)).sum()
+            constant = - 0.5 * charges.sum()**2 * jnp.pi / (kappa**2 * volume)  # is zero in neutral case
 
-            ex_a_e_dist = batched_cdist_l2(walkers, ex_r_atoms)
-            # erfc = lax.erfc(kappa * ex_a_e_dist)
-            # potential_energy -= 0.5 * jnp.sum(erfc * ex_z_atoms / ex_a_e_dist)
-            potential_energy -= 0.5 * jnp.sum(ex_z_atoms / ex_a_e_dist)
+            # compute the reciprocal term reuse the ee vectors
+            exp = jnp.real(jnp.sum(rl_factor[None, None, :] * jnp.exp(1j * p_p_vectors @ jnp.transpose(reciprocal_lattice)), axis=-1))
+            reciprocal_sum = 0.5 * (q_q * exp).sum((-1,-2))
+            
+            potential = real_sum + reciprocal_sum + constant + self_interaction
+            return potential
 
-            ex_a_a_dist = batched_cdist_l2(r_atoms, ex_r_atoms)
-            # erfc = lax.erfc(kappa * ex_a_a_dist)
-            # potential_energy += 0.5 * jnp.sum(erfc * (z_atoms[None, :] * ex_z_atoms) / ex_a_a_dist)
-            potential_energy += 0.5 * jnp.sum((z_atoms[None, :] * ex_z_atoms) / ex_a_a_dist)
-
-            return potential_energy
-
-        # return vmap(compute_potential_energy_i, in_axes=(0, None, None))
         return vmap(compute_potential_energy_solid_i, in_axes=(0, None, None))
 
     return vmap(compute_potential_energy_i, in_axes=(0, None, None))
@@ -161,9 +197,6 @@ def batched_cdist_l2(x1, x2):
     cdist = jnp.sqrt(jnp.swapaxes(x1_sq, -1, -2) + x2_sq \
                      - jnp.sum(2 * jnp.expand_dims(x1, axis=0) * jnp.expand_dims(x2, axis=1), axis=-1))
     return cdist
-
-
-
 
 
 def compute_potential_energy_i(walkers, r_atoms, z_atoms):

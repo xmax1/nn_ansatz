@@ -21,10 +21,6 @@ from .utils import Logging, load_pk, save_pk
 def run_vmc(r_atoms=None,
             z_atoms=None,
             n_el=None,
-            n_el_atoms=None,
-            periodic_boundaries=False,
-            cell_basis=None,
-            unit_cell_length=None,
 
             opt: str = 'kfac',
             lr: float = 1e-4,
@@ -32,12 +28,7 @@ def run_vmc(r_atoms=None,
             norm_constraint: float = 1e-4,
             n_it: int = 1000,
             n_walkers: int = 1024,
-            step_size: float = 0.02,
-
-            n_layers: int = 2,
-            n_sh: int = 64,
-            n_ph: int = 16,
-            n_det: int = 2,
+            step_size=None,
 
             pre_lr: float = 1e-4,
             n_pre_it: int = 1000,
@@ -55,15 +46,7 @@ def run_vmc(r_atoms=None,
     mol = SystemAnsatz(r_atoms,
                        z_atoms,
                        n_el,
-                       unit_cell_length=unit_cell_length,
-                       cell_basis=cell_basis,
-                       periodic_boundaries=periodic_boundaries,
-                       n_el_atoms=n_el_atoms,
-                       n_layers=n_layers,
-                       n_sh=n_sh,
-                       n_ph=n_ph,
-                       n_det=n_det,
-                       step_size=step_size)
+                       **kwargs)
 
     wf, kfac_wf, wf_orbitals = create_wf(mol)
     params = initialise_params(key, mol)

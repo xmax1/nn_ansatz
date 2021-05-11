@@ -87,7 +87,9 @@ def make_dir(path):
     os.makedirs(path)
 
 
-def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length, ignore_toml):
+def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, 
+       periodic_boundaries, real_basis, unit_cell_length, real_cut, reciprocal_cut, kappa, ignore_toml):
+    
     if ignore_toml or not system in systems_data:
         if n_el is None and n_el_atoms is None:
             if system == 'Be':
@@ -101,16 +103,26 @@ def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, 
             r_atoms = jnp.array([[0.0, 0.0, 0.0]])
         if z_atoms is None:
             z_atoms = jnp.ones((1,)) * n_el
-        return r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length
+        return r_atoms, z_atoms, n_el, n_el_atoms, 
+        {'periodic_boundaries': periodic_boundaries, 
+        'real_basis': real_basis, 
+        'unit_cell_length': unit_cell_length,
+        'real_cut': real_cut,
+        'reciprocal_cut': reciprocal_cut,
+        'kappa': kappa}
     else:
+        
         d = systems_data[system]
         return jnp.array(d['r_atoms']), \
                jnp.array(d['z_atoms']), \
                d['n_el'], \
                jnp.array(d['n_el_atoms']), \
-               d.get('periodic_boundaries'), \
-               jnp.array(d.get('cell_basis')), \
-               d.get('unit_cell_length'),
+               {'periodic_boundaries': d.get('periodic_boundaries', periodic_boundaries), 
+                'real_basis': jnp.array(d.get('real_basis', real_basis)), 
+                'unit_cell_length': d.get('unit_cell_length', unit_cell_length),
+                'real_cut': d.get('real_cut', real_cut),
+                'reciprocal_cut': d.get('reciprocal_cut', reciprocal_cut),
+                'kappa': d.get('kappa', kappa)}
 
 
 def get_run(exp_dir):
@@ -136,8 +148,11 @@ def setup(system: str = 'Be',
           n_el_atoms=None,
           ignore_toml=False,
           periodic_boundaries=False,
-          cell_basis=None,
+          real_basis=None,
           unit_cell_length=None,
+          real_cut=None,
+          reciprocal_cut=None,
+          kappa=None,
 
           opt: str = 'kfac',
           lr: float = 1e-4,
@@ -193,8 +208,9 @@ def setup(system: str = 'Be',
     opt_state_dir = os.path.join(models_dir, 'opt_state')
     [make_dir(x) for x in [events_dir, models_dir, opt_state_dir]]
 
-    r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length \
-        = get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, periodic_boundaries, cell_basis, unit_cell_length, ignore_toml)
+    r_atoms, z_atoms, n_el, n_el_atoms, cell_config \
+        = get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, 
+        periodic_boundaries, real_basis, unit_cell_length, real_cut, reciprocal_cut, kappa, ignore_toml)
 
     config = {'version': version,
               'seed': seed,
@@ -215,9 +231,7 @@ def setup(system: str = 'Be',
               'z_atoms': z_atoms,
               'n_el': n_el,
               'n_el_atoms': n_el_atoms,
-              'periodic_boundaries': periodic_boundaries,
-              'cell_basis': cell_basis,
-              'unit_cell_length': unit_cell_length,
+              **cell_config,
 
               # ANSATZ
               'n_layers': n_layers,

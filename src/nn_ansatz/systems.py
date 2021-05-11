@@ -11,14 +11,39 @@ def create_atom(r_atoms, z_atom):
     return [[int(charge), tuple(coord)] for charge, coord in zip(z_atom, r_atoms)]
 
 
+def compute_reciprocal_basis(real_basis, volume):
+    cv1, cv2, cv3 = real_basis.split(3, axis=0)
+    rv1 = 2 * np.pi * np.cross(cv2.squeeze(), cv3.squeeze()) / volume
+    rv2 = 2 * np.pi * np.cross(cv3.squeeze(), cv1.squeeze()) / volume
+    rv3 = 2 * np.pi * np.cross(cv1.squeeze(), cv2.squeeze()) / volume
+    reciprocal_basis = np.concatenate([x[None, :] for x in (rv1, rv2, rv3)], axis=0)
+    return reciprocal_basis
+
+
+def compute_reciprocal_height(reciprocal_basis, unit_cell_length):
+    normed_to1 = reciprocal_basis / (2 * np.pi * unit_cell_length)  # not sure what this is doing
+    reciprocal_height = np.linalg.norm(normed_to1, axis=1)[0]
+    return reciprocal_height
+
+
+def compute_volume(basis):
+    v1, v2, v3 = basis.split(3, axis=0)
+    cross = jnp.cross(v2, v3, axisa=1, axisb=1)
+    box = jnp.sum(v1 * cross)
+    return jnp.abs(jnp.squeeze(box))
+
+
 class SystemAnsatz():
     def __init__(self,
-                 r_atoms,
-                 z_atoms,
-                 n_el,
-                 cell_basis=None,
+                 r_atoms=None,
+                 z_atoms=None,
+                 n_el=None,
+                 real_basis=None,
                  periodic_boundaries=False,
                  unit_cell_length=None,
+                 real_cut=None,
+                 reciprocal_cut=None,
+                 kappa=None,
                  n_layers=2,
                  n_sh=64,
                  n_ph=16,
@@ -28,7 +53,8 @@ class SystemAnsatz():
                  n_up=None,
                  basis='sto3g',
                  device='cpu',
-                 dtype=jnp.float32):
+                 dtype=jnp.float32,
+                 **kwargs):
         self.device, self.dtype = device, dtype
 
         if n_up is None:
@@ -89,11 +115,31 @@ class SystemAnsatz():
         self.step_size = step_size
         self.periodic_boundaries = periodic_boundaries
         if periodic_boundaries:
-            primitive_vector_length = jnp.sqrt(jnp.sum(cell_basis[0]**2))
-            print('LENGTH PRIMITIVE CELL', primitive_vector_length)
-            self.cell_basis = unit_cell_length * cell_basis
-            self.inv_cell_basis = jnp.linalg.pinv(self.cell_basis)
+            
+            self.real_basis = unit_cell_length * real_basis  # each basis vector is (1, 3)
+            self.inv_real_basis = jnp.linalg.pinv(self.real_basis)
             self.r_atoms = self.r_atoms * unit_cell_length
+            self.volume = compute_volume(self.real_basis)
+            self.reciprocal_basis = compute_reciprocal_basis(self.real_basis, self.volume)
+            self.reciprocal_height = compute_reciprocal_height(self.reciprocal_basis, unit_cell_length)
+            self.unit_cell_length = unit_cell_length
+
+            self.real_cut = real_cut * unit_cell_length
+            self.reciprocal_cut = reciprocal_cut
+            self.kappa = kappa
+
+
+            print('Cell: \n',
+              'real_basis:', '\n', self.real_basis, '\n',
+              'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
+              'real_cut         = %.2f \n' % self.real_cut,
+              'reciprocal_cut   = %i \n' % self.reciprocal_cut,
+              'kappa            = %.2f \n' % kappa,
+              'volume           = %.2f \n' % self.volume)
+
+
+
+            
 
 
 
