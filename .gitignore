@@ -4,3 +4,4 @@
 *.pyo
 **/experiments
 *tmp*
+*.vscode
