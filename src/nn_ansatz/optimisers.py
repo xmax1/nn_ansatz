@@ -48,9 +48,7 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
     vwf = jit(vmap(kfac_wf, in_axes=(None, 0, 0)))
 
     @jit
-    def _kfac_step(step, gradients, activations, sensitivities, state):
-
-        params, maas, msss, lr, damping, norm_constraint = state
+    def _kfac_step(step, gradients, activations, sensitivities, maas, msss, lr, damping, norm_constraint):
 
         gradients, gradients_tree_map = tree_flatten(gradients)
         activations, activations_tree_map = tree_flatten(activations)
@@ -104,22 +102,26 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
 
         eta = compute_norm_constraint(ngs, gradients, lr, norm_constraint)
 
-        return [lr * eta * ng / sl_factor for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
+        return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
+
+    kfac_step = pmap()
 
     def _compute_natural_gradients(step, grads, state, walkers, d0s):
 
-        params = state[0]
+        params, maas, msss, lr, damping, norm_constraint = state
         # yes there is a more efficient way of doing this.
         # It can be reduced by 1 forward passes and 1 backward pass
         _, activations = vwf(params, walkers, d0s)
         sensitivities = sensitivities_fn(params, walkers, d0s)
 
-        ngs, state = _kfac_step(step, grads, activations, sensitivities, state)
+        ngs, state = _kfac_step(step, grads, activations, sensitivities, maas, msss, lr, damping, norm_constraint)
 
         return ngs, (params, *state)
 
+    walkers = walkers[:mol.n_walkers_per_device]
     _, activations = vwf(params, walkers, d0s)
     sensitivities = sensitivities_fn(params, walkers, d0s)
+
     activations, activations_tree_map = tree_flatten(activations)
     sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
     maas = [jnp.zeros((a.shape[-1], a.shape[-1])) for a in activations]

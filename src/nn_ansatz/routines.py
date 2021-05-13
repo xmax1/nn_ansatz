@@ -15,14 +15,10 @@ from .pretraining import pretrain_wf
 from .vmc import create_energy_fn, create_grad_function
 # from .utils import *
 from .optimisers import create_natural_gradients_fn, kfac
-from .utils import Logging, load_pk, save_pk
+from .utils import Logging, load_pk, save_pk, key_gen
 
 
-def run_vmc(r_atoms=None,
-            z_atoms=None,
-            n_el=None,
-
-            opt: str = 'kfac',
+def run_vmc(opt: str = 'kfac',
             lr: float = 1e-4,
             damping: float = 1e-4,
             norm_constraint: float = 1e-4,
@@ -37,20 +33,18 @@ def run_vmc(r_atoms=None,
             pre_path: str = '',
 
             seed: int = 369,
+            n_devices: int = 1,
             **kwargs):
 
     logger = Logging(**kwargs)
 
     key = rnd.PRNGKey(seed)
 
-    mol = SystemAnsatz(r_atoms,
-                       z_atoms,
-                       n_el,
-                       **kwargs)
+    mol = SystemAnsatz(**kwargs)
 
     wf, kfac_wf, wf_orbitals = create_wf(mol)
     params = initialise_params(key, mol)
-    d0s = expand_d0s(initialise_d0s(mol), n_walkers)
+    d0s = initialise_d0s(mol)
 
     sampler, equilibrate = create_sampler(wf, mol, correlation_length=10)
 
@@ -96,10 +90,11 @@ def run_vmc(r_atoms=None,
         exit('Optimiser not available')
 
     steps = trange(0, n_it, initial=0, total=n_it, desc='training', disable=None)
+    keys = rnd.split(key, n_devices)
     for step in steps:
-        key, subkey = rnd.split(key)
+        keys, subkeys = key_gen(keys)
 
-        walkers, acceptance, step_size = sampler(params, walkers, d0s, subkey, step_size)
+        walkers, acceptance, step_size = sampler(params, walkers, d0s, subkeys, step_size)
 
         grads, e_locs = grad_fn(params, walkers, d0s)
 

@@ -2,7 +2,7 @@
 import numpy as np
 import jax.numpy as jnp
 from jax import random as rnd
-from jax import jit, vmap
+from jax import jit, vmap, pmap
 
 from .vmc import create_energy_fn
 
@@ -89,12 +89,19 @@ def create_sampler(wf,
 
         return walkers
 
-    return _sample_metropolis_hastings, _equilibrate
+    return pmap(_sample_metropolis_hastings, in_axes=(None, 0, 0, 0, None)), _equilibrate
 
 
 def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
-    if acceptance < target_acceptance:
-        step_size -= 0.001
-    else:
-        step_size += 0.001
-    return step_size
+    # if acceptance is larger ratio is 0.001 if smaller is zero
+    scale = 1000.
+    ratio = ((jnp.floor(target_acceptance / acceptance) * -1.) + 1.) / scale
+    delta_acceptance = 1. / (2 * scale)
+    step_change = ratio - delta_acceptance
+    # step change is 0.0005 when
+    return step_size + step_change
+    # if acceptance < target_acceptance:
+    #     step_size -= 0.001
+    # else:
+    #     step_size += 0.001
+    # return step_size

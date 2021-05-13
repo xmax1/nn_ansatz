@@ -160,11 +160,14 @@ def initialise_d0s(mol):
     d0s['envelopes']['pi'] = [jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det * n_up, axis=1),
                                  jnp.split(jnp.zeros((n_down, n_det * n_down)), n_det * n_down, axis=1)]
 
+    d0s = expand_d0s(d0s, mol.n_devices, mol.n_walkers_per_device)
+
     return d0s
 
 
-def expand_d0s(d0s, n_walkers):
+def expand_d0s(d0s, n_devices, n_walkers_per_device):
     d0s, tree_map = tree_flatten(d0s)  # get the tree_map and then flatten
-    d0s = [jnp.repeat(jnp.expand_dims(d0, axis=0), n_walkers, axis=0) for d0 in d0s]
+    d0s = [jnp.repeat(jnp.expand_dims(d0, axis=0), n_walkers_per_device, axis=0) for d0 in d0s]
+    d0s = [jnp.repeat(jnp.expand_dims(d0, axis=0), n_devices, axis=0) for d0 in d0s]
     d0s = tree_unflatten(tree_map, d0s)
     return d0s

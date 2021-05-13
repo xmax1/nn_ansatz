@@ -5,10 +5,30 @@ import pickle as pk
 from torch.utils.tensorboard import SummaryWriter
 import time
 from jax.experimental import optimizers
+import jax
+import jax.random as rnd
 import jax.numpy as jnp
 import toml
 PATH = os.path.abspath(os.path.dirname(__file__))
 systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
+
+
+def key_gen(keys):
+    """
+    keys: (n_devices, 2)
+    Pseudocode:
+        - generate the new keys for each device and put into a new array
+        - split the array along axis 1 so there are 2 arrays (keys and subkeys)
+        - squeeze the middle axis out
+
+    Notes:
+        - This can be modified to work with >2 splits if needed
+    """
+    keys = jnp.array([rnd.split(key) for key in keys])
+    keys = jnp.split(keys, 2, axis=1)
+    return [x.squeeze for x in keys]
+
+# key_gen = lambda keys: [x.squeeze() for x in jnp.array([rnd.split(key) for key in keys]).split(2, axis=1)]
 
 
 def load_pk(path):
@@ -76,8 +96,10 @@ def are_we_loading_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_
     hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
     pretrain_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
     make_dir(pretrain_dir)
-    if pretrain or not os.path.exists(pretrain_path):
+    if pretrain:
         return False, pretrain_path
+    if n_pre_it == 0:
+        return False, ''
     return True, pretrain_path
 
 
@@ -85,6 +107,10 @@ def make_dir(path):
     if os.path.exists(path):
         return
     os.makedirs(path)
+
+
+def array_if_not_none(object):
+    return jnp.array(object) if object is not None else None
 
 
 def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, 
@@ -103,7 +129,7 @@ def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms,
             r_atoms = jnp.array([[0.0, 0.0, 0.0]])
         if z_atoms is None:
             z_atoms = jnp.ones((1,)) * n_el
-        return r_atoms, z_atoms, n_el, n_el_atoms, 
+        return r_atoms, z_atoms, n_el, n_el_atoms, \
         {'periodic_boundaries': periodic_boundaries, 
         'real_basis': real_basis, 
         'unit_cell_length': unit_cell_length,
@@ -118,7 +144,7 @@ def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms,
                d['n_el'], \
                jnp.array(d['n_el_atoms']), \
                {'periodic_boundaries': d.get('periodic_boundaries', periodic_boundaries), 
-                'real_basis': jnp.array(d.get('real_basis', real_basis)), 
+                'real_basis': array_if_not_none(d.get('real_basis', real_basis)),
                 'unit_cell_length': d.get('unit_cell_length', unit_cell_length),
                 'real_cut': d.get('real_cut', real_cut),
                 'reciprocal_cut': d.get('reciprocal_cut', reciprocal_cut),
@@ -134,6 +160,13 @@ def get_run(exp_dir):
             break
         trial += 1
     return trial
+
+
+def get_n_devices():
+    n_devices = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').replace(',', ''))
+    if n_devices == 0:
+        n_devices = len(jax.devices())
+    return n_devices
 
 
 def setup(system: str = 'Be',
@@ -163,8 +196,8 @@ def setup(system: str = 'Be',
           step_size: float = 0.02,
 
           n_layers: int = 2,
-          n_sh: int = 64,
-          n_ph: int = 16,
+          n_sh: int = 32,
+          n_ph: int = 8,
           n_det: int = 2,
 
           pre_lr: float = 1e-4,
@@ -175,6 +208,10 @@ def setup(system: str = 'Be',
           load_dir: str = '',
 
           seed: int = 369):
+
+    n_devices = get_n_devices()
+    assert n_walkers % n_devices == 0
+
     today = datetime.datetime.now().strftime("%d%m%y")
 
     # version = subprocess.check_output(["git", "describe"]).strip()
@@ -214,6 +251,7 @@ def setup(system: str = 'Be',
 
     config = {'version': version,
               'seed': seed,
+              'n_devices': n_devices,
               'save_every': save_every,
               'print_every': print_every,
 
@@ -247,6 +285,7 @@ def setup(system: str = 'Be',
               'n_it': n_it,
               'load_it': load_it,
               'n_walkers': n_walkers,
+              'n_walkers_per_device': n_walkers // n_devices,
               'step_size': step_size,
 
               # PRETRAINING HYPERPARAMETERS

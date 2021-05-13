@@ -56,6 +56,8 @@ class SystemAnsatz():
                  dtype=jnp.float32,
                  **kwargs):
         self.device, self.dtype = device, dtype
+        self.n_walkers_per_device = kwargs['n_walkers_per_device']
+        self.n_devices = kwargs['n_devices']
 
         if n_up is None:
             n_up = math.ceil(n_el / 2.)

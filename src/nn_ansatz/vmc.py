@@ -62,17 +62,18 @@ def create_energy_fn(wf, mol):
     return jit(_compute_local_energy)
 
 
-
-
 def vector_sub(v1, v2, axis=-2):
     return jnp.expand_dims(v1, axis=axis) - jnp.expand_dims(v2, axis=axis-1)
+
 
 def vector_add(v1, v2, axis=-2):
     return jnp.expand_dims(v1, axis=axis) + jnp.expand_dims(v2, axis=axis-1)
 
+
 def compute_distances(v1, v2):
     inter_vector = vector_sub(v1, v2)
     return jnp.sqrt(jnp.sum(inter_vector**2, axis=-1))
+
 
 def inner(v1, v2):
     return jnp.sum(v1 * v2, axis=-1)
@@ -114,9 +115,6 @@ def generate_reciprocal_lattice(reciprocal_basis, mesh):
     cartesian_product = jnp.array([x for x in cartesian_product if not jnp.sum(x == 0) == 3])  # filter the zero vector
     reciprocal_lattice = jnp.dot(cartesian_product, reciprocal_basis)
     return reciprocal_lattice
-
-
-
 
 
 def create_potential_energy(mol):
