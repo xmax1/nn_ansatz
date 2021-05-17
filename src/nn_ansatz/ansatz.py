@@ -144,7 +144,10 @@ compute_ae_vectors = vmap(compute_ae_vectors_i, in_axes=(0, None))
 
 def drop_diagonal_i(square):
     """
-    for proof of this function go to debugging/drop_diagonal where compared with masking method
+    
+    Notes:
+        - for proof of this function go to debugging/drop_diagonal where compared with masking method
+        - this removes the diagonal so a 3 x 3 matrix will give a 6 element vector
     """
     n = square.shape[0]
     split1 = jnp.split(square, n, axis=0)
@@ -156,7 +159,6 @@ def drop_diagonal_i(square):
 
 
 # drop_diagonal = vmap(drop_diagonal_i, in_axes=(0,))
-
 
 
 def create_compute_inputs_i(mol):
@@ -178,7 +180,6 @@ def create_compute_inputs_i(mol):
 
     # compute_ee_vectors = _compute_ee_vectors if not mol.periodic_boundaries else _compute_ee_vectors_periodic
     compute_ee_vectors = _compute_ee_vectors
-
 
     def compute_inputs_i(walkers, ae_vectors):
         """

@@ -2,7 +2,7 @@ import itertools
 
 import jax
 import jax.numpy as jnp
-from jax import lax, vmap, jit, grad
+from jax import lax, vmap, jit, grad, pmap
 from jax.tree_util import tree_unflatten, tree_flatten
 from itertools import chain, combinations, combinations_with_replacement, product
 
@@ -22,25 +22,36 @@ def sgd(params, grads, lr=1e-4):
 def clip_and_center(e_locs):
     median = jnp.median(e_locs)
     total_var = jnp.mean(jnp.abs(e_locs - median))
-    lower, upper = median - 5*total_var, median + 5*total_var
+    lower, upper = median - 5 * total_var, median + 5 * total_var
     e_locs = jnp.clip(e_locs, a_min=lower, a_max=upper)
     return e_locs - jnp.mean(e_locs)
 
 
 def create_grad_function(wf, mol):
-
     vwf = vmap(wf, in_axes=(None, 0, 0))
     compute_energy = create_energy_fn(wf, mol)
 
-    def _grad_function(params, walkers, d0s):
-
+    def _forward_pass(params, walkers, d0s):
         e_locs = lax.stop_gradient(compute_energy(params, walkers, d0s))
+
+        # takes the mean of the data on each device and does not distribute
         e_locs_centered = clip_and_center(e_locs)
         log_psi = vwf(params, walkers, d0s)
 
         return jnp.mean(e_locs_centered * log_psi), e_locs
 
-    return jit(grad(_grad_function, has_aux=True))
+    grad_fn = pmap(jit(grad(_forward_pass, has_aux=True)), in_axes=(None, 0, 0))
+
+    # inside the pmapped function you can't 'undevice' the variables
+    def _grad_fn(params, walkers, d0s):
+        grads, e_locs = grad_fn(params, walkers, d0s)
+        grads = jax.device_put(grads, jax.devices()[0])
+        grads, tree = tree_flatten(grads)
+        grads = [g.mean(0) for g in grads]
+        grads = tree_unflatten(tree, grads)
+        return grads, jax.device_put(e_locs, jax.devices()[0]).reshape(-1)
+
+    return _grad_fn
 
 
 def create_atom_batch(r_atoms, n_samples):

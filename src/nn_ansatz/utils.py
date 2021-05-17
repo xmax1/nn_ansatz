@@ -20,13 +20,10 @@ def key_gen(keys):
         - generate the new keys for each device and put into a new array
         - split the array along axis 1 so there are 2 arrays (keys and subkeys)
         - squeeze the middle axis out
-
-    Notes:
-        - This can be modified to work with >2 splits if needed
     """
     keys = jnp.array([rnd.split(key) for key in keys])
     keys = jnp.split(keys, 2, axis=1)
-    return [x.squeeze for x in keys]
+    return [x.squeeze() for x in keys]
 
 # key_gen = lambda keys: [x.squeeze() for x in jnp.array([rnd.split(key) for key in keys]).split(2, axis=1)]
 
@@ -163,9 +160,7 @@ def get_run(exp_dir):
 
 
 def get_n_devices():
-    n_devices = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').replace(',', ''))
-    if n_devices == 0:
-        n_devices = len(jax.devices())
+    n_devices = len(jax.devices())
     return n_devices
 
 

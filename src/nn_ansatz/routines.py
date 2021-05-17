@@ -18,6 +18,22 @@ from .optimisers import create_natural_gradients_fn, kfac
 from .utils import Logging, load_pk, save_pk, key_gen
 
 
+def split_variables_for_pmap(n_devices, *args):
+    for i in range(len(args))[:-1]:
+        assert len(args[i]) == len(args[i + 1])
+
+    assert len(args[0]) % n_devices == 0
+
+    new_args = []
+    for arg in args:
+        shape = arg.shape
+        new_args.append(arg.reshape(n_devices, shape[0] // n_devices, *shape[1:]))
+
+    if len(args) == 1:
+        return new_args[0]
+    return new_args
+
+
 def run_vmc(opt: str = 'kfac',
             lr: float = 1e-4,
             damping: float = 1e-4,
@@ -33,7 +49,6 @@ def run_vmc(opt: str = 'kfac',
             pre_path: str = '',
 
             seed: int = 369,
-            n_devices: int = 1,
             **kwargs):
 
     logger = Logging(**kwargs)
@@ -49,6 +64,7 @@ def run_vmc(opt: str = 'kfac',
     sampler, equilibrate = create_sampler(wf, mol, correlation_length=10)
 
     walkers = mol.initialise_walkers(n_walkers=n_walkers)
+
 
     if pretrain:  # this logic is ugly but need to include case where we want to skip pretraining
         if load_pretrain:
@@ -74,6 +90,7 @@ def run_vmc(opt: str = 'kfac',
                                      equilibrate=equilibrate,
                                      params=params,
                                      d0s=d0s)
+    walkers = split_variables_for_pmap(kwargs['n_devices'], walkers)
 
     grad_fn = create_grad_function(wf, mol)
 
@@ -90,11 +107,13 @@ def run_vmc(opt: str = 'kfac',
         exit('Optimiser not available')
 
     steps = trange(0, n_it, initial=0, total=n_it, desc='training', disable=None)
-    keys = rnd.split(key, n_devices)
+    keys = rnd.split(key, kwargs['n_devices'])
+
     for step in steps:
         keys, subkeys = key_gen(keys)
 
         walkers, acceptance, step_size = sampler(params, walkers, d0s, subkeys, step_size)
+        step_size = step_size[0]
 
         grads, e_locs = grad_fn(params, walkers, d0s)
 
@@ -111,6 +130,6 @@ def run_vmc(opt: str = 'kfac',
                    opt_state=state,
                    params=params,
                    e_locs=e_locs,
-                   acceptance=acceptance)
+                   acceptance=acceptance[0])
 
 

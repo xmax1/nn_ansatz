@@ -1,9 +1,9 @@
 
-
-
 # drop diag of m x n x n x f
 import jax.numpy as jnp
 import numpy as np
+from jax import vmap
+
 def drop_diagonal(square):
     n = square.shape[1]
     split1 = jnp.split(square, n, axis=1)
@@ -12,6 +12,19 @@ def drop_diagonal(square):
     arr = [ls[i] for i in range(n-1) for ls in (upper, lower)]
     result = jnp.concatenate(arr, axis=2)
     return jnp.squeeze(result)
+
+
+def drop_diagonal_i(square):
+    n = square.shape[0]
+    split1 = jnp.split(square, n, axis=0)
+    upper = [jnp.split(split1[i], [j], axis=1)[1] for i, j in zip(range(0, n), range(1, n))]
+    lower = [jnp.split(split1[i], [j], axis=1)[0] for i, j in zip(range(1, n), range(1, n))]
+    arr = [ls[i] for i in range(n-1) for ls in (upper, lower)]
+    result = jnp.concatenate(arr, axis=1)
+    return jnp.squeeze(result)
+
+
+drop_diagonal = vmap(drop_diagonal_i, in_axes=(0,))
 
 m, n, f = 512, 5, 10
 square = jnp.array(np.random.normal(0., 1., (m, n, n, f)))

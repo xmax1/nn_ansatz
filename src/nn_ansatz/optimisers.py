@@ -1,7 +1,7 @@
 
 import jax
 import jax.numpy as jnp
-from jax import lax, vmap, jit, grad, value_and_grad
+from jax import lax, vmap, jit, grad, value_and_grad, pmap
 
 import numpy as np
 from jax.tree_util import tree_unflatten, tree_flatten
@@ -9,12 +9,22 @@ from jax.tree_util import tree_unflatten, tree_flatten
 from .vmc import create_grad_function
 
 
-def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint):
+def update_maa_and_mss(step, maa, aa, mss, ss):
+    cov_moving_weight = jnp.min(jnp.array([step, 0.95]))
+    cov_instantaneous_weight = 1. - cov_moving_weight
+    total = cov_moving_weight + cov_instantaneous_weight
 
+    maa = (cov_moving_weight * maa + cov_instantaneous_weight * aa) / total
+    mss = (cov_moving_weight * mss + cov_instantaneous_weight * ss) / total
+
+    return maa, mss
+
+
+def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint):
     kfac_update, substate = create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s)
 
-    def _get_params(x):
-        return x[0]
+    def _get_params(state):
+        return state[0]
 
     def _update(step, grads, state):
         params = _get_params(state)
@@ -36,41 +46,22 @@ def create_sensitivities_grad_fn(kfac_wf):
         log_psi, activations = vwf(params, walkers, d0s)
         return log_psi.mean()
 
-    grad_fn = jit(grad(_sum_log_psi, argnums=2))
+    grad_fn = pmap(jit(grad(_sum_log_psi, argnums=2)), in_axes=(None, 0, 0))
 
     return grad_fn
 
 
 def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
-
     sensitivities_fn = create_sensitivities_grad_fn(kfac_wf)
-    # grad_fn = create_grad_function(wf, mol)
-    vwf = jit(vmap(kfac_wf, in_axes=(None, 0, 0)))
+    vwf = pmap(jit(vmap(kfac_wf, in_axes=(None, 0, 0))), in_axes=(None, 0, 0))
 
-    @jit
-    def _kfac_step(step, gradients, activations, sensitivities, maas, msss, lr, damping, norm_constraint):
+    def _kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
 
         gradients, gradients_tree_map = tree_flatten(gradients)
-        activations, activations_tree_map = tree_flatten(activations)
-        sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
-
         ngs = []
         new_maas = []
         new_msss = []
-        for g, a, s, maa, mss in zip(gradients, activations, sensitivities, maas, msss):
-
-            n = a.shape[0]
-            sl_factor = 1.
-
-            if len(a.shape) == 3:
-                sl_factor = float(a.shape[1] ** 2)
-                a = a.mean(1)
-            if len(s.shape) == 3:
-                sl_factor = float(s.shape[1] ** 2)
-                s = s.mean(1)
-
-            aa = jnp.transpose(a) @ a / float(n)
-            ss = jnp.transpose(s) @ s / float(n)
+        for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
 
             maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
 
@@ -85,9 +76,11 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
             chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
             chol_dmss = jax.scipy.linalg.cho_factor(dmss)
 
-            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
+            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa,
+                                                  jnp.eye(maa.shape[0]))  # , check_finite=False for performance
             inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
 
+            # the zero index takes the values on device 0
             ng = inv_dmaa @ g @ inv_dmss / sl_factor
 
             # vals_dmaa, vecs_dmaa = jnp.linalg.eigh(dmaa)
@@ -104,21 +97,51 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
 
         return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
 
-    kfac_step = pmap()
+    def _compute_covariances(activations, sensitivities):
+
+        activations, activations_tree_map = tree_flatten(activations)
+        sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
+
+        aas = []
+        sss = []
+        sl_factors = []
+        for a, s in zip(activations, sensitivities):
+            n = a.shape[0]
+            sl_factor = 1.
+
+            if len(a.shape) == 3:
+                sl_factor = float(a.shape[1] ** 2)
+                a = a.mean(1)
+            if len(s.shape) == 3:
+                sl_factor = float(s.shape[1] ** 2)
+                s = s.mean(1)
+
+            aa = jnp.transpose(a) @ a / float(n)
+            ss = jnp.transpose(s) @ s / float(n)
+
+            aas.append(aa)
+            sss.append(ss)
+            sl_factors.append(sl_factor)
+
+        return aas, sss, sl_factors
+
+    compute_covariances = pmap(jit(_compute_covariances), in_axes=(0, 0))
 
     def _compute_natural_gradients(step, grads, state, walkers, d0s):
 
         params, maas, msss, lr, damping, norm_constraint = state
-        # yes there is a more efficient way of doing this.
-        # It can be reduced by 1 forward passes and 1 backward pass
+
         _, activations = vwf(params, walkers, d0s)
         sensitivities = sensitivities_fn(params, walkers, d0s)
+        aas, sss, sl_factors = compute_covariances(activations, sensitivities)
+        aas = [jax.device_put(aa, jax.devices()[0]).mean(0) for aa in aas]
+        sss = [jax.device_put(ss, jax.devices()[0]).mean(0) for ss in sss]
+        sl_factors = [s[0] for s in sl_factors]
 
-        ngs, state = _kfac_step(step, grads, activations, sensitivities, maas, msss, lr, damping, norm_constraint)
+        ngs, state = _kfac_step(step, grads, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint)
 
         return ngs, (params, *state)
 
-    walkers = walkers[:mol.n_walkers_per_device]
     _, activations = vwf(params, walkers, d0s)
     sensitivities = sensitivities_fn(params, walkers, d0s)
 
@@ -174,12 +197,40 @@ def get_tr_norm(x):
     return jnp.max(jnp.array([1e-5, trace]))
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss):
-    cov_moving_weight = jnp.min(jnp.array([step, 0.95]))
-    cov_instantaneous_weight = 1. - cov_moving_weight
-    total = cov_moving_weight + cov_instantaneous_weight
 
-    maa = (cov_moving_weight * maa + cov_instantaneous_weight * aa) / total
-    mss = (cov_moving_weight * mss + cov_instantaneous_weight * ss) / total
+def adam(step_size, b1=0.9, b2=0.999, eps=1e-8):
+  """Construct optimizer triple for Adam.
 
-    return maa, mss
+  Args:
+    step_size: positive scalar, or a callable representing a step size schedule
+      that maps the iteration index to positive scalar.
+    b1: optional, a positive scalar value for beta_1, the exponential decay rate
+      for the first moment estimates (default 0.9).
+    b2: optional, a positive scalar value for beta_2, the exponential decay rate
+      for the second moment estimates (default 0.999).
+    eps: optional, a positive scalar value for epsilon, a small constant for
+      numerical stability (default 1e-8).
+
+  Returns:
+    An (init_fun, update_fun, get_params) triple.
+  """
+  step_size = make_schedule(step_size)
+
+  def init(x0):
+    m0 = jnp.zeros_like(x0)
+    v0 = jnp.zeros_like(x0)
+    return x0, m0, v0
+
+  def update(i, g, state):
+    x, m, v = state
+    m = (1 - b1) * g + b1 * m  # First  moment estimate.
+    v = (1 - b2) * jnp.square(g) + b2 * v  # Second moment estimate.
+    mhat = m / (1 - jnp.asarray(b1, m.dtype) ** (i + 1))  # Bias correction.
+    vhat = v / (1 - jnp.asarray(b2, m.dtype) ** (i + 1))
+    x = x - step_size(i) * mhat / (jnp.sqrt(vhat) + eps)
+    return x, m, v
+  def get_params(state):
+    x, _, _ = state
+    return x
+
+  return init, update, get_params

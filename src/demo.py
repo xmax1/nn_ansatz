@@ -1,3 +1,9 @@
+import os
+os.environ['JAX_PLATFORM_NAME']='cpu'
+os.environ['XLA_FLAGS']="--xla_force_host_platform_device_count=4"
+import jax
+print(jax.devices())
+
 import numpy as np
 from nn_ansatz import setup
 from nn_ansatz import run_vmc
@@ -13,7 +19,7 @@ config = setup(system='LiSolid',
                n_layers=2,
                n_sh=32,
                n_ph=8,
-               opt='adam',
+               opt='kfac',
                n_det=4,
                print_every=1,
                save_every=5000,

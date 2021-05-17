@@ -81,11 +81,11 @@ def create_sampler(wf,
     def _equilibrate(params, walkers, d0s, key, n_it=1000, step_size=0.02 ** 2):
 
         for i in range(n_it):
-            key, subkey = rnd.split(key)
-            e_locs = compute_energy(params, walkers, d0s)
-            walkers, acc, step_size = _sample_metropolis_hastings(params, walkers, d0s, subkey, step_size)
+            key, *subkeys = rnd.split(key, walkers.shape[0]+1)
+            # e_locs = compute_energy(params, walkers, d0s)
+            walkers, acc, step_size = _sample_metropolis_hastings(params, walkers, d0s, subkeys, step_size)
 
-            print('step %i energy %.4f acceptance %.2f' % (i, jnp.mean(e_locs), acc))
+            # print('step %i energy %.4f acceptance %.2f' % (i, jnp.mean(e_locs), acc))
 
         return walkers
 
