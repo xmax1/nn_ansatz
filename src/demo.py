@@ -30,8 +30,8 @@ config = setup(system='LiSolid',
                exp=True,
                name='mic_w_interaction',
                kappa = 1.,
-               real_cut = 6.,
-               reciprocal_cut = 13)
+               real_cut = 3,
+               reciprocal_cut = 3)
 
 run_vmc(**config)
 

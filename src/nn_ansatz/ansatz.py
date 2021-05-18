@@ -75,8 +75,10 @@ def create_wf(mol):
         return log_psi, activations
 
     wf_orbitals = remove_aux(_wf_orbitals, axis=1)
+    
+    vwf = vmap(_wf, in_axes=(None, 0, 0))
 
-    return _wf, _kfac_wf, wf_orbitals
+    return _wf, vwf, _kfac_wf, wf_orbitals
 
 
 def create_masks(n_atom, n_electrons, n_up, n_layers, n_sh, n_ph):

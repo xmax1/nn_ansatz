@@ -12,35 +12,35 @@ from jax.experimental.optimizers import adam
 
 from .vmc import create_energy_fn
 from .sampling import to_prob, create_sampler
-from .parameters import initialise_d0s, expand_d0s
+from .parameters import initialise_d0s, expand_d0s, initialise_params
 from .utils import save_pk
+from .ansatz import create_wf
 
-def pretrain_wf(params,
-                wf,
-                wf_orbitals,
-                mol,
-                walkers,
+
+def pretrain_wf(mol,
                 step_size: float = 0.02,
-                n_it: int = 1000,
+                n_pre_it: int = 1000,
                 lr: float = 1e-4,
                 n_eq_it: int = 500,
                 pre_path=None,
                 seed=1,
-                **kwargs):
+                **cfg):
     key = rnd.PRNGKey(seed)
 
     print('READ ME: Be careful here, '
           '(see env_sigma_i() in ferminet) wf samples and mixed samples energies diverge'
           'if the sigma and pi parameters are not set up in a very particular way\n')
 
-    time.sleep(1)
-    d0s_pre = expand_d0s(initialise_d0s(mol), len(walkers)//2)
-    d0s = expand_d0s(initialise_d0s(mol), len(walkers))
+    wf, vwf, kfac_wf, wf_orbitals = create_wf(mol)
+    params = initialise_params(key, mol)
+
+    walkers = mol.initialise_walkers(n_devices=1, **cfg)
+    d0s, d0s_pre = initialise_d0s(mol, n_devices=1, n_walkers_per_device=cfg['n_walkers']).split(2, axis=1)
 
     compute_local_energy = create_energy_fn(wf, mol)
     loss_function, sampler = create_pretrain_loss_and_sampler(wf, wf_orbitals, mol)
     loss_function = value_and_grad(loss_function)
-    wf_sampler, equilibrate = create_sampler(wf, mol, correlation_length=10)
+    wf_sampler, equilibrate = create_sampler(wf, vwf, mol, correlation_length=10)
 
     walkers = equilibrate(params, walkers, d0s, key, n_it=n_eq_it, step_size=step_size)
     wf_walkers = jnp.array(walkers, copy=True)
@@ -48,7 +48,7 @@ def pretrain_wf(params,
     init, update, get_params = adam(lr)
     state = init(params)
 
-    steps = trange(0, n_it, initial=0, total=n_it, desc='pretraining', disable=None)
+    steps = trange(0, n_pre_it, initial=0, total=n_pre_it, desc='pretraining', disable=None)
     for step in steps:
         key, *subkeys = rnd.split(key, num=3)
 

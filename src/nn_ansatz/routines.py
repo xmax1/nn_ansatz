@@ -15,109 +15,55 @@ from .pretraining import pretrain_wf
 from .vmc import create_energy_fn, create_grad_function
 # from .utils import *
 from .optimisers import create_natural_gradients_fn, kfac
-from .utils import Logging, load_pk, save_pk, key_gen
+from .utils import Logging, load_pk, save_pk, key_gen, split_variables_for_pmap
 
 
-def split_variables_for_pmap(n_devices, *args):
-    for i in range(len(args))[:-1]:
-        assert len(args[i]) == len(args[i + 1])
+def run_vmc(**cfg):
 
-    assert len(args[0]) % n_devices == 0
+    logger = Logging(**cfg)
 
-    new_args = []
-    for arg in args:
-        shape = arg.shape
-        new_args.append(arg.reshape(n_devices, shape[0] // n_devices, *shape[1:]))
+    key = rnd.PRNGKey(cfg['seed'])
+    keys = rnd.split(key, cfg['n_devices']).reshape(cfg['n_devices'], 2)
 
-    if len(args) == 1:
-        return new_args[0]
-    return new_args
+    mol = SystemAnsatz(**cfg)
 
-
-def run_vmc(opt: str = 'kfac',
-            lr: float = 1e-4,
-            damping: float = 1e-4,
-            norm_constraint: float = 1e-4,
-            n_it: int = 1000,
-            n_walkers: int = 1024,
-            step_size=None,
-
-            pre_lr: float = 1e-4,
-            n_pre_it: int = 1000,
-            load_pretrain: bool = False,
-            pretrain: bool = False,
-            pre_path: str = '',
-
-            seed: int = 369,
-            **kwargs):
-
-    logger = Logging(**kwargs)
-
-    key = rnd.PRNGKey(seed)
-
-    mol = SystemAnsatz(**kwargs)
-
-    wf, kfac_wf, wf_orbitals = create_wf(mol)
+    wf, vwf, kfac_wf, wf_orbitals = create_wf(mol)
     params = initialise_params(key, mol)
-    d0s = initialise_d0s(mol)
+    d0s = initialise_d0s(mol, cfg['n_devices'], cfg['n_walkers_per_device'])
 
-    sampler, equilibrate = create_sampler(wf, mol, correlation_length=10)
+    sampler, equilibrater = create_sampler(wf, vwf, mol, **cfg)
 
-    walkers = mol.initialise_walkers(n_walkers=n_walkers)
+    walkers = None
+    if cfg['load_pretrain']:
+        params, walkers = load_pk(cfg['pre_path'])
+    elif cfg['pretrain']:
+        params, walkers = pretrain_wf(mol, **cfg)
+    
+    walkers = mol.initialise_walkers(walkers=walkers, **cfg)
+    walkers = equilibrater(params, walkers, d0s, keys, n_it=1000, step_size=0.02)
 
+    grad_fn = create_grad_function(wf, vwf, mol)
 
-    if pretrain:  # this logic is ugly but need to include case where we want to skip pretraining
-        if load_pretrain:
-            params, walkers = load_pk(pre_path)
-            walkers = mol.initialise_walkers(walkers=walkers,
-                                             n_walkers=n_walkers,
-                                             equilibrate=equilibrate,
-                                             params=params,
-                                             d0s=d0s)
-        else:
-            params, walkers = pretrain_wf(params,
-                                          wf,
-                                          wf_orbitals,
-                                          mol,
-                                          walkers,
-                                          n_it=n_pre_it,
-                                          lr=pre_lr,
-                                          n_eq_it=n_pre_it,
-                                          pre_path=pre_path)
-
-    walkers = mol.initialise_walkers(walkers=walkers,
-                                     n_walkers=n_walkers,
-                                     equilibrate=equilibrate,
-                                     params=params,
-                                     d0s=d0s)
-    walkers = split_variables_for_pmap(kwargs['n_devices'], walkers)
-
-    grad_fn = create_grad_function(wf, mol)
-
-    if opt == 'kfac':
-        update, get_params, kfac_update, state = kfac(kfac_wf, wf, mol, params, walkers, d0s,
-                                                      lr=lr,
-                                                      damping=damping,
-                                                      norm_constraint=norm_constraint)
-    elif opt == 'adam':
-        init, update, get_params = adam(lr)
+    if cfg['opt'] == 'kfac':
+        update, get_params, kfac_update, state = kfac(kfac_wf, wf, mol, params, walkers, d0s, **cfg)
+    elif cfg['opt'] == 'adam':
+        init, update, get_params = adam(cfg['lr'])
         update = jit(update)
         state = init(params)
     else:
         exit('Optimiser not available')
 
-    steps = trange(0, n_it, initial=0, total=n_it, desc='training', disable=None)
-    keys = rnd.split(key, kwargs['n_devices'])
+    steps = trange(0, cfg['n_it'], initial=0, total=cfg['n_it'], desc='training', disable=None)
+    step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
 
     for step in steps:
         keys, subkeys = key_gen(keys)
 
         walkers, acceptance, step_size = sampler(params, walkers, d0s, subkeys, step_size)
-        step_size = step_size[0]
 
         grads, e_locs = grad_fn(params, walkers, d0s)
 
-        if opt == 'kfac':
+        if cfg['opt'] == 'kfac':
             grads, state = kfac_update(step, grads, state, walkers, d0s)
 
         state = update(step, grads, state)

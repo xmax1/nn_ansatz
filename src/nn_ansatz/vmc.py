@@ -27,8 +27,8 @@ def clip_and_center(e_locs):
     return e_locs - jnp.mean(e_locs)
 
 
-def create_grad_function(wf, mol):
-    vwf = vmap(wf, in_axes=(None, 0, 0))
+def create_grad_function(wf, vwf, mol):
+    
     compute_energy = create_energy_fn(wf, mol)
 
     def _forward_pass(params, walkers, d0s):
@@ -90,10 +90,10 @@ def inner(v1, v2):
     return jnp.sum(v1 * v2, axis=-1)
 
 
-def generate_real_lattice(real_basis, rcut, reciprocal_height):
-    # from pyscf, some logic to set the number of imgs away from simulation cell. Adapted version confirmed in notion
-    nimgs = jnp.ceil(rcut*reciprocal_height + 1.1).astype(int)
-    img_range = jnp.arange(-nimgs, nimgs+1)
+def generate_real_lattice(real_basis, real_cut):
+    l0 = jnp.linalg.norm(real_basis, axis=-1).mean()  # get the mean length of the basis vectors
+    
+    img_range = jnp.arange(-2*real_cut, 2*real_cut+1)  # x2 to create sphere
     img_sets = list(product(*[img_range, img_range, img_range]))
     # first axis is the number of lattice vectors, second is the integers to scale the primitive vectors, third is the resulting set of vectors
     # then sum over those
@@ -101,31 +101,44 @@ def generate_real_lattice(real_basis, rcut, reciprocal_height):
     img_sets = jnp.concatenate([jnp.array(x)[None, :, None] for x in img_sets if not jnp.sum(jnp.array(x) == 0) == 3], axis=0)
     # print(img_sets.shape)
     imgs = jnp.sum(img_sets * real_basis, axis=1)
-    
-    # generate all the single combinations of the basis vectors
-    v = jnp.split(real_basis, 3, axis=0)
-    z = jnp.zeros_like(v[0])
-    vecs = product(*[[-v[0], z, v[0]],[-v[1], z, v[1]], [-v[2], z, v[2]]])
-    vecs = jnp.array(list(vecs)).squeeze().sum(-2)  # sphere around the origin
 
     # if a sphere around the image is within rcut then keep it
-    lengths = jnp.linalg.norm(vecs[None, ...] + imgs[:, None, :], axis=-1)
-    mask = jnp.any(lengths < rcut, axis=1)
-    nimgs = len(imgs)
+    lengths = jnp.linalg.norm(imgs, axis=-1)
+
+    img_sets = jnp.any(lengths < (real_cut * l0), axis=1)
     imgs = imgs[mask]
     return imgs
 
 
-def generate_reciprocal_lattice(reciprocal_basis, mesh):
+def generate_reciprocal_lattice(reciprocal_basis, reciprocal_cut):
     # 3D uniform grids
-    rx = jnp.fft.fftfreq(mesh[0], 1./mesh[0])
-    ry = jnp.fft.fftfreq(mesh[1], 1./mesh[1])
-    rz = jnp.fft.fftfreq(mesh[2], 1./mesh[2])
-    base = (rx, ry, rz)
-    cartesian_product = jnp.array(list(product(*base)))  # another worse version of this is available in cartesian_prod(...)
-    cartesian_product = jnp.array([x for x in cartesian_product if not jnp.sum(x == 0) == 3])  # filter the zero vector
-    reciprocal_lattice = jnp.dot(cartesian_product, reciprocal_basis)
+    img_range = jnp.arange(-2*reciprocal_cut, 2*reciprocal_cut+1)
+    img_sets = list(product(*[img_range, img_range, img_range]))  # cartesian product another worse version of this is available in cartesian_prod(...)
+
+    img_sets = jnp.array([x for x in img_sets if not jnp.sum(x == 0) == 3])  # filter the zero vector
+    reciprocal_lattice = jnp.dot(img_sets, reciprocal_basis)
     return reciprocal_lattice
+
+
+def generate_lattice(basis, cut):
+    len0 = jnp.linalg.norm(basis, axis=-1).mean()  # get the mean length of the basis vectors
+    
+    img_range = jnp.arange(-2*cut, 2*cut+1)  # x2 to create sphere
+    img_sets = list(product(*[img_range, img_range, img_range]))
+    # first axis is the number of lattice vectors, second is the integers to scale the primitive vectors, third is the resulting set of vectors
+    # then sum over those
+    # print(len(img_sets))
+    img_sets = jnp.concatenate([jnp.array(x)[None, :, None] for x in img_sets if not jnp.sum(jnp.array(x) == 0) == 3], axis=0)
+    # print(img_sets.shape)
+    imgs = jnp.sum(img_sets * basis, axis=1)
+
+    # if a sphere around the image is within rcut then keep it
+    lengths = jnp.linalg.norm(imgs, axis=-1)
+
+    mask = lengths < (cut * len0)
+    img = imgs[mask]
+    return imgs
+
 
 
 def create_potential_energy(mol):
@@ -144,8 +157,8 @@ def create_potential_energy(mol):
         mesh = [mol.reciprocal_cut for i in range(3)]
         volume = mol.volume
 
-        real_lattice = generate_real_lattice(real_basis, mol.real_cut, mol.reciprocal_height)  # (n_lattice, 3)
-        reciprocal_lattice = generate_reciprocal_lattice(reciprocal_basis, mesh)
+        real_lattice = generate_lattice(real_basis, mol.real_cut)  # (n_lattice, 3)
+        reciprocal_lattice = generate_lattice(reciprocal_basis, mol.reciprocal_cut)
         rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
         rl_factor = (4*jnp.pi / volume) * jnp.exp(- rl_inner_product / (4*kappa**2)) / rl_inner_product  
 

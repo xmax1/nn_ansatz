@@ -1,10 +1,13 @@
 
 import numpy as np
+
+import jax
 import jax.numpy as jnp
 from jax import random as rnd
 from jax import jit, vmap, pmap
 
 from .vmc import create_energy_fn
+from .utils import key_gen, split_variables_for_pmap
 
 
 def to_prob(amplitudes):
@@ -30,14 +33,14 @@ def create_step(mol):
 
 
 def create_sampler(wf,
+                   vwf,
                    mol,
-                   correlation_length: int=10):
+                   correlation_length: int=10,
+                   **kwargs):
 
     step = create_step(mol)
 
-    vwf = vmap(wf, in_axes=(None, 0, 0))
-
-    def _sample_metropolis_hastings_loop(params, curr_walkers, d0s, key, step_size):
+    def _sample_metropolis_hastings(params, curr_walkers, d0s, key, step_size):
 
         shape = curr_walkers.shape
         curr_probs = to_prob(vwf(params, curr_walkers, d0s))
@@ -61,35 +64,32 @@ def create_sampler(wf,
 
         acceptance = acceptance_total / float(correlation_length)
 
-        return curr_walkers, acceptance, step_size
-
-    jit_sample_metropolis_hastings_loop = jit(_sample_metropolis_hastings_loop)
-
-    def _sample_metropolis_hastings(params, walkers, d0s, key, step_size):
-        """
-        Notes:
-            - This has to be done this way because adjust_step_size contains control flow
-        """
-
-        walkers, acceptance, step_size = jit_sample_metropolis_hastings_loop(params, walkers, d0s, key, step_size)
         step_size = adjust_step_size(step_size, acceptance)
 
-        return walkers, acceptance, step_size
+        return curr_walkers, acceptance, step_size
 
-    compute_energy = create_energy_fn(wf, mol)
+    sampler = pmap(jit(_sample_metropolis_hastings), in_axes=(None, 0, 0, 0, 0))
 
-    def _equilibrate(params, walkers, d0s, key, n_it=1000, step_size=0.02 ** 2):
+    compute_energy = pmap(create_energy_fn(wf, mol), in_axes=(None, 0, 0))
+
+    def equilibrate(params, walkers, d0s, keys, n_it=1000, step_size=0.02):
+
+        step_size = split_variables_for_pmap(walkers.shape[0], step_size)
 
         for i in range(n_it):
-            key, *subkeys = rnd.split(key, walkers.shape[0]+1)
-            # e_locs = compute_energy(params, walkers, d0s)
-            walkers, acc, step_size = _sample_metropolis_hastings(params, walkers, d0s, subkeys, step_size)
+            keys, subkeys = key_gen(keys)
 
-            # print('step %i energy %.4f acceptance %.2f' % (i, jnp.mean(e_locs), acc))
+            walkers, acc, step_size = sampler(params, walkers, d0s, subkeys, step_size)
+            e_locs = compute_energy(params, walkers, d0s)
+            e_locs = jax.device_put(e_locs, jax.devices()[0]).mean()
+            print('step %i energy %.4f acceptance %.2f' % (i, jnp.mean(e_locs), acc[0]))
 
         return walkers
 
-    return pmap(_sample_metropolis_hastings, in_axes=(None, 0, 0, 0, None)), _equilibrate
+    return sampler, equilibrate
+
+
+
 
 
 def adjust_step_size(step_size, acceptance, target_acceptance=0.5):

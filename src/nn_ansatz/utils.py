@@ -13,6 +13,20 @@ PATH = os.path.abspath(os.path.dirname(__file__))
 systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
 
 
+def split_variables_for_pmap(n_devices, *args):
+    
+    new_args = []
+    for arg in args:
+        if type(arg) in (float, int):
+            new_arg = jnp.array(arg).repeat(n_devices)
+        new_args.append(new_arg)
+    
+    # not sure how to unpack the list if there is just one element
+    if len(new_args) == 1:
+        return new_args[0]
+    return new_args
+
+
 def key_gen(keys):
     """
     keys: (n_devices, 2)
@@ -23,7 +37,7 @@ def key_gen(keys):
     """
     keys = jnp.array([rnd.split(key) for key in keys])
     keys = jnp.split(keys, 2, axis=1)
-    return [x.squeeze() for x in keys]
+    return [x.squeeze(axis=1) for x in keys]
 
 # key_gen = lambda keys: [x.squeeze() for x in jnp.array([rnd.split(key) for key in keys]).split(2, axis=1)]
 
@@ -188,7 +202,9 @@ def setup(system: str = 'Be',
           norm_constraint: float = 1e-4,
           n_it: int = 1000,
           n_walkers: int = 1024,
+
           step_size: float = 0.02,
+          correlation_length: int = 10,
 
           n_layers: int = 2,
           n_sh: int = 32,
@@ -198,6 +214,7 @@ def setup(system: str = 'Be',
           pre_lr: float = 1e-4,
           n_pre_it: int = 1000,
           pretrain: bool = False,
+          load_pretrain: bool = False,
 
           load_it: int = 0,
           load_dir: str = '',
@@ -232,7 +249,10 @@ def setup(system: str = 'Be',
         run = 'run%i' % get_run(exp_dir)
         exp_dir = os.path.join(exp_dir, run)
 
-    load_pretrain, pre_path = are_we_loading_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_hyperparameter_name)
+    pretrain_dir = os.path.join(root, system, 'pretrained')
+    hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
+    pre_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
+    make_dir(pre_path)
 
     events_dir = os.path.join(exp_dir, 'events')
     timing_dir = os.path.join(events_dir, 'timing')
@@ -282,6 +302,7 @@ def setup(system: str = 'Be',
               'n_walkers': n_walkers,
               'n_walkers_per_device': n_walkers // n_devices,
               'step_size': step_size,
+              'correlation_length': correlation_length,
 
               # PRETRAINING HYPERPARAMETERS
               'pre_lr': pre_lr,

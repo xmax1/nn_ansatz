@@ -126,7 +126,7 @@ class SystemAnsatz():
             self.reciprocal_height = compute_reciprocal_height(self.reciprocal_basis, unit_cell_length)
             self.unit_cell_length = unit_cell_length
 
-            self.real_cut = real_cut * unit_cell_length
+            self.real_cut = real_cut
             self.reciprocal_cut = reciprocal_cut
             self.kappa = kappa
 
@@ -140,29 +140,23 @@ class SystemAnsatz():
               'volume           = %.2f \n' % self.volume)
 
 
-
-            
-
-
-
     @property
     def atom_positions(self):
         return [x for x in self.r_atoms.split(self.n_atoms, axis=0)]
 
-    def initialise_walkers(self, params=None, d0s=None, equilibrate=None, walkers=None, n_walkers: int=1024, n_it=64):
+    
+    def initialise_walkers(self, walkers = None, n_walkers: int=1024, n_devices: int=1, **kwargs):
+        """
+        Notes:
+            - Walkers should be passed in without a device dimension
+        """
         if walkers is None:
-            return initialise_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
-        if len(walkers) == n_walkers:
-            return walkers
-        if params is None or d0s is None or equilibrate is None:
-            exit('If the number of loaded walkers is not equal to the number of requested walkers \n'
-                 'params, d0s and equilibrate function must be passed to initialize walkers function for equilibration')
-        n_replicate = math.ceil(n_walkers / len(walkers))
-        walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)
-        walkers = walkers[:n_walkers, ...]
-        key = rnd.PRNGKey(0)  # this may be an issue if we double the batch size and then double the available gpus.
-        walkers = equilibrate(params, walkers, d0s, key, n_it=n_it)
-        return walkers
+            walkers = initialise_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
+        elif not len(walkers) == n_walkers:
+            n_replicate = math.ceil(n_walkers / len(walkers))
+            walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)
+            walkers = walkers[:n_walkers, ...]
+        return walkers.reshape(n_devices, -1, *walkers.shape[1:])
 
 
 

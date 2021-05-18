@@ -124,7 +124,7 @@ def initialise_params(key,
     return params
 
 
-def initialise_d0s(mol):
+def initialise_d0s(mol, n_devices, n_walkers_per_device):
     n_layers, n_sh, n_ph, n_det = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det
     n_el, n_pairwise, n_atoms, n_up, n_down = mol.n_el, mol.n_pairwise, mol.n_atoms, mol.n_up, mol.n_down
 
@@ -160,7 +160,7 @@ def initialise_d0s(mol):
     d0s['envelopes']['pi'] = [jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det * n_up, axis=1),
                                  jnp.split(jnp.zeros((n_down, n_det * n_down)), n_det * n_down, axis=1)]
 
-    d0s = expand_d0s(d0s, mol.n_devices, mol.n_walkers_per_device)
+    d0s = expand_d0s(d0s, n_devices, n_walkers_per_device)
 
     return d0s
 
