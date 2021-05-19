@@ -146,7 +146,7 @@ def generate_lattice(basis, cut):
 
 
 
-def create_potential_energy_x(mol):
+def create_potential_energy(mol):
     """
 
     Notes:
@@ -218,7 +218,7 @@ def create_potential_energy_x(mol):
     return vmap(compute_potential_energy_i, in_axes=(0, None, None))
 
 
-def create_potential_energy(mol):
+def create_potential_energy_min_im(mol):
     """
 
     Notes:
