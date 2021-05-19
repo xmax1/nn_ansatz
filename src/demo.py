@@ -1,7 +1,7 @@
 import os
 os.environ['JAX_PLATFORM_NAME']='cpu'
-os.environ['no_JIT'] = 'True'
-# os.environ['XLA_FLAGS']="--xla_force_host_platform_device_count=4"
+# os.environ['no_JIT'] = 'True'
+os.environ['XLA_FLAGS']="--xla_force_host_platform_device_count=4"
 # os.environ['XLA_FLAGS']="--xla_dump_to=/tmp/foo"
 
 import jax
@@ -30,7 +30,7 @@ config = setup(system='LiSolid',
                norm_constraint=1e-4,
                damping=1e-3,
                exp=True,
-               name='bulk_minim_interactionsandpotential',
+               name='junk',
                kappa = 0.5,
                real_cut = 5,
                reciprocal_cut = 5)

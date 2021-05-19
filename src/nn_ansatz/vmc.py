@@ -160,7 +160,6 @@ def create_potential_energy(mol):
         real_basis = mol.real_basis
         reciprocal_basis = mol.reciprocal_basis
         kappa = mol.kappa
-        mesh = [mol.reciprocal_cut for i in range(3)]
         volume = mol.volume
 
         real_lattice = generate_lattice(real_basis, mol.real_cut)  # (n_lattice, 3)

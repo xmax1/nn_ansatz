@@ -22,10 +22,10 @@ def create_step(mol):
 
     def _periodic_boundaries_step(walkers, key, shape, step_size):
         walkers = walkers + rnd.normal(key, shape) * step_size
-        talkers = walkers.dot(mol.inv_real_basis)
+        talkers = walkers.dot(mol.inv_real_basis.T)
         talkers = jnp.fmod(talkers, 1.)
         talkers = jnp.where(talkers < 0, talkers + 1., talkers)
-        talkers = talkers.dot(mol.real_basis)
+        talkers = talkers.dot(mol.real_basis.T)
         return talkers
 
     if mol.periodic_boundaries:
