@@ -1,4 +1,5 @@
 import itertools
+import os
 
 import jax
 import jax.numpy as jnp
@@ -18,7 +19,6 @@ def sgd(params, grads, lr=1e-4):
     return params
 
 
-@jit
 def clip_and_center(e_locs):
     median = jnp.median(e_locs)
     total_var = jnp.mean(jnp.abs(e_locs - median))
@@ -40,7 +40,10 @@ def create_grad_function(wf, vwf, mol):
 
         return jnp.mean(e_locs_centered * log_psi), e_locs
 
-    grad_fn = pmap(jit(grad(_forward_pass, has_aux=True)), in_axes=(None, 0, 0))
+    backward_pass = grad(_forward_pass, has_aux=True)
+    if not os.environ.get('no_JIT') == 'True':
+        backward_pass = jit(backward_pass)
+    grad_fn = pmap(backward_pass, in_axes=(None, 0, 0))
 
     # inside the pmapped function you can't 'undevice' the variables
     def _grad_fn(params, walkers, d0s):
@@ -51,6 +54,8 @@ def create_grad_function(wf, vwf, mol):
         grads = tree_unflatten(tree, grads)
         return grads, jax.device_put(e_locs, jax.devices()[0]).reshape(-1)
 
+    # if os.environ.get('JIT') == 'True':
+    #     return jit(_grad_fn)
     return _grad_fn
 
 
@@ -70,7 +75,7 @@ def create_energy_fn(wf, mol):
         kinetic_energy = local_kinetic_energy(params, walkers, d0s)
         return potential_energy + kinetic_energy
 
-    return jit(_compute_local_energy)
+    return _compute_local_energy
 
 
 def vector_sub(v1, v2, axis=-2):
@@ -141,7 +146,7 @@ def generate_lattice(basis, cut):
 
 
 
-def create_potential_energy(mol):
+def create_potential_energy_x(mol):
     """
 
     Notes:
@@ -149,6 +154,7 @@ def create_potential_energy(mol):
         - I am now returning to length of unit cell units which is different to the unit cell length I was using before. How does this affect the computation?
         - Is the reciprocal height computed in the correct way?
     """
+
     if mol.periodic_boundaries:
         
         real_basis = mol.real_basis
@@ -193,6 +199,88 @@ def create_potential_energy(mol):
             ex_walkers = vector_add(walkers, real_lattice)  # (n_particle, n_lattice, 3)
             tmp = walkers[:, None, None, :] - ex_walkers[None, ...]  # (n_particle, n_particle, n_lattice, 3)
             ex_distances = jnp.sqrt(jnp.sum(tmp**2, axis=-1))  
+            Rs1 = jnp.sum(erfc(kappa * ex_distances) / ex_distances, axis=-1)
+            real_sum = (q_q * (Rs0 + 0.5 * Rs1)).sum((-1, -2))
+            
+            # compute the constant factor
+            self_interaction = - 0.5 * jnp.diag(q_q * 2 * kappa / jnp.sqrt(jnp.pi)).sum()
+            constant = - 0.5 * charges.sum()**2 * jnp.pi / (kappa**2 * volume)  # is zero in neutral case
+
+            # compute the reciprocal term reuse the ee vectors
+            exp = jnp.real(jnp.sum(rl_factor[None, None, :] * jnp.exp(1j * p_p_vectors @ jnp.transpose(reciprocal_lattice)), axis=-1))
+            reciprocal_sum = 0.5 * (q_q * exp).sum((-1,-2))
+            
+            potential = real_sum + reciprocal_sum + constant + self_interaction
+            return potential
+
+        return vmap(compute_potential_energy_solid_i, in_axes=(0, None, None))
+
+    return vmap(compute_potential_energy_i, in_axes=(0, None, None))
+
+
+def create_potential_energy(mol):
+    """
+
+    Notes:
+        - May need to shift the origin to the center to enforce the spherical sum condition
+        - I am now returning to length of unit cell units which is different to the unit cell length I was using before. How does this affect the computation?
+        - Is the reciprocal height computed in the correct way?
+    """
+
+    def compute_pp_vectors_periodic(walkers):
+        unit_cell_walkers = walkers.dot(mol.inv_real_basis)  # translate to the unit cell
+        # tmp = jnp.bitwise_and(unit_cell_walkers > 1., unit_cell_walkers < 0.)
+        # assert not jnp.any(tmp)  # does not work with tracing because it is input dependent
+        re1 = jnp.expand_dims(unit_cell_walkers, axis=1)
+        re2 = jnp.transpose(re1, [1, 0, 2])
+        unit_cell_ee_vectors = re1 - re2
+        min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - jnp.floor_divide(2 * unit_cell_ee_vectors, jnp.ones_like(unit_cell_ee_vectors)) * 1.  # 1 is length of unit cell put it here for clarity
+        min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(mol.real_basis)
+        return min_image_ee_vectors
+
+    if mol.periodic_boundaries:
+        
+        real_basis = mol.real_basis
+        reciprocal_basis = mol.reciprocal_basis
+        kappa = mol.kappa
+        mesh = [mol.reciprocal_cut for i in range(3)]
+        volume = mol.volume
+
+        real_lattice = generate_lattice(real_basis, mol.real_cut)  # (n_lattice, 3)
+        reciprocal_lattice = generate_lattice(reciprocal_basis, mol.reciprocal_cut)
+        rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
+        rl_factor = (4*jnp.pi / volume) * jnp.exp(- rl_inner_product / (4*kappa**2)) / rl_inner_product  
+
+        e_charges = jnp.array([-1. for i in range(mol.n_el)])
+        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0)  # (n_particle, )
+        q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
+
+        def compute_potential_energy_solid_i(walkers, r_atoms, z_atoms):
+
+            """
+            :param walkers (n_el, 3):
+            :param r_atoms (n_atoms, 3):
+            :param z_atoms (n_atoms, ):
+
+            Pseudocode:
+                - compute the potential energy (pe) of the cell
+                - compute the pe of the cell electrons with electrons outside
+                - compute the pe of the cell electrons with nuclei outside
+                - compute the pe of the cell nuclei with nuclei outside
+            """
+
+            # put the walkers and r_atoms together
+            walkers = jnp.concatenate([r_atoms, walkers], axis=0)  # (n_particle, 3)
+
+            # compute the Rs0 term
+            p_p_vectors = compute_pp_vectors_periodic(walkers)  # (n_particle, n_particle, 3)
+            p_p_distances = jnp.linalg.norm(p_p_vectors, axis=-1)
+            # p_p_distances[p_p_distances < 1e-16] = 1e200  # doesn't matter, diagonal dropped, this is just here to suppress the error
+            Rs0 = jnp.tril(erfc(kappa * p_p_distances) / p_p_distances, k=-1)  # is half the value
+
+            # compute the Rs > 0 term
+            ex_vectors = p_p_vectors[..., None, :] - real_lattice[None, None, ...]  # (n_particle, n_particle, n_lattice, 3)
+            ex_distances = jnp.linalg.norm(ex_vectors, axis=-1)
             Rs1 = jnp.sum(erfc(kappa * ex_distances) / ex_distances, axis=-1)
             real_sum = (q_q * (Rs0 + 0.5 * Rs1)).sum((-1, -2))
             
@@ -280,6 +368,3 @@ def local_kinetic_energy_i(wf):
 
     return _lapl_over_f
 
-
-compute_potential_energy = jit(vmap(compute_potential_energy_i, in_axes=(0, None, None)))
-# local_kinetic_energy = jit(vmap(local_kinetic_energy_i(wf), in_axes=(None, 0)))

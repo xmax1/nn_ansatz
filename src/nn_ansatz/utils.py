@@ -4,6 +4,7 @@ import os
 import pickle as pk
 from torch.utils.tensorboard import SummaryWriter
 import time
+from jax import jit
 from jax.experimental import optimizers
 import jax
 import jax.random as rnd
@@ -26,7 +27,7 @@ def split_variables_for_pmap(n_devices, *args):
         return new_args[0]
     return new_args
 
-
+@jit
 def key_gen(keys):
     """
     keys: (n_devices, 2)

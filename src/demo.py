@@ -1,6 +1,9 @@
 import os
 os.environ['JAX_PLATFORM_NAME']='cpu'
+os.environ['no_JIT'] = 'True'
 # os.environ['XLA_FLAGS']="--xla_force_host_platform_device_count=4"
+# os.environ['XLA_FLAGS']="--xla_dump_to=/tmp/foo"
+
 import jax
 print(jax.devices())
 
@@ -23,11 +26,11 @@ config = setup(system='LiSolid',
                print_every=1,
                save_every=5000,
                lr=1e-3,
-               n_it=10000,
+               n_it=1000,
                norm_constraint=1e-4,
                damping=1e-3,
                exp=True,
-               name='updated_ewalds_no_ee_vector_shift',
+               name='bulk_minim_interactionsandpotential',
                kappa = 0.5,
                real_cut = 5,
                reciprocal_cut = 5)

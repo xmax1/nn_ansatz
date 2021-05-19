@@ -1,5 +1,6 @@
 
 import numpy as np
+import os
 
 import jax
 import jax.numpy as jnp
@@ -40,7 +41,9 @@ def create_sampler(wf,
 
     step = create_step(mol)
 
-    def _body_fn(params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total):
+    def _body_fn(i, args):
+        params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total = args
+        
         key, *subkeys = rnd.split(key, num=3)
 
         # next sample
@@ -55,7 +58,11 @@ def create_sampler(wf,
         curr_probs = jnp.where(mask_probs, new_probs, curr_probs)
 
         acceptance_total += mask_probs.mean()
-        return curr_walkers, curr_probs, key, acceptance_total
+        return params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total
+
+    # args = params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total
+    # args = jax.lax.for_iloop(0, correlation_length, _body_fn, args)
+    # curr_walkers, acceptance_total, step_size = args[2], args[7], args[5]
 
     def _sample_metropolis_hastings(params, curr_walkers, d0s, key, step_size):
 
@@ -64,8 +71,9 @@ def create_sampler(wf,
 
         acceptance_total = 0.
 
-        # args = [params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total]
-        # curr_walkers, curr_probs, key, acceptance_total = jax.lax.for_iloop(0, 10, _body_fn, args)
+        # args = params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total
+        # args = jax.lax.fori_loop(0, correlation_length, _body_fn, args)
+        # curr_walkers, acceptance_total, step_size = args[2], args[7], args[5]
 
         for _ in range(correlation_length):
             key, *subkeys = rnd.split(key, num=3)
@@ -89,7 +97,9 @@ def create_sampler(wf,
 
         return curr_walkers, acceptance, step_size
 
-    sampler = pmap(jit(_sample_metropolis_hastings), in_axes=(None, 0, 0, 0, 0))
+    if not os.environ.get('no_JIT') == 'True':
+        _sample_metropolis_hastings = jit(_sample_metropolis_hastings)
+    sampler = pmap(_sample_metropolis_hastings, in_axes=(None, 0, 0, 0, 0))
 
     compute_energy = pmap(create_energy_fn(wf, mol), in_axes=(None, 0, 0))
 
@@ -107,10 +117,9 @@ def create_sampler(wf,
 
         return walkers
 
+    # if os.environ.get('JIT') == 'True':
+        # return jit(sampler), equilibrate
     return sampler, equilibrate
-
-
-
 
 
 def adjust_step_size(step_size, acceptance, target_acceptance=0.5):

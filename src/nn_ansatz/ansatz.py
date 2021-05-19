@@ -180,8 +180,8 @@ def create_compute_inputs_i(mol):
         min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(mol.real_basis)
         return min_image_ee_vectors
 
-    # compute_ee_vectors = _compute_ee_vectors if not mol.periodic_boundaries else _compute_ee_vectors_periodic
-    compute_ee_vectors = _compute_ee_vectors
+    compute_ee_vectors = _compute_ee_vectors if not mol.periodic_boundaries else _compute_ee_vectors_periodic
+    # compute_ee_vectors = _compute_ee_vectors
 
     def compute_inputs_i(walkers, ae_vectors):
         """

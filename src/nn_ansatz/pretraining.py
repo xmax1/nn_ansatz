@@ -74,8 +74,8 @@ def pretrain_wf(mol,
 
 def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: int=10):
 
-    vwf = jit(vmap(wf, in_axes=(None, 0, 0)))
-    vwf_orbitals = jit(vmap(wf_orbitals, in_axes=(None, 0, 0)))
+    vwf = vmap(wf, in_axes=(None, 0, 0))
+    vwf_orbitals = vmap(wf_orbitals, in_axes=(None, 0, 0))
 
     def _pyscf_call(walkers):
         walkers = walkers.reshape((-1, 3))
@@ -161,7 +161,7 @@ def create_pretrain_loss_and_sampler(wf, wf_orbitals, mol, correlation_length: i
 
         return curr_walkers_wf, curr_probs_wf, curr_walkers_hf, curr_probs_hf, mask_wf, mask_hf
 
-    step_metropolis_hastings = jit(_step_metropolis_hastings)
+    step_metropolis_hastings = _step_metropolis_hastings
 
     def _sample_metropolis_hastings(params, walkers, d0s, key, step_size):
 

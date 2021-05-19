@@ -4,6 +4,7 @@ import jax.numpy as jnp
 from jax import lax, vmap, jit, grad, value_and_grad, pmap
 
 import numpy as np
+import os
 from jax.tree_util import tree_unflatten, tree_flatten
 
 from .vmc import create_grad_function
@@ -36,6 +37,8 @@ def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint, *
 
     state = [*substate, lr, damping, norm_constraint]
 
+    if os.environ.get('JIT') == 'True':
+        return jit(_update), jit(_get_params), kfac_update, state
     return _update, _get_params, kfac_update, state
 
 
@@ -46,14 +49,14 @@ def create_sensitivities_grad_fn(kfac_wf):
         log_psi, activations = vwf(params, walkers, d0s)
         return log_psi.mean()
 
-    grad_fn = pmap(jit(grad(_sum_log_psi, argnums=2)), in_axes=(None, 0, 0))
+    grad_fn = grad(_sum_log_psi, argnums=2)
 
     return grad_fn
 
 
 def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
     sensitivities_fn = create_sensitivities_grad_fn(kfac_wf)
-    vwf = pmap(jit(vmap(kfac_wf, in_axes=(None, 0, 0))), in_axes=(None, 0, 0))
+    vwf = vmap(kfac_wf, in_axes=(None, 0, 0))
 
     def _kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
 
@@ -76,8 +79,7 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
             chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
             chol_dmss = jax.scipy.linalg.cho_factor(dmss)
 
-            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa,
-                                                  jnp.eye(maa.shape[0]))  # , check_finite=False for performance
+            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
             inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
 
             # the zero index takes the values on device 0
@@ -124,8 +126,16 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
             sl_factors.append(sl_factor)
 
         return aas, sss, sl_factors
-
-    compute_covariances = pmap(jit(_compute_covariances), in_axes=(0, 0))
+    
+    if not os.environ.get('no_JIT') == 'True':
+        _kfac_step = jit(_kfac_step)
+        vwf = jit(vwf)
+        sensitivities_fn = jit(sensitivities_fn)
+        _compute_covariances = jit(_compute_covariances)
+    
+    vwf = pmap(vwf, in_axes=(None, 0, 0))
+    sensitivities_fn = pmap(sensitivities_fn, in_axes=(None, 0, 0))
+    _compute_covariances = pmap(_compute_covariances, in_axes=(0, 0))
 
     def _compute_natural_gradients(step, grads, state, walkers, d0s):
 
@@ -133,7 +143,7 @@ def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
 
         _, activations = vwf(params, walkers, d0s)
         sensitivities = sensitivities_fn(params, walkers, d0s)
-        aas, sss, sl_factors = compute_covariances(activations, sensitivities)
+        aas, sss, sl_factors = _compute_covariances(activations, sensitivities)
         aas = [jax.device_put(aa, jax.devices()[0]).mean(0) for aa in aas]
         sss = [jax.device_put(ss, jax.devices()[0]).mean(0) for ss in sss]
         sl_factors = [s[0] for s in sl_factors]
