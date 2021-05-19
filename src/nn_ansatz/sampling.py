@@ -40,12 +40,33 @@ def create_sampler(wf,
 
     step = create_step(mol)
 
+    def _body_fn(params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total):
+        key, *subkeys = rnd.split(key, num=3)
+
+        # next sample
+        new_walkers = step(curr_walkers, subkeys[0], shape, step_size)
+        new_probs = to_prob(vwf(params, new_walkers, d0s))
+
+        # update sample
+        alpha = new_probs / curr_probs
+        mask_probs = alpha > rnd.uniform(subkeys[1], (shape[0],))
+
+        curr_walkers = jnp.where(mask_probs[:, None, None], new_walkers, curr_walkers)
+        curr_probs = jnp.where(mask_probs, new_probs, curr_probs)
+
+        acceptance_total += mask_probs.mean()
+        return curr_walkers, curr_probs, key, acceptance_total
+
     def _sample_metropolis_hastings(params, curr_walkers, d0s, key, step_size):
 
         shape = curr_walkers.shape
         curr_probs = to_prob(vwf(params, curr_walkers, d0s))
 
         acceptance_total = 0.
+
+        # args = [params, d0s, curr_walkers, curr_probs, shape, step_size, key, acceptance_total]
+        # curr_walkers, curr_probs, key, acceptance_total = jax.lax.for_iloop(0, 10, _body_fn, args)
+
         for _ in range(correlation_length):
             key, *subkeys = rnd.split(key, num=3)
 
@@ -61,7 +82,7 @@ def create_sampler(wf,
             curr_probs = jnp.where(mask_probs, new_probs, curr_probs)
 
             acceptance_total += mask_probs.mean()
-
+            
         acceptance = acceptance_total / float(correlation_length)
 
         step_size = adjust_step_size(step_size, acceptance)

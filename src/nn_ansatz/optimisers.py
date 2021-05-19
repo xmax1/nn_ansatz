@@ -20,7 +20,7 @@ def update_maa_and_mss(step, maa, aa, mss, ss):
     return maa, mss
 
 
-def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint):
+def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint, **kwargs):
     kfac_update, substate = create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s)
 
     def _get_params(state):

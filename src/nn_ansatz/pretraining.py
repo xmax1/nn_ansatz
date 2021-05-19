@@ -34,7 +34,7 @@ def pretrain_wf(mol,
     wf, vwf, kfac_wf, wf_orbitals = create_wf(mol)
     params = initialise_params(key, mol)
 
-    walkers = mol.initialise_walkers(n_devices=1, **cfg)
+    walkers = mol.initialise_walkers(n_devices=1, n_walkers=cfg['n_walkers'])
     d0s, d0s_pre = initialise_d0s(mol, n_devices=1, n_walkers_per_device=cfg['n_walkers']).split(2, axis=1)
 
     compute_local_energy = create_energy_fn(wf, mol)

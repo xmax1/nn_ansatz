@@ -123,7 +123,7 @@ def generate_reciprocal_lattice(reciprocal_basis, reciprocal_cut):
 def generate_lattice(basis, cut):
     len0 = jnp.linalg.norm(basis, axis=-1).mean()  # get the mean length of the basis vectors
     
-    img_range = jnp.arange(-2*cut, 2*cut+1)  # x2 to create sphere
+    img_range = jnp.arange(-cut, cut+1)  # x2 to create sphere
     img_sets = list(product(*[img_range, img_range, img_range]))
     # first axis is the number of lattice vectors, second is the integers to scale the primitive vectors, third is the resulting set of vectors
     # then sum over those

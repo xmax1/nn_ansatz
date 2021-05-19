@@ -1,6 +1,6 @@
 import os
 os.environ['JAX_PLATFORM_NAME']='cpu'
-os.environ['XLA_FLAGS']="--xla_force_host_platform_device_count=4"
+# os.environ['XLA_FLAGS']="--xla_force_host_platform_device_count=4"
 import jax
 print(jax.devices())
 
@@ -13,7 +13,6 @@ import jax.numpy as jnp
 lr, damping, nc = 1e-4, 1e-4, 1e-4
 
 config = setup(system='LiSolid',
-               #pretrain=True,
                n_pre_it=501,
                n_walkers=128,
                n_layers=2,
@@ -28,10 +27,10 @@ config = setup(system='LiSolid',
                norm_constraint=1e-4,
                damping=1e-3,
                exp=True,
-               name='mic_w_interaction',
-               kappa = 1.,
-               real_cut = 3,
-               reciprocal_cut = 3)
+               name='updated_ewalds_no_ee_vector_shift',
+               kappa = 0.5,
+               real_cut = 5,
+               reciprocal_cut = 5)
 
 run_vmc(**config)
 
