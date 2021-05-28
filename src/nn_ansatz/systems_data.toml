@@ -41,8 +41,22 @@ periodic_boundaries = true
 # real_basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
 real_basis = [[1.0,  0.0,  0.0], [-0.33333335,  0.94280903,  0.0], [-0.33333335, -0.47140456,  0.81649655]]
 unit_cell_length = 5.608132296572055
-# r_atoms = [[0.5, 0.25, 0.25]]
+# unit_cell_length = 2.9677114487  # Angstroms -> bohr is factro 1.8897161646320724
+
+# r_atoms = [[0.25, 0.25, 0.25]]
 r_atoms = [[0.16666664, 0.23570224, 0.40824827]]
 z_atoms = [3.0]
 n_el_atoms = [3]
 n_el = 3
+
+
+# check the primitive lattice
+# check the reciprocal lattice
+# check the unit cell unit_cell_length
+# check the positions of the r_atoms
+# check the number of electrons
+# check the pbc procedure
+# check the minimum image convention in ansatz
+# check the minimum image convention in the vmc 
+# check whether or not using 2pi
+# check 

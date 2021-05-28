@@ -40,10 +40,10 @@ def create_grad_function(wf, vwf, mol):
 
         return jnp.mean(e_locs_centered * log_psi), e_locs
 
-    backward_pass = grad(_forward_pass, has_aux=True)
+    grad_fn = grad(_forward_pass, has_aux=True)
     if not os.environ.get('no_JIT') == 'True':
-        backward_pass = jit(backward_pass)
-    grad_fn = pmap(backward_pass, in_axes=(None, 0, 0))
+        grad_fn = jit(grad_fn)
+    grad_fn = pmap(grad_fn, in_axes=(None, 0, 0))
 
     # inside the pmapped function you can't 'undevice' the variables
     def _grad_fn(params, walkers, d0s):
@@ -54,8 +54,6 @@ def create_grad_function(wf, vwf, mol):
         grads = tree_unflatten(tree, grads)
         return grads, jax.device_put(e_locs, jax.devices()[0]).reshape(-1)
 
-    # if os.environ.get('JIT') == 'True':
-    #     return jit(_grad_fn)
     return _grad_fn
 
 
@@ -68,7 +66,7 @@ def create_energy_fn(wf, mol):
     r_atoms, z_atoms = mol.r_atoms, mol.z_atoms
 
     local_kinetic_energy = vmap(local_kinetic_energy_i(wf), in_axes=(None, 0, 0))
-    compute_potential_energy = create_potential_energy(mol)
+    compute_potential_energy = create_potential_energy_min_im(mol)
 
     def _compute_local_energy(params, walkers, d0s):
         potential_energy = compute_potential_energy(walkers, r_atoms, z_atoms)
@@ -233,7 +231,7 @@ def create_potential_energy_min_im(mol):
         re1 = jnp.expand_dims(unit_cell_walkers, axis=1)
         re2 = jnp.transpose(re1, [1, 0, 2])
         unit_cell_ee_vectors = re1 - re2
-        min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - jnp.floor_divide(2 * unit_cell_ee_vectors, jnp.ones_like(unit_cell_ee_vectors)) * 1.  # 1 is length of unit cell put it here for clarity
+        min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - (2 * unit_cell_ee_vectors).astype(int) * 1.  # 1 is length of unit cell put it here for clarity
         min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(mol.real_basis)
         return min_image_ee_vectors
 
@@ -242,7 +240,6 @@ def create_potential_energy_min_im(mol):
         real_basis = mol.real_basis
         reciprocal_basis = mol.reciprocal_basis
         kappa = mol.kappa
-        mesh = [mol.reciprocal_cut for i in range(3)]
         volume = mol.volume
 
         real_lattice = generate_lattice(real_basis, mol.real_cut)  # (n_lattice, 3)

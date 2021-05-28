@@ -13,11 +13,11 @@ def create_atom(r_atoms, z_atom):
 
 def compute_reciprocal_basis(real_basis, volume):
     cv1, cv2, cv3 = real_basis.split(3, axis=0)
-    rv1 = 2 * np.pi * np.cross(cv2.squeeze(), cv3.squeeze()) / volume
-    rv2 = 2 * np.pi * np.cross(cv3.squeeze(), cv1.squeeze()) / volume
-    rv3 = 2 * np.pi * np.cross(cv1.squeeze(), cv2.squeeze()) / volume
+    rv1 = np.cross(cv2.squeeze(), cv3.squeeze()) / volume
+    rv2 = np.cross(cv3.squeeze(), cv1.squeeze()) / volume
+    rv3 = np.cross(cv1.squeeze(), cv2.squeeze()) / volume
     reciprocal_basis = np.concatenate([x[None, :] for x in (rv1, rv2, rv3)], axis=0)
-    return reciprocal_basis
+    return reciprocal_basis * 2 * np.pi
 
 
 def compute_reciprocal_height(reciprocal_basis, unit_cell_length):
@@ -70,7 +70,6 @@ class SystemAnsatz():
         self.spin = n_up - n_down  # will this be different for molecules?
 
         self.n_atoms = r_atoms.shape[0]
-        self.atom = create_atom(r_atoms, z_atoms)
         self.charge = int(jnp.sum(z_atoms)) - n_el
         self.z_atoms = z_atoms
         self.r_atoms = r_atoms
@@ -91,22 +90,6 @@ class SystemAnsatz():
               'n_sh     = %i \n' % n_sh,
               'n_ph     = %i \n' % n_ph)
 
-        mol = gto.Mole(
-            atom=self.atom,
-            unit='Bohr',
-            basis=basis,
-            charge=self.charge,
-            spin=self.spin
-        )
-        mol.build()
-        self.pyscf_mol = mol
-
-        mf = RHF(mol)
-        mf.kernel()
-
-        self.mf = mf
-        self.moT = jnp.array(mf.mo_coeff.T)
-
         # ansatz
         self.n_layers = n_layers
         self.n_sh = n_sh
@@ -119,11 +102,10 @@ class SystemAnsatz():
         if periodic_boundaries:
             
             self.real_basis = unit_cell_length * real_basis  # each basis vector is (1, 3)
-            self.inv_real_basis = jnp.linalg.pinv(self.real_basis)
+            self.inv_real_basis = jnp.linalg.inv(self.real_basis)
             self.r_atoms = self.r_atoms * unit_cell_length
             self.volume = compute_volume(self.real_basis)
             self.reciprocal_basis = compute_reciprocal_basis(self.real_basis, self.volume)
-            self.reciprocal_height = compute_reciprocal_height(self.reciprocal_basis, unit_cell_length)
             self.unit_cell_length = unit_cell_length
 
             self.real_cut = real_cut
@@ -139,6 +121,23 @@ class SystemAnsatz():
               'kappa            = %.2f \n' % kappa,
               'volume           = %.2f \n' % self.volume)
 
+        self.atom = create_atom(r_atoms, z_atoms)
+
+        mol = gto.Mole(
+            atom=self.atom,
+            unit='Bohr',
+            basis=basis,
+            charge=self.charge,
+            spin=self.spin
+        )
+        mol.build()
+        self.pyscf_mol = mol
+
+        mf = RHF(mol)
+        mf.kernel()
+
+        self.mf = mf
+        self.moT = jnp.array(mf.mo_coeff.T)
 
     @property
     def atom_positions(self):

@@ -173,15 +173,16 @@ def create_compute_inputs_i(mol):
 
     def _compute_ee_vectors_periodic(walkers):
         unit_cell_walkers = walkers.dot(mol.inv_real_basis)  # translate to the unit cell
+        # assert (unit_cell_walkers < 1.).all()
         # tmp = jnp.bitwise_and(unit_cell_walkers > 1., unit_cell_walkers < 0.)
         # assert not jnp.any(tmp)  # does not work with tracing because it is input dependent
         unit_cell_ee_vectors = _compute_ee_vectors(unit_cell_walkers)
-        min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - jnp.floor_divide(2 * unit_cell_ee_vectors, jnp.ones_like(unit_cell_ee_vectors)) * 1.  # 1 is length of unit cell put it here for clarity
+        min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - (2 * unit_cell_ee_vectors).astype(int) * 1.  # 1 is length of unit cell put it here for clarity
         min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(mol.real_basis)
         return min_image_ee_vectors
 
-    # compute_ee_vectors = _compute_ee_vectors if not mol.periodic_boundaries else _compute_ee_vectors_periodic
-    compute_ee_vectors = _compute_ee_vectors
+    compute_ee_vectors = _compute_ee_vectors if not mol.periodic_boundaries else _compute_ee_vectors_periodic
+    # compute_ee_vectors = _compute_ee_vectors
 
     def compute_inputs_i(walkers, ae_vectors):
         """
