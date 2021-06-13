@@ -5,7 +5,9 @@ import math
 from pyscf import dft, gto
 from pyscf.scf import RHF
 import jax.random as rnd
-
+import itertools
+from .utils import key_gen, split_variables_for_pmap
+from jax import pmap
 
 def create_atom(r_atoms, z_atom):
     return [[int(charge), tuple(coord)] for charge, coord in zip(z_atom, r_atoms)]
@@ -95,6 +97,9 @@ class SystemAnsatz():
         self.n_sh = n_sh
         self.n_ph = n_ph
         self.n_det = n_det
+        
+        # throwaway
+        self.min_cell_width = 1.
 
         # sampling
         self.step_size = step_size
@@ -107,11 +112,12 @@ class SystemAnsatz():
             self.volume = compute_volume(self.real_basis)
             self.reciprocal_basis = compute_reciprocal_basis(self.real_basis, self.volume)
             self.unit_cell_length = unit_cell_length
+            self.l0 = float(jnp.min(jnp.linalg.norm(self.real_basis, axis=-1)))
+            self.min_cell_width = compute_min_width_of_cell(self.real_basis)
 
             self.real_cut = real_cut
             self.reciprocal_cut = reciprocal_cut
             self.kappa = kappa
-
 
             print('Cell: \n',
               'real_basis:', '\n', self.real_basis, '\n',
@@ -119,7 +125,8 @@ class SystemAnsatz():
               'real_cut         = %.2f \n' % self.real_cut,
               'reciprocal_cut   = %i \n' % self.reciprocal_cut,
               'kappa            = %.2f \n' % kappa,
-              'volume           = %.2f \n' % self.volume)
+              'volume           = %.2f \n' % self.volume,
+              'min_cell_width   = %.2f \n' % self.min_cell_width)
 
         self.atom = create_atom(r_atoms, z_atoms)
 
@@ -144,7 +151,8 @@ class SystemAnsatz():
         return [x for x in self.r_atoms.split(self.n_atoms, axis=0)]
 
     
-    def initialise_walkers(self, walkers = None, n_walkers: int=1024, n_devices: int=1, **kwargs):
+    def initialise_walkers(self, mol, vwf, sampler, params, d0s, keys,
+    walkers = None, n_walkers: int=1024, n_devices: int=1, step_size: float=0.02, **kwargs):
         """
         Notes:
             - Walkers should be passed in without a device dimension
@@ -155,7 +163,11 @@ class SystemAnsatz():
             n_replicate = math.ceil(n_walkers / len(walkers))
             walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)
             walkers = walkers[:n_walkers, ...]
-        return walkers.reshape(n_devices, -1, *walkers.shape[1:])
+
+        walkers = walkers.reshape(n_devices, -1, *walkers.shape[1:])
+        walkers = sample_until_no_infs(mol, vwf, sampler, params, walkers, d0s, keys, step_size)
+
+        return walkers
 
 
 
@@ -193,3 +205,83 @@ def initialise_walkers(ne_atoms, atom_positions, n_walkers):
     curr_sample = jnp.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
     return curr_sample
 
+
+def sample_until_no_infs(mol, vwf, sampler, params, walkers, d0s, keys, step_size):
+
+    step_size = split_variables_for_pmap(walkers.shape[0], step_size) + 4.
+    print(step_size)
+    pwf = pmap(vwf, in_axes=(None, 0, 0))
+    infs = True
+    while infs:
+        keys, subkeys = key_gen(keys)
+        print(subkeys)
+
+        walkers, acc, step_size = sampler(params, walkers, d0s, subkeys, step_size)
+        print(walkers[0, 1], acc, step_size)
+        log_psi = pwf(params, walkers, d0s)
+        infs = jnp.isinf(log_psi).any() or jnp.isnan(log_psi).any()
+        print(log_psi)
+
+    return walkers
+
+
+
+
+def generate_plane_vectors(primitives, origin, contra, center):
+    origin_pairs = list(itertools.combinations(primitives, 2))
+    origin_pairs = [np.squeeze(x) for x in np.split(np.array(origin_pairs), 2, axis=1)]
+    origin_plane_vectors = np.cross(origin_pairs[0], origin_pairs[1])
+    
+    tmp = np.stack([origin_plane_vectors, -origin_plane_vectors], axis=1)  # put the cross product in either direction
+    origin_plane_vectors = use_vector_facing_away(origin, center, tmp)  # select the direction that points away from the center
+
+    contra_pairs = list(itertools.combinations(-primitives, 2))
+    contra_pairs = [np.squeeze(x) for x in np.split(np.array(contra_pairs), 2, axis=1)]
+    contra_plane_vectors = np.cross(contra_pairs[0], contra_pairs[1])
+    
+    tmp = np.stack([contra_plane_vectors, -contra_plane_vectors], axis=1)
+    contra_plane_vectors = use_vector_facing_away(contra, center, tmp)
+    
+    points = [origin for i in range(3)]
+    [points.append(contra)  for i in range(3)]
+    
+    vectors = np.concatenate([origin_plane_vectors, contra_plane_vectors], axis=0)
+    
+    return points, vectors
+
+def use_vector_facing_away(point0, center, vectors):
+    # checks if the vector is closer or further from the center
+    # this method assumes that given the origin or contra, moving along one of the 3 related plane vectors 
+    new_point = point0 + vectors
+    dists = np.sqrt(np.sum((new_point - center)**2, axis=-1))
+    idxs = np.argmax(dists, axis=1)
+    return np.stack([v[pair_idx, :] for (pair_idx, v) in zip(idxs, vectors)], axis=0)
+
+def get_ds(points, vectors):
+    # p0 is a point in the plane
+    # ax + by + cz + d = 0
+    # a, b, and c determined by the normal vector
+    # this is independent of the sign of the normal vector (as expected)
+    # what's ds? deez nuts
+    # no but really it's the constant in the equation of a plane
+    x = [np.sum(- pv * p0) for p0, pv in zip(points[:3], vectors[:3])]
+    [x.append(np.sum(pv * p0)) for p0, pv in zip(points[3:], vectors[3:])] # change the sign because the normal is pointing in the wrong direction
+    return x
+
+def compute_distance(d0, d1, v):
+    return np.abs(d0 - d1) / np.sqrt(np.sum(v**2))
+
+def get_distances(ds, vectors):
+    ds = np.split(np.array(ds), 2)
+    vectors = np.split(np.array(vectors), 2, axis=0)
+    return np.array([compute_distance(d0, d1, v) for d0, d1, v in zip(ds[0], ds[1], vectors[0])])
+
+
+def compute_min_width_of_cell(basis):
+    origin = np.array([0.0, 0.0, 0.0])
+    contra = np.sum(basis, axis=0)  # the opposite point
+    center = contra / 2.  
+    points, vectors = generate_plane_vectors(basis, origin, contra, center)
+    ds = get_ds(points, vectors)
+    distances = get_distances(ds, vectors)
+    return jnp.min(distances)

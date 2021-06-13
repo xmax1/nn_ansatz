@@ -12,6 +12,7 @@ from .utils import key_gen, split_variables_for_pmap
 
 
 def to_prob(amplitudes):
+    amplitudes = jnp.nan_to_num(amplitudes, nan=-1.79769313**308)
     return jnp.exp(amplitudes)**2
 
 

@@ -10,6 +10,7 @@ from itertools import chain, combinations, combinations_with_replacement, produc
 import math
 from jax.scipy.special import erfc
 
+
 @jit
 def sgd(params, grads, lr=1e-4):
     params, tree_map = tree_flatten(params)
@@ -34,8 +35,7 @@ def create_grad_function(wf, vwf, mol):
     def _forward_pass(params, walkers, d0s):
         e_locs = lax.stop_gradient(compute_energy(params, walkers, d0s))
 
-        # takes the mean of the data on each device and does not distribute
-        e_locs_centered = clip_and_center(e_locs)
+        e_locs_centered = clip_and_center(e_locs) # takes the mean of the data on each device and does not distribute
         log_psi = vwf(params, walkers, d0s)
 
         return jnp.mean(e_locs_centered * log_psi), e_locs
@@ -45,7 +45,8 @@ def create_grad_function(wf, vwf, mol):
         grad_fn = jit(grad_fn)
     grad_fn = pmap(grad_fn, in_axes=(None, 0, 0))
 
-    # inside the pmapped function you can't 'undevice' the variables
+    '''nb: it is not possible to undevice variables within a pmap'''
+
     def _grad_fn(params, walkers, d0s):
         grads, e_locs = grad_fn(params, walkers, d0s)
         grads = jax.device_put(grads, jax.devices()[0])
@@ -66,7 +67,7 @@ def create_energy_fn(wf, mol):
     r_atoms, z_atoms = mol.r_atoms, mol.z_atoms
 
     local_kinetic_energy = vmap(local_kinetic_energy_i(wf), in_axes=(None, 0, 0))
-    compute_potential_energy = create_potential_energy_min_im(mol)
+    compute_potential_energy = create_potential_energy(mol)
 
     def _compute_local_energy(params, walkers, d0s):
         potential_energy = compute_potential_energy(walkers, r_atoms, z_atoms)

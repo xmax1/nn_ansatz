@@ -2,3 +2,52 @@
 Keyword arguments:
     - how to use the * operator to separate positional and keyword arguments
         - https://treyhunner.com/2018/04/keyword-arguments-in-python/
+
+
+Doc strings
+
+"""
+        The function to add two Complex Numbers.
+  
+        Parameters:
+            num (ComplexNumber): The complex number to be added.
+          
+        Returns:
+            ComplexNumber: A complex number which contains the sum.
+        """
+
+
+"""
+        The constructor for ComplexNumber class.
+  
+        Parameters:
+           real (int): The real part of complex number.
+           imag (int): The imaginary part of complex number.   
+        """
+
+
+"""
+    This is a class for mathematical operations on complex numbers.
+      
+    Attributes:
+        real (int): The real part of complex number.
+        imag (int): The imaginary part of complex number.
+    """
+
+
+"""
+short description
+
+parameters
+    arg1 type / shape ... description
+
+returns
+    out1 type / shape ... description 
+
+notes
+    relevant math
+    point to debugging files
+
+pseudocode
+
+"""

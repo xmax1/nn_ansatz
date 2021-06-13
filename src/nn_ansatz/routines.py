@@ -39,7 +39,7 @@ def run_vmc(**cfg):
     elif cfg['pretrain']:
         params, walkers = pretrain_wf(mol, **cfg)
     
-    walkers = mol.initialise_walkers(walkers=walkers, **cfg)
+    walkers = mol.initialise_walkers(mol, vwf, sampler, params, d0s, keys, walkers=walkers, **cfg)
     # walkers = equilibrater(params, walkers, d0s, keys, n_it=1000, step_size=0.02)
 
     grad_fn = create_grad_function(wf, vwf, mol)
