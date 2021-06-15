@@ -30,7 +30,7 @@ def create_sampler(mol, vwf):
     if bool(os.environ.get('DISTRIBUTE')) is True:
         _sampler = pmap(_sampler, in_axes=(None, 0, 0, 0))
 
-    return _sampler
+    return jit(_sampler)
 
 
 def to_prob(amplitudes):

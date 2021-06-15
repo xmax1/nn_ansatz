@@ -13,34 +13,6 @@ from .vmc import create_grad_function
 from .ansatz import create_wf
 
 
-def compute_covariances(activations, sensitivities):
-
-    activations, activations_tree_map = tree_flatten(activations)
-    sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
-
-    aas = []
-    sss = []
-    sl_factors = []
-    for a, s in zip(activations, sensitivities):
-        n = a.shape[0]
-        sl_factor = 1.
-
-        if len(a.shape) == 3:
-            sl_factor = float(a.shape[1] ** 2)
-            a = a.mean(1)
-        if len(s.shape) == 3:
-            sl_factor = float(s.shape[1] ** 2)
-            s = s.mean(1)
-
-        aa = jnp.transpose(a) @ a / float(n)
-        ss = jnp.transpose(s) @ s / float(n)
-
-        aas.append(aa)
-        sss.append(ss)
-        sl_factors.append(sl_factor)
-
-    return aas, sss, sl_factors
-
 def kfac(mol, params, walkers, lr, damping, norm_constraint):
 
     kfac_update, substate = create_natural_gradients_fn(mol, params, walkers)
@@ -48,6 +20,7 @@ def kfac(mol, params, walkers, lr, damping, norm_constraint):
     def _get_params(state):
         return state[0]
 
+    @jit
     def _update(step, grads, state):
         params = _get_params(state)
         params, tree = tree_flatten(params)
@@ -95,7 +68,7 @@ def create_natural_gradients_fn(mol, params, walkers):
 
     
 
-    return _compute_natural_gradients, substate
+    return jit(_compute_natural_gradients), substate
 
 
 def get_sl_factors(activations):
@@ -126,11 +99,11 @@ def update_maa_and_mss(step, maa, aa, mss, ss):
 
 def create_sensitivities_grad_fn(kfac_wf):
 
-    def _sum_log_psi(params, walkers, d0s):
+    def _mean_log_psi(params, walkers, d0s):
         log_psi, _ = kfac_wf(params, walkers, d0s)
-        return log_psi.sum()  # is this mean?
+        return log_psi.mean()  # is this sum? making it the mean improves the optimisation a lot (puzzled face)
 
-    grad_fn = grad(_sum_log_psi, argnums=2)
+    grad_fn = grad(_mean_log_psi, argnums=2)
 
     return grad_fn
 
@@ -175,7 +148,7 @@ def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac
 
     return ngs, (params, *state)
 
-
+@jit
 def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
 
     gradients, gradients_tree_map = tree_flatten(gradients)

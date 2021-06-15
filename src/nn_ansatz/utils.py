@@ -424,10 +424,11 @@ class Logging():
 
     def timer(self, step, key):
         if key not in self.times:
-            t0 = time.time()
-            self.times[key] = [[step, t0]]
-            self.times['t0'] = t0
-            self.times['step0'] = step
+            if not step < 3: 
+                t0 = time.time()
+                self.times[key] = [[step, t0]]
+                self.times['t0'] = t0
+                self.times['step0'] = step
         else:
             self.times[key].append([step, time.time() - self.times['t0']])
 

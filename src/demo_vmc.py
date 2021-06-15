@@ -15,7 +15,7 @@ import jax.numpy as jnp
 
 lr, damping, nc = 1e-4, 1e-4, 1e-4
 
-config = setup(system='LiSolid',
+config = setup(system='Li',
                n_pre_it=501,
                n_walkers=512,
                n_layers=2,
@@ -31,6 +31,7 @@ config = setup(system='LiSolid',
                damping=1e-3,
             #    exp=True,
             #    name='periodic_demo',
+               distribute=True,
                kappa = 0.5,
                real_cut = 5,
                reciprocal_cut = 5)

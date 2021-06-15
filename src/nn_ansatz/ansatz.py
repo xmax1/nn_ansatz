@@ -14,8 +14,7 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False):
 
     masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph)
 
-    if mol.periodic_boundaries:
-        _env_sigma_i = env_sigma_i_periodic
+    _env_sigma_i = env_sigma_i_periodic if mol.periodic_boundaries else env_sigma_i
 
     _compute_inputs_i = create_compute_inputs_i(mol)
 

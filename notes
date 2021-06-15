@@ -3,6 +3,13 @@
 # same issue in the sensitivities calculation... I believe it is meant to be a sum
 
 
+# list of jit things
+- update kfac
+- kfac_step
+- compute_energy_fn
+- 
+
+
 Keyword arguments:
     - how to use the * operator to separate positional and keyword arguments
         - https://treyhunner.com/2018/04/keyword-arguments-in-python/

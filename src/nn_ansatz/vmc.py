@@ -39,7 +39,7 @@ def create_grad_function(mol, vwf):
         grads = tree_unflatten(tree, grads)
         return grads, jax.device_put(e_locs, jax.devices()[0]).reshape(-1)
 
-    return _grad_fn
+    return jit(_grad_fn)
 
 
 def create_atom_batch(r_atoms, n_samples):
@@ -56,7 +56,7 @@ def create_energy_fn(mol, vwf):
         kinetic_energy = local_kinetic_energy(params, walkers)
         return potential_energy + kinetic_energy
 
-    return _compute_local_energy
+    return jit(_compute_local_energy)
 
 
 def create_local_kinetic_energy(vwf):
@@ -74,13 +74,9 @@ def create_local_kinetic_energy(vwf):
         
         wf_new = lambda walkers: vwf(params, walkers).sum()
         grad_f = jax.grad(wf_new)
-        # grad_f_closure = lambda walkers: grad_f(params, walkers)
 
         def _body_fun(i, val):
-            ''' jvp evaluation for lax loop '''
-            # primal is the first order derivative
-            # tangent is the second order derivative
-            primal, tangent = jax.jvp(grad_f, (walkers,), (eye[..., i],))
+            primal, tangent = jax.jvp(grad_f, (walkers,), (eye[..., i],))  # primal / tangent first / second order derivatives
             return val + (primal[:, i]**2).squeeze() + (tangent[:, i]).squeeze()
 
         # from lower to upper (lower, upper, func(int, a) -> a, init_val)
