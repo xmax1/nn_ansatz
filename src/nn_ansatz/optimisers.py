@@ -1,28 +1,49 @@
 
+from .parameters import initialise_d0s
 import jax
 import jax.numpy as jnp
 from jax import lax, vmap, jit, grad, value_and_grad, pmap
+from jax.tree_util import tree_unflatten, tree_flatten
 
 import numpy as np
 import os
-from jax.tree_util import tree_unflatten, tree_flatten
+from functools import partial
 
 from .vmc import create_grad_function
+from .ansatz import create_wf
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss):
-    cov_moving_weight = jnp.min(jnp.array([step, 0.95]))
-    cov_instantaneous_weight = 1. - cov_moving_weight
-    total = cov_moving_weight + cov_instantaneous_weight
+def compute_covariances(activations, sensitivities):
 
-    maa = (cov_moving_weight * maa + cov_instantaneous_weight * aa) / total
-    mss = (cov_moving_weight * mss + cov_instantaneous_weight * ss) / total
+    activations, activations_tree_map = tree_flatten(activations)
+    sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
 
-    return maa, mss
+    aas = []
+    sss = []
+    sl_factors = []
+    for a, s in zip(activations, sensitivities):
+        n = a.shape[0]
+        sl_factor = 1.
 
+        if len(a.shape) == 3:
+            sl_factor = float(a.shape[1] ** 2)
+            a = a.mean(1)
+        if len(s.shape) == 3:
+            sl_factor = float(s.shape[1] ** 2)
+            s = s.mean(1)
 
-def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint, **kwargs):
-    kfac_update, substate = create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s)
+        aa = jnp.transpose(a) @ a / float(n)
+        ss = jnp.transpose(s) @ s / float(n)
+
+        aas.append(aa)
+        sss.append(ss)
+        sl_factors.append(sl_factor)
+
+    return aas, sss, sl_factors
+
+def kfac(mol, params, walkers, lr, damping, norm_constraint):
+
+    kfac_update, substate = create_natural_gradients_fn(mol, params, walkers)
 
     def _get_params(state):
         return state[0]
@@ -37,132 +58,164 @@ def kfac(kfac_wf, wf, mol, params, walkers, d0s, lr, damping, norm_constraint, *
 
     state = [*substate, lr, damping, norm_constraint]
 
-    if os.environ.get('JIT') == 'True':
-        return jit(_update), jit(_get_params), kfac_update, state
     return _update, _get_params, kfac_update, state
 
 
+def create_natural_gradients_fn(mol, params, walkers):
+    
+    kfac_wf = create_wf(mol, kfac=True)
+    
+    d0s = initialise_d0s(mol, expand=True)  # expand adds leading dimensions for multiple devices
+
+    _sensitivities_fn = create_sensitivities_grad_fn(kfac_wf)
+
+    _compute_covariances = compute_covariances  # weird workaround, something to do with the namespaces idm
+    
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        kfac_wf = pmap(kfac_wf, in_axes=(None, 0, 0))
+        _sensitivities_fn = pmap(_sensitivities_fn, in_axes=(None, 0, 0))
+        _compute_covariances = pmap(_compute_covariances, in_axes=(0, 0))
+
+    # generate the initial moving averages
+    # can be done with shapes but requires thinking and we don't do thinking
+    _, activations = kfac_wf(params, walkers, d0s)
+    sensitivities = _sensitivities_fn(params, walkers, d0s)
+    activations, activations_tree_map = tree_flatten(activations)
+    sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
+    maas = [jnp.zeros((a.shape[-1], a.shape[-1])) for a in activations]
+    msss = [jnp.zeros((s.shape[-1], s.shape[-1])) for s in sensitivities]
+    substate = (params, maas, msss)
+    sl_factors = get_sl_factors(activations)
+
+    _compute_natural_gradients = partial(compute_natural_gradients, sl_factors=sl_factors,
+                                                                    d0s=d0s,
+                                                                    kfac_wf=kfac_wf, 
+                                                                    _compute_covariances=_compute_covariances,
+                                                                    _sensitivities_fn=_sensitivities_fn)
+
+    
+
+    return _compute_natural_gradients, substate
+
+
+def get_sl_factors(activations):
+    ''' function to extract the spatial location factors (n_uses of weights) from activations '''
+    correction = 0
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        correction = -1
+    sl_factors = []
+    for a in activations:
+        lena = len(a.shape) + correction
+        sl_factor = 1.
+        if lena == 3:
+            sl_factor = a.shape[1]
+        sl_factors.append(sl_factor**2)
+    return sl_factors
+
+
+def update_maa_and_mss(step, maa, aa, mss, ss):
+    cov_moving_weight = jnp.min(jnp.array([step, 0.95]))
+    cov_instantaneous_weight = 1. - cov_moving_weight
+    total = cov_moving_weight + cov_instantaneous_weight
+
+    maa = (cov_moving_weight * maa + cov_instantaneous_weight * aa) / total
+    mss = (cov_moving_weight * mss + cov_instantaneous_weight * ss) / total
+
+    return maa, mss
+
+
 def create_sensitivities_grad_fn(kfac_wf):
-    vwf = vmap(kfac_wf, in_axes=(None, 0, 0))
 
     def _sum_log_psi(params, walkers, d0s):
-        log_psi, activations = vwf(params, walkers, d0s)
-        return log_psi.mean()
+        log_psi, _ = kfac_wf(params, walkers, d0s)
+        return log_psi.sum()  # is this mean?
 
     grad_fn = grad(_sum_log_psi, argnums=2)
 
     return grad_fn
 
 
-def create_natural_gradients_fn(kfac_wf, wf, mol, params, walkers, d0s):
-    sensitivities_fn = create_sensitivities_grad_fn(kfac_wf)
-    vwf = vmap(kfac_wf, in_axes=(None, 0, 0))
-
-    def _kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
-
-        gradients, gradients_tree_map = tree_flatten(gradients)
-        ngs = []
-        new_maas = []
-        new_msss = []
-        for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
-
-            maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
-
-            dmaa, dmss = damp(maa, mss, sl_factor, damping)
-
-            # chol_dmaa = jnp.linalg.cholesky(dmaa)
-            # chol_dmss = jnp.linalg.cholesky(dmss)
-
-            dmaa = (dmaa + jnp.transpose(dmaa)) / 2.
-            dmss = (dmss + jnp.transpose(dmss)) / 2.
-
-            chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
-            chol_dmss = jax.scipy.linalg.cho_factor(dmss)
-
-            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
-            inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
-
-            # the zero index takes the values on device 0
-            ng = inv_dmaa @ g @ inv_dmss / sl_factor
-
-            # vals_dmaa, vecs_dmaa = jnp.linalg.eigh(dmaa)
-            # vals_dmss, vecs_dmss = jnp.linalg.eigh(dmss)
-            #
-            # tmp = (jnp.transpose(vecs_dmaa) @ g @ vecs_dmss) / (vals_dmaa[:, None] * vals_dmss[None, :])
-            # ng = vecs_dmaa @ tmp @ jnp.transpose(vecs_dmss)
-
-            ngs.append(ng)
-            new_maas.append(maa)
-            new_msss.append(mss)
-
-        eta = compute_norm_constraint(ngs, gradients, lr, norm_constraint)
-
-        return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
-
-    def _compute_covariances(activations, sensitivities):
-
-        activations, activations_tree_map = tree_flatten(activations)
-        sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
-
-        aas = []
-        sss = []
-        sl_factors = []
-        for a, s in zip(activations, sensitivities):
-            n = a.shape[0]
-            sl_factor = 1.
-
-            if len(a.shape) == 3:
-                sl_factor = float(a.shape[1] ** 2)
-                a = a.mean(1)
-            if len(s.shape) == 3:
-                sl_factor = float(s.shape[1] ** 2)
-                s = s.mean(1)
-
-            aa = jnp.transpose(a) @ a / float(n)
-            ss = jnp.transpose(s) @ s / float(n)
-
-            aas.append(aa)
-            sss.append(ss)
-            sl_factors.append(sl_factor)
-
-        return aas, sss, sl_factors
-    
-    if not os.environ.get('no_JIT') == 'True':
-        _kfac_step = jit(_kfac_step)
-        vwf = jit(vwf)
-        sensitivities_fn = jit(sensitivities_fn)
-        _compute_covariances = jit(_compute_covariances)
-    
-    vwf = pmap(vwf, in_axes=(None, 0, 0))
-    sensitivities_fn = pmap(sensitivities_fn, in_axes=(None, 0, 0))
-    _compute_covariances = pmap(_compute_covariances, in_axes=(0, 0))
-
-    def _compute_natural_gradients(step, grads, state, walkers, d0s):
-
-        params, maas, msss, lr, damping, norm_constraint = state
-
-        _, activations = vwf(params, walkers, d0s)
-        sensitivities = sensitivities_fn(params, walkers, d0s)
-        aas, sss, sl_factors = _compute_covariances(activations, sensitivities)
-        aas = [jax.device_put(aa, jax.devices()[0]).mean(0) for aa in aas]
-        sss = [jax.device_put(ss, jax.devices()[0]).mean(0) for ss in sss]
-        sl_factors = [s[0] for s in sl_factors]
-
-        ngs, state = _kfac_step(step, grads, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint)
-
-        return ngs, (params, *state)
-
-    _, activations = vwf(params, walkers, d0s)
-    sensitivities = sensitivities_fn(params, walkers, d0s)
+def compute_covariances(activations, sensitivities):
 
     activations, activations_tree_map = tree_flatten(activations)
     sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
-    maas = [jnp.zeros((a.shape[-1], a.shape[-1])) for a in activations]
-    msss = [jnp.zeros((s.shape[-1], s.shape[-1])) for s in sensitivities]
-    substate = (params, maas, msss)
 
-    return _compute_natural_gradients, substate
+    aas = []
+    sss = []
+    for a, s in zip(activations, sensitivities):
+        n = a.shape[0]
 
+        if len(a.shape) == 3:
+            a = a.mean(1)
+        if len(s.shape) == 3:
+            s = s.mean(1)
+
+        aa = jnp.transpose(a) @ a / float(n)
+        ss = jnp.transpose(s) @ s / float(n)
+
+        aas.append(aa)
+        sss.append(ss)
+
+    return aas, sss
+
+
+def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac_wf, _compute_covariances, _sensitivities_fn):
+
+    params, maas, msss, lr, damping, norm_constraint = state
+
+    _, activations = kfac_wf(params, walkers, d0s)
+    sensitivities = _sensitivities_fn(params, walkers, d0s)
+    aas, sss = _compute_covariances(activations, sensitivities)
+
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        aas = [jax.device_put(aa, jax.devices()[0]).mean(0) for aa in aas]
+        sss = [jax.device_put(ss, jax.devices()[0]).mean(0) for ss in sss]
+
+    ngs, state = kfac_step(step, grads, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint)
+
+    return ngs, (params, *state)
+
+
+def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
+
+    gradients, gradients_tree_map = tree_flatten(gradients)
+    ngs = []
+    new_maas = []
+    new_msss = []
+    for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
+
+        maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
+
+        dmaa, dmss = damp(maa, mss, sl_factor, damping)
+
+        # chol_dmaa = jnp.linalg.cholesky(dmaa)
+        # chol_dmss = jnp.linalg.cholesky(dmss)
+
+        dmaa = (dmaa + jnp.transpose(dmaa)) / 2.
+        dmss = (dmss + jnp.transpose(dmss)) / 2.
+
+        chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
+        chol_dmss = jax.scipy.linalg.cho_factor(dmss)
+
+        inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
+        inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
+
+        # the zero index takes the values on device 0
+        ng = inv_dmaa @ g @ inv_dmss / sl_factor
+
+        # vals_dmaa, vecs_dmaa = jnp.linalg.eigh(dmaa)
+        # vals_dmss, vecs_dmss = jnp.linalg.eigh(dmss)
+        #
+        # tmp = (jnp.transpose(vecs_dmaa) @ g @ vecs_dmss) / (vals_dmaa[:, None] * vals_dmss[None, :])
+        # ng = vecs_dmaa @ tmp @ jnp.transpose(vecs_dmss)
+
+        ngs.append(ng)
+        new_maas.append(maa)
+        new_msss.append(mss)
+
+    eta = compute_norm_constraint(ngs, gradients, lr, norm_constraint)
+
+    return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
 
 def check_symmetric(x):
     x = x - x.transpose(-1, -2)

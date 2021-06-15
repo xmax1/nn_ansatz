@@ -15,17 +15,19 @@ systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
 
 
 def split_variables_for_pmap(n_devices, *args):
-    
-    new_args = []
-    for arg in args:
-        if type(arg) in (float, int):
-            new_arg = jnp.array(arg).repeat(n_devices)
-        new_args.append(new_arg)
-    
-    # not sure how to unpack the list if there is just one element
-    if len(new_args) == 1:
-        return new_args[0]
-    return new_args
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        new_args = []
+        for arg in args:
+            if type(arg) in (float, int):
+                new_arg = jnp.array(arg).repeat(n_devices)
+            new_args.append(new_arg)
+        
+        if len(new_args) == 1:  # needed to unpack the list if there is just one element
+            return new_args[0]
+        return new_args
+    if len(args) == 1:
+        return args[0]
+    return args
 
 @jit
 def key_gen(keys):
@@ -36,9 +38,11 @@ def key_gen(keys):
         - split the array along axis 1 so there are 2 arrays (keys and subkeys)
         - squeeze the middle axis out
     """
-    keys = jnp.array([rnd.split(key) for key in keys])
-    keys = jnp.split(keys, 2, axis=1)
-    return [x.squeeze(axis=1) for x in keys]
+    if len(keys.shape) == 2:  # if distributed
+        keys = jnp.array([rnd.split(key) for key in keys])
+        keys = jnp.split(keys, 2, axis=1)
+        return [x.squeeze(axis=1) for x in keys]
+    return rnd.split(keys)
 
 # key_gen = lambda keys: [x.squeeze() for x in jnp.array([rnd.split(key) for key in keys]).split(2, axis=1)]
 
@@ -56,6 +60,7 @@ def compare(tc_arr, jnp_arr):
 
 
 def remove_aux(fn, axis=0):
+    # creates a new function only outputting returns up to axis
     def _new_fn(*args):
         return fn(*args)[:(axis+1)]
     return _new_fn
@@ -220,6 +225,8 @@ def setup(system: str = 'Be',
           load_it: int = 0,
           load_dir: str = '',
 
+          distribute: bool = True, 
+
           seed: int = 369):
 
     n_devices = get_n_devices()
@@ -317,6 +324,9 @@ def setup(system: str = 'Be',
 
     for k, v in config.items():
         print(k, '\t\t', v)
+
+    if distribute:
+        os.environ['DISTRIBUTE'] = 'True'
 
     return config
 

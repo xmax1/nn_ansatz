@@ -1,4 +1,6 @@
+import os
 
+import jax
 import jax.random as rnd
 import jax.numpy as jnp
 from jax import vmap, jit, grad
@@ -7,7 +9,7 @@ from jax import tree_util
 from tqdm.notebook import trange
 
 
-from .sampling import create_sampler
+from .sampling import create_sampler, initialise_walkers
 from .ansatz import create_wf
 from .parameters import initialise_params, initialise_d0s, expand_d0s
 from .systems import SystemAnsatz
@@ -22,16 +24,16 @@ def run_vmc(**cfg):
 
     logger = Logging(**cfg)
 
-    key = rnd.PRNGKey(cfg['seed'])
-    keys = rnd.split(key, cfg['n_devices']).reshape(cfg['n_devices'], 2)
+    keys = rnd.PRNGKey(cfg['seed'])
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        keys = rnd.split(keys, cfg['n_devices']).reshape(cfg['n_devices'], 2)
 
     mol = SystemAnsatz(**cfg)
 
-    wf, vwf, kfac_wf, wf_orbitals = create_wf(mol)
-    params = initialise_params(key, mol)
-    d0s = initialise_d0s(mol, cfg['n_devices'], cfg['n_walkers_per_device'])
+    vwf = create_wf(mol)
+    params = initialise_params(mol, keys)
 
-    sampler, equilibrater = create_sampler(wf, vwf, mol, **cfg)
+    sampler = create_sampler(mol, vwf)
 
     walkers = None
     if cfg['load_pretrain']:
@@ -39,13 +41,14 @@ def run_vmc(**cfg):
     elif cfg['pretrain']:
         params, walkers = pretrain_wf(mol, **cfg)
     
-    walkers = mol.initialise_walkers(mol, vwf, sampler, params, d0s, keys, walkers=walkers, **cfg)
-    # walkers = equilibrater(params, walkers, d0s, keys, n_it=1000, step_size=0.02)
+    # walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
+    # save_pk(walkers, './walkers_no_infs.pk')
+    walkers = load_pk('./walkers_no_infs.pk')
 
-    grad_fn = create_grad_function(wf, vwf, mol)
+    grad_fn = create_grad_function(mol, vwf)
 
     if cfg['opt'] == 'kfac':
-        update, get_params, kfac_update, state = kfac(kfac_wf, wf, mol, params, walkers, d0s, **cfg)
+        update, get_params, kfac_update, state = kfac(mol, params, walkers, cfg['lr'], cfg['damping'], cfg['norm_constraint'])
     elif cfg['opt'] == 'adam':
         init, update, get_params = adam(cfg['lr'])
         update = jit(update)
@@ -59,12 +62,12 @@ def run_vmc(**cfg):
     for step in steps:
         keys, subkeys = key_gen(keys)
 
-        walkers, acceptance, step_size = sampler(params, walkers, d0s, subkeys, step_size)
+        walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
 
-        grads, e_locs = grad_fn(params, walkers, d0s)
+        grads, e_locs = grad_fn(params, walkers)
 
         if cfg['opt'] == 'kfac':
-            grads, state = kfac_update(step, grads, state, walkers, d0s)
+            grads, state = kfac_update(step, grads, state, walkers)
 
         state = update(step, grads, state)
         params = get_params(state)
@@ -79,3 +82,25 @@ def run_vmc(**cfg):
                    acceptance=acceptance[0])
 
 
+def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute_energy=None, n_it=1000, step_size=0.02):
+    
+    if sampler is None:
+        if vwf is None:
+            vwf = create_wf(mol)
+        sampler = create_sampler(vwf, mol)
+    if compute_energy is None:
+        if vwf is None:
+            vwf = create_wf(mol)
+        compute_energy = create_energy_fn(vwf, mol)
+
+    step_size = split_variables_for_pmap(walkers.shape[0], step_size)
+
+    for i in range(n_it):
+        keys, subkeys = key_gen(keys)
+
+        walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
+        e_locs = compute_energy(params, walkers)
+        e_locs = jax.device_put(e_locs, jax.devices()[0]).mean()
+        print('step %i energy %.4f acceptance %.2f' % (i, jnp.mean(e_locs), acc[0]))
+
+    return walkers

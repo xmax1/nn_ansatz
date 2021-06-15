@@ -1,3 +1,6 @@
+from typing import Callable
+from functools import partial
+
 import jax.numpy as jnp
 from jax import vmap, lax
 import numpy as np
@@ -6,82 +9,158 @@ from .utils import remove_aux
 from .parameters import expand_d0s, initialise_d0s
 
 
-def create_wf(mol):
-    """
-    
+def create_wf(mol, kfac: bool=False, orbitals: bool=False):
+    ''' initializes the wave function ansatz for various applications '''
 
-
-
-    Notes:
-        - Only creator which does NOT pass out vmapped / jitted functions
-        - Some functions (compute_local_energy) need to be vmapped from the top
-        - The behaviour of stacked jit is not known (it could be efficient, just haven't tested)
-        - This is not relevant for the orbitals, for example, but this function is maintained for now as all functions
-        not jitted or vmapped until a more elegant way emerges
-    """
-    n_up, n_down, r_atoms, n_el, min_cell_width = mol.n_up, mol.n_down, mol.r_atoms, mol.n_el, mol.min_cell_width
     masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph)
 
     if mol.periodic_boundaries:
-        env_sigma_i = env_sigma_i_periodic
+        _env_sigma_i = env_sigma_i_periodic
 
-    compute_inputs_i = create_compute_inputs_i(mol)
+    _compute_inputs_i = create_compute_inputs_i(mol)
 
-    def _wf_orbitals(params, walkers, d0s):
-
-        if len(walkers.shape) == 1:  # this is a hack to get around the jvp
-            walkers = walkers.reshape(n_up + n_down, 3)
-
-        activations = []
-
-        ae_vectors = compute_ae_vectors_i(walkers, r_atoms)
-
-        single, pairwise = compute_inputs_i(walkers, ae_vectors)
-
-        single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *masks[0])
-
-        split = linear_split(params['split0'], split, activations, d0s['split0'])
-        single = linear(params['s0'], single_mixed, split, activations, d0s['s0'])
-        pairwise = linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
-
-        for (split_params, s_params, p_params), (split_per, s_per, p_per), mask \
-                in zip(params['intermediate'], d0s['intermediate'], masks[1:]):
-            single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *mask)
-
-            split = linear_split(split_params, split, activations, split_per)
-            single = linear(s_params, single_mixed, split, activations, s_per) + single
-            pairwise = linear_pairwise(p_params, pairwise, activations, p_per) + pairwise
-
-        ae_up, ae_down = jnp.split(ae_vectors, [n_up], axis=0)
-        data_up, data_down = jnp.split(single, [n_up], axis=0)
-
-        factor_up = env_linear_i(params['envelopes']['linear'][0], data_up, activations, d0s['envelopes']['linear'][0])
-        factor_down = env_linear_i(params['envelopes']['linear'][1], data_down, activations, d0s['envelopes']['linear'][1])
-
-        exp_up = env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'], min_cell_width)
-        exp_down = env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'], min_cell_width)
-
-        orb_up = env_pi_i(params['envelopes']['pi'][0], factor_up, exp_up, activations, d0s['envelopes']['pi'][0])
-        orb_down = env_pi_i(params['envelopes']['pi'][1], factor_down, exp_down, activations, d0s['envelopes']['pi'][1])
-        return orb_up, orb_down, activations
+    _wf_orbitals = partial(wf_orbitals, mol=mol, masks=masks, compute_inputs_i=_compute_inputs_i, env_sigma_i=_env_sigma_i)
 
     def _wf(params, walkers, d0s):
-
         orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
         log_psi = logabssumdet(orb_up, orb_down)
         return log_psi
 
     def _kfac_wf(params, walkers, d0s):
-
         orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
         log_psi = logabssumdet(orb_up, orb_down)
         return log_psi, activations
-
-    wf_orbitals = remove_aux(_wf_orbitals, axis=1)
     
-    vwf = vmap(_wf, in_axes=(None, 0, 0))
+    d0s = initialise_d0s(mol)
 
-    return _wf, vwf, _kfac_wf, wf_orbitals
+    if orbitals:
+        _wf_orbitals_remove_activations = remove_aux(_wf_orbitals, axis=1)
+        return partial(_wf_orbitals_remove_activations, d0s=d0s)
+
+    if kfac:
+        return vmap(_kfac_wf, in_axes=(None, 0, 0))
+
+    _partial_wf = partial(_wf, d0s=d0s)
+    _vwf = vmap(_partial_wf, in_axes=(None, 0))
+    
+    return _vwf
+
+
+def wf_orbitals(params, 
+                walkers, 
+                d0s, 
+                mol, 
+                masks,
+                compute_inputs_i: Callable, 
+                env_sigma_i: Callable):
+
+    if len(walkers.shape) == 1:  # this is a hack to get around the jvp
+        walkers = walkers.reshape(mol.n_up + mol.n_down, 3)
+
+    activations = []
+
+    ae_vectors = compute_ae_vectors_i(walkers, mol.r_atoms)
+
+    single, pairwise = compute_inputs_i(walkers, ae_vectors)
+
+    single_mixed, split = mixer_i(single, pairwise, mol.n_el, mol.n_up, mol.n_down, *masks[0])
+
+    split = linear_split(params['split0'], split, activations, d0s['split0'])
+    single = linear(params['s0'], single_mixed, split, activations, d0s['s0'])
+    pairwise = linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
+
+    for (split_params, s_params, p_params), (split_per, s_per, p_per), mask \
+            in zip(params['intermediate'], d0s['intermediate'], masks[1:]):
+        single_mixed, split = mixer_i(single, pairwise, mol.n_el, mol.n_up, mol.n_down, *mask)
+
+        split = linear_split(split_params, split, activations, split_per)
+        single = linear(s_params, single_mixed, split, activations, s_per) + single
+        pairwise = linear_pairwise(p_params, pairwise, activations, p_per) + pairwise
+
+    ae_up, ae_down = jnp.split(ae_vectors, [mol.n_up], axis=0)
+    data_up, data_down = jnp.split(single, [mol.n_up], axis=0)
+
+    factor_up = env_linear_i(params['envelopes']['linear'][0], data_up, activations, d0s['envelopes']['linear'][0])
+    factor_down = env_linear_i(params['envelopes']['linear'][1], data_down, activations, d0s['envelopes']['linear'][1])
+
+    exp_up = env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'], mol.min_cell_width)
+    exp_down = env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'], mol.min_cell_width)
+
+    orb_up = env_pi_i(params['envelopes']['pi'][0], factor_up, exp_up, activations, d0s['envelopes']['pi'][0])
+    orb_down = env_pi_i(params['envelopes']['pi'][1], factor_down, exp_down, activations, d0s['envelopes']['pi'][1])
+    return orb_up, orb_down, activations
+
+
+def create_compute_inputs_i(mol):
+
+    if mol.periodic_boundaries:
+        _compute_inputs_periodic_i = partial(compute_inputs_periodic_i, 
+                                         min_cell_width=mol.min_cell_width,
+                                         real_basis=mol.real_basis, 
+                                         inv_real_basis=mol.inv_real_basis)
+        return _compute_inputs_periodic_i
+    
+    return compute_inputs_i
+
+
+def compute_inputs_i(walkers, ae_vectors):
+    """
+    Notes:
+        Previous masking code for dropping the diagonal
+            # mask = jnp.expand_dims(~jnp.eye(n_electrons, dtype=bool), axis=(0, 3))
+            # mask = jnp.repeat(jnp.repeat(mask, n_samples, axis=0), 3, axis=-1)
+            # ee_vectors = ee_vectors[mask].reshape(n_samples, n_electrons ** 2 - n_electrons, 3)
+    """
+    n_electrons, n_atoms = ae_vectors.shape[:2]
+
+    ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
+    single_inputs = jnp.concatenate([ae_vectors, ae_distances], axis=-1)
+    single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
+
+    ee_vectors = compute_ee_vectors_i(walkers)
+    ee_vectors = drop_diagonal_i(ee_vectors)
+    ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
+    pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
+
+    return single_inputs, pairwise_inputs
+
+
+def compute_ee_vectors_i(walkers):
+    re1 = jnp.expand_dims(walkers, axis=1)
+    re2 = jnp.transpose(re1, [1, 0, 2])
+    ee_vectors = re1 - re2
+    return ee_vectors
+
+
+def compute_inputs_periodic_i(walkers, ae_vectors, min_cell_width, real_basis, inv_real_basis):
+        """
+        Notes:
+            Previous masking code for dropping the diagonal
+                # mask = jnp.expand_dims(~jnp.eye(n_electrons, dtype=bool), axis=(0, 3))
+                # mask = jnp.repeat(jnp.repeat(mask, n_samples, axis=0), 3, axis=-1)
+                # ee_vectors = ee_vectors[mask].reshape(n_samples, n_electrons ** 2 - n_electrons, 3)
+        """
+        n_electrons, n_atoms = ae_vectors.shape[:2]
+
+        ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
+        ae_vectors_periodic = jnp.sin((jnp.pi / min_cell_width) * ae_vectors)
+        single_inputs = jnp.concatenate([ae_vectors_periodic, ae_distances], axis=-1)
+        single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
+
+        ee_vectors = compute_ee_vectors_periodic_i(walkers, real_basis, inv_real_basis)
+        ee_vectors = drop_diagonal_i(ee_vectors)
+        ee_vectors_periodic = jnp.sin((jnp.pi / min_cell_width) * ee_vectors)
+        ee_distances = jnp.linalg.norm(ee_vectors_periodic, axis=-1, keepdims=True)
+        pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
+        return single_inputs, pairwise_inputs
+
+
+def compute_ee_vectors_periodic_i(walkers, real_basis, inv_real_basis):
+    unit_cell_walkers = walkers.dot(inv_real_basis)  # translate to the unit cell
+    unit_cell_ee_vectors = compute_ee_vectors_i(unit_cell_walkers)
+    min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - (2 * unit_cell_ee_vectors).astype(int) * 1.  # 1 is length of unit cell put it here for clarity
+    min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(real_basis)  # translate out of the unit cell
+    return min_image_ee_vectors
 
 
 def create_masks(n_atom, n_electrons, n_up, n_layers, n_sh, n_ph):
@@ -144,9 +223,6 @@ def compute_ae_vectors_i(walkers: jnp.array,
     return ae_vectors
 
 
-compute_ae_vectors = vmap(compute_ae_vectors_i, in_axes=(0, None))
-
-
 def drop_diagonal_i(square):
     """
     
@@ -161,75 +237,6 @@ def drop_diagonal_i(square):
     arr = [ls[i] for i in range(n-1) for ls in (upper, lower)]
     result = jnp.concatenate(arr, axis=1)
     return jnp.squeeze(result)
-
-
-# drop_diagonal = vmap(drop_diagonal_i, in_axes=(0,))
-
-
-def create_compute_inputs_i(mol):
-
-    def compute_ee_vectors(walkers):
-        re1 = jnp.expand_dims(walkers, axis=1)
-        re2 = jnp.transpose(re1, [1, 0, 2])
-        ee_vectors = re1 - re2
-        return ee_vectors
-
-    def compute_ee_vectors_periodic(walkers):
-        unit_cell_walkers = walkers.dot(mol.inv_real_basis)  # translate to the unit cell
-        # assert (unit_cell_walkers < 1.).all()
-        # tmp = jnp.bitwise_and(unit_cell_walkers > 1., unit_cell_walkers < 0.)
-        # assert not jnp.any(tmp)  # does not work with tracing because it is input dependent
-        unit_cell_ee_vectors = compute_ee_vectors(unit_cell_walkers)
-        min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - (2 * unit_cell_ee_vectors).astype(int) * 1.  # 1 is length of unit cell put it here for clarity
-        min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(mol.real_basis)
-        return min_image_ee_vectors
-
-    def compute_inputs_i(walkers, ae_vectors):
-        """
-        Notes:
-            Previous masking code for dropping the diagonal
-                # mask = jnp.expand_dims(~jnp.eye(n_electrons, dtype=bool), axis=(0, 3))
-                # mask = jnp.repeat(jnp.repeat(mask, n_samples, axis=0), 3, axis=-1)
-                # ee_vectors = ee_vectors[mask].reshape(n_samples, n_electrons ** 2 - n_electrons, 3)
-        """
-        n_electrons, n_atoms = ae_vectors.shape[:2]
-
-        ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
-        single_inputs = jnp.concatenate([ae_vectors, ae_distances], axis=-1)
-        single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
-
-        ee_vectors = compute_ee_vectors(walkers)
-        ee_vectors = drop_diagonal_i(ee_vectors)
-        ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
-        pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
-
-        return single_inputs, pairwise_inputs
-
-    def compute_inputs_periodic_i(walkers, ae_vectors):
-        """
-        Notes:
-            Previous masking code for dropping the diagonal
-                # mask = jnp.expand_dims(~jnp.eye(n_electrons, dtype=bool), axis=(0, 3))
-                # mask = jnp.repeat(jnp.repeat(mask, n_samples, axis=0), 3, axis=-1)
-                # ee_vectors = ee_vectors[mask].reshape(n_samples, n_electrons ** 2 - n_electrons, 3)
-        """
-        n_electrons, n_atoms = ae_vectors.shape[:2]
-
-        ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
-        ae_vectors_periodic = jnp.sin((jnp.pi / mol.min_cell_width) * ae_vectors)
-        single_inputs = jnp.concatenate([ae_vectors_periodic, ae_distances], axis=-1)
-        single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
-
-        ee_vectors = compute_ee_vectors_periodic(walkers)
-        ee_vectors = drop_diagonal_i(ee_vectors)
-        ee_vectors_periodic = jnp.sin((jnp.pi / mol.min_cell_width) * ee_vectors)
-        ee_distances = jnp.linalg.norm(ee_vectors_periodic, axis=-1, keepdims=True)
-        pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
-        return single_inputs, pairwise_inputs
-
-    if mol.periodic_boundaries:
-        return compute_inputs_periodic_i
-    return compute_inputs_i
 
 
 def linear_split(p: jnp.array,
@@ -441,9 +448,6 @@ def env_pi_i(pis: jnp.array,
     return factor * jnp.transpose(orbitals.reshape(n_spins, n_det, n_spins), (1, 2, 0))
 
 
-env_pi = vmap(env_pi_i, in_axes=(None, 0, 0))
-
-
 def logabssumdet(orb_up: jnp.array,
                  orb_down: jnp.array) -> jnp.array:
     s_up, log_up = jnp.linalg.slogdet(orb_up)
@@ -494,6 +498,3 @@ def mixer_i(single: jnp.array,
     single = jnp.concatenate((single, sum_pairwise_up, sum_pairwise_down), axis=1)
     split = jnp.concatenate((sum_spin_up, sum_spin_down), axis=1)
     return single, split
-
-
-mixer = vmap(mixer_i, in_axes=(0, 0, None, None, None, None, None, None, None))

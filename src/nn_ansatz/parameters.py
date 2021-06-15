@@ -4,6 +4,7 @@ from jax.tree_util import tree_flatten, tree_unflatten
 from jax.nn.initializers import orthogonal
 
 from collections import OrderedDict
+import os
 
 INIT = 0.01
 
@@ -54,8 +55,9 @@ def count_mixed_features(n_sh, n_ph):
     return n_sh + 2 * n_ph
 
 
-def initialise_params(key,
-                      mol):
+def initialise_params(mol, key):
+    if len(key.shape) > 1:
+        key = key[0]
     n_layers, n_sh, n_ph, n_det = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
     '''
@@ -124,7 +126,7 @@ def initialise_params(key,
     return params
 
 
-def initialise_d0s(mol, n_devices, n_walkers_per_device):
+def initialise_d0s(mol, expand=False):
     n_layers, n_sh, n_ph, n_det = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det
     n_el, n_pairwise, n_atoms, n_up, n_down = mol.n_el, mol.n_pairwise, mol.n_atoms, mol.n_up, mol.n_down
 
@@ -160,14 +162,16 @@ def initialise_d0s(mol, n_devices, n_walkers_per_device):
     d0s['envelopes']['pi'] = [jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det * n_up, axis=1),
                                  jnp.split(jnp.zeros((n_down, n_det * n_down)), n_det * n_down, axis=1)]
 
-    d0s = expand_d0s(d0s, n_devices, n_walkers_per_device)
+    if expand: # distinguish between the cases 1- used to create a partial function (don't expand) 2- used to find the sensitivities (expand)
+        d0s = expand_d0s(d0s, mol.n_devices, mol.n_walkers_per_device)
 
     return d0s
 
 
 def expand_d0s(d0s, n_devices, n_walkers_per_device):
-    d0s, tree_map = tree_flatten(d0s)  # get the tree_map and then flatten
+    d0s, tree_map = tree_flatten(d0s) 
     d0s = [jnp.repeat(jnp.expand_dims(d0, axis=0), n_walkers_per_device, axis=0) for d0 in d0s]
-    d0s = [jnp.repeat(jnp.expand_dims(d0, axis=0), n_devices, axis=0) for d0 in d0s]
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        d0s = [jnp.repeat(jnp.expand_dims(d0, axis=0), n_devices, axis=0) for d0 in d0s]
     d0s = tree_unflatten(tree_map, d0s)
     return d0s

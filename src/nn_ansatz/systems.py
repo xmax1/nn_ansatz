@@ -51,6 +51,8 @@ class SystemAnsatz():
                  n_ph=16,
                  n_det=2,
                  step_size=0.05,
+                 correlation_length=10,
+                 n_walkers=256,
                  n_el_atoms=None,
                  n_up=None,
                  basis='sto3g',
@@ -102,8 +104,11 @@ class SystemAnsatz():
         self.min_cell_width = 1.
 
         # sampling
-        self.step_size = step_size
+        self.step_size = split_variables_for_pmap(self.n_devices, step_size)
+        self.correlation_length = correlation_length
+        self.n_walkers = n_walkers
         self.periodic_boundaries = periodic_boundaries
+
         if periodic_boundaries:
             
             self.real_basis = unit_cell_length * real_basis  # each basis vector is (1, 3)
@@ -151,82 +156,6 @@ class SystemAnsatz():
         return [x for x in self.r_atoms.split(self.n_atoms, axis=0)]
 
     
-    def initialise_walkers(self, mol, vwf, sampler, params, d0s, keys,
-    walkers = None, n_walkers: int=1024, n_devices: int=1, step_size: float=0.02, **kwargs):
-        """
-        Notes:
-            - Walkers should be passed in without a device dimension
-        """
-        if walkers is None:
-            walkers = initialise_walkers(self.n_el_atoms, self.atom_positions, n_walkers)
-        elif not len(walkers) == n_walkers:
-            n_replicate = math.ceil(n_walkers / len(walkers))
-            walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)
-            walkers = walkers[:n_walkers, ...]
-
-        walkers = walkers.reshape(n_devices, -1, *walkers.shape[1:])
-        walkers = sample_until_no_infs(mol, vwf, sampler, params, walkers, d0s, keys, step_size)
-
-        return walkers
-
-
-
-def initialise_walkers(ne_atoms, atom_positions, n_walkers):
-    r""" Initialises walkers for pretraining
-
-        Usage:
-            walkers = initialize_walkers(ne_atoms, atom_positions, n_walkers).to(device=self.device, dtype=self.dtype)
-
-        Args:
-            ne_atoms (list int): number of electrons assigned to each nucleus
-            atom_positions (list np.array): positions of the nuclei
-            n_walkers (int): number of walkers
-
-        Returns:
-            walkers (np.array): walker positions (n_walkers, n_el, 3)
-
-        """
-    key = rnd.PRNGKey(1)
-    ups = []
-    downs = []
-    for ne_atom, atom_position in zip(ne_atoms, atom_positions):
-        for e in range(ne_atom):
-            key, subkey = rnd.split(key)
-
-            if e % 2 == 0:  # fill up the orbitals alternating up down
-                curr_sample_up = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
-                ups.append(curr_sample_up)
-            else:
-                curr_sample_down = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
-                downs.append(curr_sample_down)
-
-    ups = jnp.concatenate(ups, axis=1)
-    downs = jnp.concatenate(downs, axis=1)
-    curr_sample = jnp.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
-    return curr_sample
-
-
-def sample_until_no_infs(mol, vwf, sampler, params, walkers, d0s, keys, step_size):
-
-    step_size = split_variables_for_pmap(walkers.shape[0], step_size) + 4.
-    print(step_size)
-    pwf = pmap(vwf, in_axes=(None, 0, 0))
-    infs = True
-    while infs:
-        keys, subkeys = key_gen(keys)
-        print(subkeys)
-
-        walkers, acc, step_size = sampler(params, walkers, d0s, subkeys, step_size)
-        print(walkers[0, 1], acc, step_size)
-        log_psi = pwf(params, walkers, d0s)
-        infs = jnp.isinf(log_psi).any() or jnp.isnan(log_psi).any()
-        print(log_psi)
-
-    return walkers
-
-
-
-
 def generate_plane_vectors(primitives, origin, contra, center):
     origin_pairs = list(itertools.combinations(primitives, 2))
     origin_pairs = [np.squeeze(x) for x in np.split(np.array(origin_pairs), 2, axis=1)]

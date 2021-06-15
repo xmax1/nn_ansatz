@@ -2,6 +2,7 @@ import jax.random as rnd
 import jax.numpy as jnp
 from jax import vmap, jit, grad, pmap
 from jax.experimental.optimizers import adam
+from jax.tree_util import tree_flatten, tree_unflatten
 from jax import tree_util
 from tqdm.notebook import trange
 
@@ -17,6 +18,7 @@ import jax
 print(jax.devices())
 
 import numpy as np
+from functools import partial
 
 import jax.numpy as jnp
 
@@ -40,36 +42,42 @@ cfg = setup(system='LiSolid',
                real_cut = 5,
                reciprocal_cut = 5)
 
-
-logger = Logging(**cfg)
-
 key = rnd.PRNGKey(cfg['seed'])
 keys = rnd.split(key, cfg['n_devices']).reshape(cfg['n_devices'], 2)
 
 mol = SystemAnsatz(**cfg)
+params = initialise_params(mol, key)
 
-wf, vwf, kfac_wf, wf_orbitals = create_wf(mol)
-params = initialise_params(key, mol)
-d0s = initialise_d0s(mol, cfg['n_devices'], cfg['n_walkers_per_device'])
 
-sampler, equilibrater = create_sampler(wf, vwf, mol, **cfg)
 
-walkers = None
-pwf = pmap(vwf, in_axes=(None, 0, 0))
-walkers = mol.initialise_walkers(mol, pwf, sampler, params, d0s, keys, walkers=walkers, **cfg)
+vwalkers = generate_walkers_around_nuclei(mol.n_el_atoms, mol.atom_positions, mol.n_walkers)
+pwalkers = vwalkers[None, ...]
 
-step_size = split_variables_for_pmap(walkers.shape[0], cfg['step_size'])
+# partial it before the vmap  # need to partial the d0s before vmapping
+vwf = create_wf(mol)
+vwf(params, vwalkers)
+
+sampler = create_sampler(mol, vwf)
+walkers = initialise_walkers(mol, vwf, sampler, params, keys)
+
+pwf = pmap(vwf, in_axes=(None, 0))
+fwd = pwf(params, walkers)
 
 keys, subkeys = key_gen(keys)
-sampler(params, walkers, d0s, keys, step_size)
+sampler(params, walkers, keys, mol.step_size)
 
 # grad_fn = create_grad_function(wf, vwf, mol)
 
-compute_energy = pmap(create_energy_fn(wf, mol), in_axes=(None, 0, 0))  # ctrl shift space
+kinetic = create_local_kinetic_energy(vwf)
+e = kinetic(params, vwalkers)
+pkinetic = pmap(kinetic, in_axes=(None, 0))
+e = pkinetic(params, walkers)
 
-e_locs = compute_energy(params, walkers, d0s)
+compute_energy = pmap(create_energy_fn(vwf, mol), in_axes=(None, 0))  # ctrl shift space
 
-print(e_locs)
+# e_locs = compute_energy(params, walkers)
+
+# print(e_locs)
 
 
 

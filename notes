@@ -1,8 +1,13 @@
 
+# there could be an issue with using sum in the local energy gradient function instead of mean. I think it is fine because we return a value for each sample
+# same issue in the sensitivities calculation... I believe it is meant to be a sum
+
+
 Keyword arguments:
     - how to use the * operator to separate positional and keyword arguments
         - https://treyhunner.com/2018/04/keyword-arguments-in-python/
 
+Use one leading underscore only for non-public methods and instance variables
 
 Doc strings
 
