@@ -80,6 +80,8 @@ def run_vmc(**cfg):
                    params=params,
                    e_locs=e_locs,
                    acceptance=acceptance[0])
+    
+    return walkers
 
 
 def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute_energy=None, n_it=1000, step_size=0.02):

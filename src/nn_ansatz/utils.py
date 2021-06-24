@@ -1,5 +1,6 @@
 
 import datetime
+from operator import methodcaller
 import os
 import pickle as pk
 from torch.utils.tensorboard import SummaryWriter
@@ -10,6 +11,11 @@ import jax
 import jax.random as rnd
 import jax.numpy as jnp
 import toml
+import glob
+import os
+import pandas as pd
+
+
 PATH = os.path.abspath(os.path.dirname(__file__))
 systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
 
@@ -216,6 +222,8 @@ def setup(system: str = 'Be',
           n_sh: int = 32,
           n_ph: int = 8,
           n_det: int = 2,
+          scalar_inputs: bool = False,
+          n_periodic_input: int = 1,
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 1000,
@@ -299,6 +307,8 @@ def setup(system: str = 'Be',
               'n_sh': n_sh,
               'n_ph': n_ph,
               'n_det': n_det,
+              'scalar_inputs': scalar_inputs, 
+              'n_periodic_input': n_periodic_input,
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,
@@ -353,7 +363,7 @@ class Logging():
                  print_every=None,
                  **kwargs):
 
-        self.writer = SummaryWriter(events_dir)
+        self.summary_writer = SummaryWriter(events_dir)  # comment= to add tag to file
         self.save_every = save_every
         self.print_every = print_every
 
@@ -363,6 +373,14 @@ class Logging():
 
         self.times = {}
         self.e_means = []
+        self.data = {}
+
+    def writer(self, name, value, step):
+        self.summary_writer.add_scalar(name, value, step)
+        if self.data.get(name) is None:
+            self.data[name] = [value]
+        else:
+            self.data[name].append(value)
 
     def log(self,
             step,
@@ -384,16 +402,16 @@ class Logging():
             e_mean = float(jnp.mean(e_locs))
             e_std = float(jnp.std(e_locs))
             self.e_means.append(e_mean)
-            self.writer.add_scalar('e_mean', e_mean, step)
-            self.writer.add_scalar('e_std', e_std, step)
+            self.writer('e_mean', e_mean, step)
+            self.writer('e_std', e_std, step)
             e_mean_mean = compute_last10(self.e_means)
-            self.writer.add_scalar('e_mean_mean', e_mean_mean, step)
+            self.writer('e_mean_mean', e_mean_mean, step)
             self.printer['e_mean'] = e_mean
             self.printer['e_std'] = e_std
             self.printer['e_mean_mean'] = e_mean_mean
 
         if acceptance is not None:
-            self.writer.add_scalar('acceptance', float(acceptance), step)
+            self.writer('acceptance', float(acceptance), step)
             self.printer['acceptance'] = acceptance
 
         if self.times.get('iteration') is not None:
@@ -406,6 +424,10 @@ class Logging():
 
         if step % self.save_every == 0:
             self.save_state(step, opt_state=opt_state, params=params)
+            save_pk(self.data, os.path.join(self.events_dir, 'data.pk'))
+
+    # def save_data(self):
+        # save_pk(self.data, os.path.join(self.events_dir, 'data.pk'))
 
     def save_state(self, step, opt_state=None, params=None):
         if opt_state is not None:
@@ -437,8 +459,6 @@ class Logging():
         for k, val in self.printer.items():
             string += ' %s %.4f |' % (k, val)
         print(string)
-
-
 
 
 if __name__ == '__main__':

@@ -36,6 +36,8 @@ def create_sampler(mol, vwf):
 def to_prob(amplitudes):
     ''' converts log amplitudes to probabilities '''
     ''' also catches nans (for the case the determinants are zero) '''
+    # is_nan = jnp.isnan(amplitudes).any()
+    # assert not is_nan
     amplitudes = jnp.nan_to_num(amplitudes, nan=-1.79769313**308)
     return jnp.exp(amplitudes)**2
 
@@ -47,11 +49,17 @@ def step(walkers, key, shape, step_size):
 
 def periodic_boundaries_step(walkers, key, shape, step_size, real_basis, inv_real_basis):
     ''' takes a random step, moves anything that stepped outside the simulation cell back inside '''
+    ''' go to debugging/cell for more investigation '''
     walkers = walkers + rnd.normal(key, shape) * step_size
-    talkers = walkers.dot(inv_real_basis.T)
+    walkers = keep_in_boundary(walkers, real_basis, inv_real_basis)
+    return walkers
+
+
+def keep_in_boundary(walkers, real_basis, inv_real_basis):
+    talkers = walkers.dot(inv_real_basis)
     talkers = jnp.fmod(talkers, 1.)
-    talkers = jnp.where(talkers < 0, talkers + 1., talkers)
-    talkers = talkers.dot(real_basis.T)
+    talkers = jnp.where(talkers < 0., talkers + 1., talkers)
+    talkers = talkers.dot(real_basis)
     return talkers
 
 
@@ -104,7 +112,6 @@ def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, 
     return curr_walkers, curr_probs, mask_probs
 
 
-
 def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
     decrease = ((acceptance < target_acceptance).astype(acceptance.dtype) * -2.) + 1.  # +1 for false, -1 for true
     delta = decrease * 1. / 1000.
@@ -136,9 +143,12 @@ def initialise_walkers(mol,
 
     if bool(os.environ.get('DISTRIBUTE')) is True:
         walkers = walkers.reshape(mol.n_devices, -1, *walkers.shape[1:])
-    print('sampling no infs, this could take a while')
-    walkers = sample_until_no_infs(vwf, sampler, params, walkers, keys, mol.step_size)
-    print('end sampling no infs')
+    
+    if mol.periodic_boundaries:
+        print('sampling no infs, this could take a while')
+        walkers = keep_in_boundary(walkers, mol.real_basis, mol.inv_real_basis)
+        walkers = sample_until_no_infs(vwf, sampler, params, walkers, keys, mol.step_size)
+        print('end sampling no infs')
 
     return walkers
 

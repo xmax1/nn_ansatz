@@ -141,5 +141,10 @@ def validate_ewalds(r_atoms=None,
     compute_potential_energy = vmap(compute_potential_energy_solid_i, in_axes=(0, None, None))
 
 
+def validatea_all():
+    # antisymmetric
+
+    
+    return 
 
 

@@ -15,7 +15,7 @@ import jax.numpy as jnp
 
 lr, damping, nc = 1e-4, 1e-4, 1e-4
 
-config = setup(system='Li',
+config = setup(system='LiSolid',
                n_pre_it=501,
                n_walkers=512,
                n_layers=2,

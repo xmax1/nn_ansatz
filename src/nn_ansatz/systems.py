@@ -9,6 +9,7 @@ import itertools
 from .utils import key_gen, split_variables_for_pmap
 from jax import pmap
 
+
 def create_atom(r_atoms, z_atom):
     return [[int(charge), tuple(coord)] for charge, coord in zip(z_atom, r_atoms)]
 
@@ -46,6 +47,8 @@ class SystemAnsatz():
                  real_cut=None,
                  reciprocal_cut=None,
                  kappa=None,
+                 scalar_inputs=False,
+                 n_periodic_input=1,
                  n_layers=2,
                  n_sh=64,
                  n_ph=16,
@@ -99,7 +102,9 @@ class SystemAnsatz():
         self.n_sh = n_sh
         self.n_ph = n_ph
         self.n_det = n_det
-        
+        self.scalar_inputs = scalar_inputs
+        self.n_in = 1 if scalar_inputs else 4
+
         # throwaway
         self.min_cell_width = 1.
 
@@ -110,6 +115,9 @@ class SystemAnsatz():
         self.periodic_boundaries = periodic_boundaries
 
         if periodic_boundaries:
+
+            self.n_in = 1 if scalar_inputs else (3 * n_periodic_input) + 1
+            self.n_periodic_input = n_periodic_input
             
             self.real_basis = unit_cell_length * real_basis  # each basis vector is (1, 3)
             self.inv_real_basis = jnp.linalg.inv(self.real_basis)
@@ -131,7 +139,8 @@ class SystemAnsatz():
               'reciprocal_cut   = %i \n' % self.reciprocal_cut,
               'kappa            = %.2f \n' % kappa,
               'volume           = %.2f \n' % self.volume,
-              'min_cell_width   = %.2f \n' % self.min_cell_width)
+              'min_cell_width   = %.2f \n' % self.min_cell_width,
+              'n_periodic_input = %i \n' % n_periodic_input)
 
         self.atom = create_atom(r_atoms, z_atoms)
 
@@ -178,6 +187,7 @@ def generate_plane_vectors(primitives, origin, contra, center):
     
     return points, vectors
 
+
 def use_vector_facing_away(point0, center, vectors):
     # checks if the vector is closer or further from the center
     # this method assumes that given the origin or contra, moving along one of the 3 related plane vectors 
@@ -185,6 +195,7 @@ def use_vector_facing_away(point0, center, vectors):
     dists = np.sqrt(np.sum((new_point - center)**2, axis=-1))
     idxs = np.argmax(dists, axis=1)
     return np.stack([v[pair_idx, :] for (pair_idx, v) in zip(idxs, vectors)], axis=0)
+
 
 def get_ds(points, vectors):
     # p0 is a point in the plane
@@ -197,8 +208,10 @@ def get_ds(points, vectors):
     [x.append(np.sum(pv * p0)) for p0, pv in zip(points[3:], vectors[3:])] # change the sign because the normal is pointing in the wrong direction
     return x
 
+
 def compute_distance(d0, d1, v):
     return np.abs(d0 - d1) / np.sqrt(np.sum(v**2))
+
 
 def get_distances(ds, vectors):
     ds = np.split(np.array(ds), 2)

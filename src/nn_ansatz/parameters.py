@@ -58,7 +58,7 @@ def count_mixed_features(n_sh, n_ph):
 def initialise_params(mol, key):
     if len(key.shape) > 1:
         key = key[0]
-    n_layers, n_sh, n_ph, n_det = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det
+    n_layers, n_sh, n_ph, n_det, n_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
     '''
 
@@ -67,8 +67,8 @@ def initialise_params(mol, key):
     zip(*([iter(nums)]*2) nice idiom for iterating over in sets of 2
     '''
     # count the number of input features
-    n_sh_in = 4 * n_atoms
-    n_ph_in = 4
+    n_sh_in = n_in * n_atoms
+    n_ph_in = n_in
 
     # count the features in the intermediate layers
     n_sh_mix = count_mixed_features(n_sh, n_ph)

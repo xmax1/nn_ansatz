@@ -12,13 +12,23 @@ from .parameters import expand_d0s, initialise_d0s
 def create_wf(mol, kfac: bool=False, orbitals: bool=False):
     ''' initializes the wave function ansatz for various applications '''
 
-    masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph)
+    print('creating wf')
+    masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_in)
 
-    _env_sigma_i = env_sigma_i_periodic if mol.periodic_boundaries else env_sigma_i
+    _env_sigma_i = env_sigma_i
+    _compute_ae_vectors_i = compute_ae_vectors_i
+    if mol.periodic_boundaries:  # weird namespace workaround
+        _env_sigma_i = env_sigma_i_periodic 
+        _compute_ae_vectors_i = partial(compute_ae_vectors_periodic_i, 
+                                        real_basis=mol.real_basis, 
+                                        inv_real_basis=mol.inv_real_basis)
 
     _compute_inputs_i = create_compute_inputs_i(mol)
 
-    _wf_orbitals = partial(wf_orbitals, mol=mol, masks=masks, compute_inputs_i=_compute_inputs_i, env_sigma_i=_env_sigma_i)
+    _wf_orbitals = partial(wf_orbitals, mol=mol, masks=masks, 
+                                        _compute_inputs_i=_compute_inputs_i, 
+                                        _env_sigma_i=_env_sigma_i,
+                                        _compute_ae_vectors_i=_compute_ae_vectors_i)
 
     def _wf(params, walkers, d0s):
         orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
@@ -50,17 +60,19 @@ def wf_orbitals(params,
                 d0s, 
                 mol, 
                 masks,
-                compute_inputs_i: Callable, 
-                env_sigma_i: Callable):
+                _compute_ae_vectors_i: Callable,
+                _compute_inputs_i: Callable, 
+                _env_sigma_i: Callable):
 
     if len(walkers.shape) == 1:  # this is a hack to get around the jvp
         walkers = walkers.reshape(mol.n_up + mol.n_down, 3)
 
     activations = []
 
-    ae_vectors = compute_ae_vectors_i(walkers, mol.r_atoms)
+    ae_vectors = _compute_ae_vectors_i(walkers, mol.r_atoms)
+    # ae_vectors = compute_ae_vectors_i(walkers, mol.r_atoms)
 
-    single, pairwise = compute_inputs_i(walkers, ae_vectors)
+    single, pairwise = _compute_inputs_i(walkers, ae_vectors)
 
     single_mixed, split = mixer_i(single, pairwise, mol.n_el, mol.n_up, mol.n_down, *masks[0])
 
@@ -82,8 +94,8 @@ def wf_orbitals(params,
     factor_up = env_linear_i(params['envelopes']['linear'][0], data_up, activations, d0s['envelopes']['linear'][0])
     factor_down = env_linear_i(params['envelopes']['linear'][1], data_down, activations, d0s['envelopes']['linear'][1])
 
-    exp_up = env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'], mol.min_cell_width)
-    exp_down = env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'], mol.min_cell_width)
+    exp_up = _env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'], mol.min_cell_width)
+    exp_down = _env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'], mol.min_cell_width)
 
     orb_up = env_pi_i(params['envelopes']['pi'][0], factor_up, exp_up, activations, d0s['envelopes']['pi'][0])
     orb_down = env_pi_i(params['envelopes']['pi'][1], factor_down, exp_down, activations, d0s['envelopes']['pi'][1])
@@ -92,14 +104,30 @@ def wf_orbitals(params,
 
 def create_compute_inputs_i(mol):
 
+    if mol.scalar_inputs:
+        return partial(compute_inputs_scalar_inputs_i, 
+                       real_basis=mol.real_basis, 
+                       inv_real_basis=mol.inv_real_basis)
+
     if mol.periodic_boundaries:
         _compute_inputs_periodic_i = partial(compute_inputs_periodic_i, 
                                          min_cell_width=mol.min_cell_width,
                                          real_basis=mol.real_basis, 
-                                         inv_real_basis=mol.inv_real_basis)
+                                         inv_real_basis=mol.inv_real_basis,
+                                         n_periodic_input=mol.n_periodic_input)
+        
+        
+        
         return _compute_inputs_periodic_i
     
     return compute_inputs_i
+
+
+def compute_ee_vectors_i(walkers):
+    re1 = jnp.expand_dims(walkers, axis=1)
+    re2 = jnp.transpose(re1, [1, 0, 2])
+    ee_vectors = re1 - re2
+    return ee_vectors
 
 
 def compute_inputs_i(walkers, ae_vectors):
@@ -124,14 +152,7 @@ def compute_inputs_i(walkers, ae_vectors):
     return single_inputs, pairwise_inputs
 
 
-def compute_ee_vectors_i(walkers):
-    re1 = jnp.expand_dims(walkers, axis=1)
-    re2 = jnp.transpose(re1, [1, 0, 2])
-    ee_vectors = re1 - re2
-    return ee_vectors
-
-
-def compute_inputs_periodic_i(walkers, ae_vectors, min_cell_width, real_basis, inv_real_basis):
+def compute_inputs_periodic_i(walkers, ae_vectors_min_im, min_cell_width, real_basis, inv_real_basis, n_periodic_input):
         """
         Notes:
             Previous masking code for dropping the diagonal
@@ -139,32 +160,81 @@ def compute_inputs_periodic_i(walkers, ae_vectors, min_cell_width, real_basis, i
                 # mask = jnp.repeat(jnp.repeat(mask, n_samples, axis=0), 3, axis=-1)
                 # ee_vectors = ee_vectors[mask].reshape(n_samples, n_electrons ** 2 - n_electrons, 3)
         """
-        n_electrons, n_atoms = ae_vectors.shape[:2]
-
-        ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
-        ae_vectors_periodic = jnp.sin((jnp.pi / min_cell_width) * ae_vectors)
+        n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
+        ae_distances = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
+        ae_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi / min_cell_width) * ae_vectors_min_im) 
+                                                for i in range(1, n_periodic_input+1)], axis=-1)
         single_inputs = jnp.concatenate([ae_vectors_periodic, ae_distances], axis=-1)
-        single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
+        single_inputs = single_inputs.reshape(n_electrons, ((n_periodic_input * 3) + 1) * n_atoms)
 
-        ee_vectors = compute_ee_vectors_periodic_i(walkers, real_basis, inv_real_basis)
+        ee_vectors = compute_ee_vectors_i(walkers)
         ee_vectors = drop_diagonal_i(ee_vectors)
-        ee_vectors_periodic = jnp.sin((jnp.pi / min_cell_width) * ee_vectors)
+        ee_vectors_min_im = apply_minimum_image_convention(ee_vectors, real_basis, inv_real_basis)
+
+        ''' this is not the way but left here for testing ''' 
+        # ee_vectors_min_im = compute_ee_vectors_mic_i(walkers, real_basis, inv_real_basis)
+
+        ee_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi / min_cell_width) * ee_vectors_min_im) 
+                                                for i in range(1, n_periodic_input+1)], axis=-1)
+
         ee_distances = jnp.linalg.norm(ee_vectors_periodic, axis=-1, keepdims=True)
-        pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
+        pairwise_inputs = jnp.concatenate([ee_vectors_periodic, ee_distances], axis=-1)
+
         return single_inputs, pairwise_inputs
 
 
-def compute_ee_vectors_periodic_i(walkers, real_basis, inv_real_basis):
-    unit_cell_walkers = walkers.dot(inv_real_basis)  # translate to the unit cell
-    unit_cell_ee_vectors = compute_ee_vectors_i(unit_cell_walkers)
-    min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - (2 * unit_cell_ee_vectors).astype(int) * 1.  # 1 is length of unit cell put it here for clarity
-    min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(real_basis)  # translate out of the unit cell
-    return min_image_ee_vectors
+def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im, real_basis, inv_real_basis):
+    ''' computes the inputs as only the distances between particles '''
+
+    n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
+    single_inputs = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
+    single_inputs = single_inputs.reshape(n_electrons, 1 * n_atoms)
+
+    ee_vectors = compute_ee_vectors_i(walkers)
+    ee_vectors = drop_diagonal_i(ee_vectors)
+    ee_vectors_min_im = apply_minimum_image_convention(ee_vectors, real_basis, inv_real_basis)
+    pairwise_inputs = jnp.linalg.norm(ee_vectors_min_im, axis=-1, keepdims=True)
+    return single_inputs, pairwise_inputs
 
 
-def create_masks(n_atom, n_electrons, n_up, n_layers, n_sh, n_ph):
+def compute_ee_vectors_no_grad_i(walkers, walkers_no_grad):
+    re1 = jnp.expand_dims(walkers, axis=1)
+    re2 = jnp.transpose(walkers_no_grad[None, ...], [1, 0, 2])
+    ee_vectors = re1 - re2
+    return ee_vectors
 
-    n_sh_in, n_ph_in = 4 * n_atom, 4
+
+def compute_ee_vectors_mic_i(walkers, real_basis, inv_real_basis):
+    ''' implementation to avoid propagating the gradients through the adjustment '''
+    walkers_no_grad = lax.stop_gradient(walkers)
+    ee_vectors_no_grad = compute_ee_vectors_no_grad_i(walkers, walkers_no_grad)
+    ee_vectors_no_grad_mic = apply_minimum_image_convention(ee_vectors_no_grad, real_basis, inv_real_basis)
+
+    ee_vectors = compute_ee_vectors_i(walkers)
+    mask = displace == 0
+    min_image_unit_cell_displacement_vectors = jnp.where(mask, ee_vectors, ee_vectors_no_grad_mic)
+    return min_image_unit_cell_displacement_vectors
+
+
+
+def apply_minimum_image_convention(displacement_vectors, real_basis, inv_real_basis):
+    '''
+    pseudocode:
+        - translate to the unit cell 
+        - compute the distances
+        - 2 * element distances will be maximum 0.999 (as always in the same cell)
+        - int(2 * element distances) will either be 0, 1 or -1
+    '''
+    unit_cell_displacement = displacement_vectors.dot(inv_real_basis)  # translate to the unit cell
+    displace = (2 * unit_cell_displacement).astype(int).astype(unit_cell_displacement.dtype)  # 1 is length of unit cell put it here for clarity
+    min_image_unit_cell_displacement_vectors = unit_cell_displacement + displace
+    min_image_displacement_vectors = min_image_unit_cell_displacement_vectors.dot(real_basis)  # translate out of the unit cell
+    return min_image_displacement_vectors
+
+
+def create_masks(n_atom, n_electrons, n_up, n_layers, n_sh, n_ph, n_in):
+
+    n_sh_in, n_ph_in = n_in * n_atom, n_in
 
     masks = [create_masks_layer(n_sh_in, n_ph_in, n_electrons, n_up)]
 
@@ -221,6 +291,21 @@ def compute_ae_vectors_i(walkers: jnp.array,
     ae_vectors = walkers - r_atoms
     return ae_vectors
 
+
+def compute_ae_vectors_periodic_i(walkers: jnp.array,
+                         r_atoms: jnp.array,
+                         real_basis: jnp.array,
+                         inv_real_basis: jnp.array) -> jnp.array:
+    r_atoms = jnp.expand_dims(r_atoms, axis=0)
+    walkers = jnp.expand_dims(walkers, axis=1)
+    ae_vectors = walkers - r_atoms
+    unit_cell_displacement = ae_vectors.dot(inv_real_basis)  # translate to the unit cell
+    min_image_unit_cell_displacement_vectors = (2. * unit_cell_displacement).astype(int).astype(walkers.dtype)
+    adjust = min_image_unit_cell_displacement_vectors.dot(real_basis)  # translate out of the unit cell
+    r_atoms = lax.stop_gradient(r_atoms - adjust)
+    ae_vectors = walkers - r_atoms
+    return ae_vectors
+        
 
 def drop_diagonal_i(square):
     """
@@ -304,9 +389,6 @@ def env_linear_i(params: jnp.array,
     return pre_activations
 
 
-env_linear = vmap(env_linear_i, in_axes=(None, 0))
-
-
 def env_sigma_i(sigmas: jnp.array,
                 ae_vectors: jnp.array,
                 activations: list,
@@ -381,7 +463,9 @@ def env_sigma_i_periodic(sigmas: jnp.array,
                 d0s: jnp.array,
                 min_cell_width: float) -> jnp.array:
     
+    mcw = min_cell_width
     boundary = min_cell_width / 2.
+    half_boundary = boundary / 2.
     # sigma (n_det, n_spin, n_atom, 3, 3)
     # ae_vectors (n_spin, n_atom, 3)
 
@@ -394,13 +478,13 @@ def env_sigma_i_periodic(sigmas: jnp.array,
     outs = []
     for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
 
-        # fix to half if below 
+        # fix to half if below (with the minimum image convention applied it should never be below)
         ae_vector = jnp.where(ae_vector < -boundary, -boundary, ae_vector)
         ae_vector = jnp.where(ae_vector > boundary, boundary, ae_vector)
 
-        # apply case wise functions
-        ae_vector = jnp.where(ae_vector < -boundary/2., -1./(8.*(min_cell_width + 2.*ae_vector)), ae_vector)
-        ae_vector = jnp.where(ae_vector > boundary/2., 1./(8.*(min_cell_width - 2.*ae_vector)), ae_vector)
+        # apply case wise functions TURBOrvb eq 100
+        ae_vector = jnp.where(ae_vector < -half_boundary, -mcw**2./(8.*(mcw + 2.*ae_vector)), ae_vector)
+        ae_vector = jnp.where(ae_vector > half_boundary, mcw**2./(8.*(mcw - 2.*ae_vector)), ae_vector)
 
         activations.append(ae_vector)
 
@@ -497,3 +581,21 @@ def mixer_i(single: jnp.array,
     single = jnp.concatenate((single, sum_pairwise_up, sum_pairwise_down), axis=1)
     split = jnp.concatenate((sum_spin_up, sum_spin_down), axis=1)
     return single, split
+
+
+
+# DEPRECIATED FUNCTIONS
+
+def compute_ee_vectors_periodic_i_dep(walkers, real_basis, inv_real_basis):
+    '''
+    pseudocode:
+        - translate to the unit cell 
+        - compute the distances
+        - element distances will be maximum 0.999 (as always in the same cell)
+        - int(2 * element distances) will either be 0, 1 or -1
+    '''
+    unit_cell_walkers = walkers.dot(inv_real_basis)  # translate to the unit cell
+    unit_cell_ee_vectors = compute_ee_vectors_i(unit_cell_walkers)
+    min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - (2 * unit_cell_ee_vectors).astype(int) * 1.  # 1 is length of unit cell put it here for clarity
+    min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(real_basis)  # translate out of the unit cell
+    return min_image_ee_vectors
