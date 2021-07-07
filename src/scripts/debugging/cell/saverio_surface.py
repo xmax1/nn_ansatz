@@ -39,7 +39,6 @@ fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
 print(plot2d_data)
 
-
 axs[0].contourf(plot2d_data)
 
 plt.show()

@@ -194,7 +194,6 @@ def get_n_devices():
 
 def setup(system: str = 'Be',
           name: str = '',
-          exp: bool = True,
           save_every: int = 1000,
           print_every: int = 100,
 
@@ -252,9 +251,6 @@ def setup(system: str = 'Be',
     root = os.path.join(os.getcwd(), 'experiments')
 
     if len(name) == 0:
-        name = today
-
-    if not exp:
         name = 'junk'
 
     loading = are_we_loading(load_it, load_dir)
@@ -263,7 +259,7 @@ def setup(system: str = 'Be',
         exp_dir = load_dir
     else:
         hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
-        exp_dir = os.path.join(root, system, name, hyperparameter_name + ansatz_hyperparameter_name)
+        exp_dir = os.path.join(root, system, today, name, hyperparameter_name + ansatz_hyperparameter_name)
         make_dir(exp_dir)
         run = 'run%i' % get_run(exp_dir)
         exp_dir = os.path.join(exp_dir, run)

@@ -16,24 +16,24 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
     masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_in)
 
     _compute_exponents = create_compute_orbital_exponents(periodic_boundaries=mol.periodic_boundaries,
-                                                          orbital_decay=mol.orbital_decay, 
-                                                          min_cell_width=mol.min_cell_width,
-                                                          inv_real_basis=mol.inv_real_basis,
-                                                          real_basis=mol.real_basis)
+                                                          orbital_decay=mol.orbital_decay)
+    
     _env_sigma_i = partial(env_sigma_i, _compute_exponents=_compute_exponents)
 
     _compute_ae_vectors_i = compute_ae_vectors_i
-    if mol.periodic_boundaries:  # weird namespace workaround
-        _compute_ae_vectors_i = partial(compute_ae_vectors_periodic_i, 
-                                        real_basis=mol.real_basis, 
-                                        inv_real_basis=mol.inv_real_basis)
+    if mol.periodic_boundaries:
+        _compute_ae_vectors_i = compute_ae_vectors_periodic_i
 
     _compute_inputs_i = create_compute_inputs_i(mol)
 
-    _wf_orbitals = partial(wf_orbitals, mol=mol, masks=masks, 
-                                        _compute_inputs_i=_compute_inputs_i, 
-                                        _env_sigma_i=_env_sigma_i,
-                                        _compute_ae_vectors_i=_compute_ae_vectors_i)
+    _wf_orbitals = partial(wf_orbitals, 
+                           mol=mol, 
+                           masks=masks, 
+                           inv_real_basis=mol.inv_real_basis,
+                           periodic_boundaries=mol.periodic_boundaries,
+                           _compute_inputs_i=_compute_inputs_i, 
+                           _env_sigma_i=_env_sigma_i,
+                           _compute_ae_vectors_i=_compute_ae_vectors_i)
 
     def _signed_wf(params, walkers, d0s):
         orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
@@ -75,18 +75,24 @@ def wf_orbitals(params,
                 d0s, 
                 mol, 
                 masks,
+                periodic_boundaries: bool,
+                inv_real_basis: jnp.array,
                 _compute_ae_vectors_i: Callable,
                 _compute_inputs_i: Callable, 
                 _env_sigma_i: Callable):
 
+
     if len(walkers.shape) == 1:  # this is a hack to get around the jvp
         walkers = walkers.reshape(mol.n_up + mol.n_down, 3)
 
+    if periodic_boundaries:
+        walkers = walkers.dot(inv_real_basis)
+
     activations = []
 
-    ae_vectors = _compute_ae_vectors_i(walkers, mol.r_atoms)
+    ae_vectors = _compute_ae_vectors_i(walkers, mol.r_atoms) ## 
 
-    single, pairwise = _compute_inputs_i(walkers, ae_vectors)
+    single, pairwise = _compute_inputs_i(walkers, ae_vectors) ##
 
     single_mixed, split = mixer_i(single, pairwise, mol.n_el, mol.n_up, mol.n_down, *masks[0])
 
@@ -108,8 +114,8 @@ def wf_orbitals(params,
     factor_up = env_linear_i(params['envelopes']['linear'][0], data_up, activations, d0s['envelopes']['linear'][0])
     factor_down = env_linear_i(params['envelopes']['linear'][1], data_down, activations, d0s['envelopes']['linear'][1])
 
-    exp_up = _env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'])
-    exp_down = _env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'])
+    exp_up = _env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up']) ##
+    exp_down = _env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down']) ##
 
     orb_up = env_pi_i(params['envelopes']['pi'][0], factor_up, exp_up, activations, d0s['envelopes']['pi'][0])
     orb_down = env_pi_i(params['envelopes']['pi'][1], factor_down, exp_down, activations, d0s['envelopes']['pi'][1])
@@ -119,18 +125,10 @@ def wf_orbitals(params,
 def create_compute_inputs_i(mol):
 
     if mol.scalar_inputs:
-        return partial(compute_inputs_scalar_inputs_i, 
-                       real_basis=mol.real_basis, 
-                       inv_real_basis=mol.inv_real_basis)
+        return partial(compute_inputs_scalar_inputs_i)
 
     if mol.periodic_boundaries:
-        _compute_inputs_periodic_i = partial(compute_inputs_periodic_i, 
-                                         min_cell_width=mol.min_cell_width,
-                                         real_basis=mol.real_basis, 
-                                         inv_real_basis=mol.inv_real_basis,
-                                         n_periodic_input=mol.n_periodic_input)
-        
-        
+        _compute_inputs_periodic_i = partial(compute_inputs_periodic_i, n_periodic_input=mol.n_periodic_input)
         
         return _compute_inputs_periodic_i
     
@@ -166,7 +164,7 @@ def compute_inputs_i(walkers, ae_vectors):
     return single_inputs, pairwise_inputs
 
 
-def compute_inputs_periodic_i(walkers, ae_vectors_min_im, min_cell_width, real_basis, inv_real_basis, n_periodic_input):
+def compute_inputs_periodic_i(walkers, ae_vectors_min_im, n_periodic_input):
         """
         Notes:
             Previous masking code for dropping the diagonal
@@ -176,19 +174,19 @@ def compute_inputs_periodic_i(walkers, ae_vectors_min_im, min_cell_width, real_b
         """
         n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
         ae_distances = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
-        ae_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi / min_cell_width) * ae_vectors_min_im) 
+        ae_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi) * ae_vectors_min_im) 
                                                 for i in range(1, n_periodic_input+1)], axis=-1)
         single_inputs = jnp.concatenate([ae_vectors_periodic, ae_distances], axis=-1)
         single_inputs = single_inputs.reshape(n_electrons, ((n_periodic_input * 3) + 1) * n_atoms)
 
         ee_vectors = compute_ee_vectors_i(walkers)
         ee_vectors = drop_diagonal_i(ee_vectors)
-        ee_vectors_min_im = apply_minimum_image_convention(ee_vectors, real_basis, inv_real_basis)
+        ee_vectors_min_im = apply_minimum_image_convention(ee_vectors)
 
         ''' this is not the way but left here for testing ''' 
         # ee_vectors_min_im = compute_ee_vectors_mic_i(walkers, real_basis, inv_real_basis)
 
-        ee_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi / min_cell_width) * ee_vectors_min_im) 
+        ee_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi) * ee_vectors_min_im) 
                                                 for i in range(1, n_periodic_input+1)], axis=-1)
 
         ee_distances = jnp.linalg.norm(ee_vectors_periodic, axis=-1, keepdims=True)
@@ -197,7 +195,7 @@ def compute_inputs_periodic_i(walkers, ae_vectors_min_im, min_cell_width, real_b
         return single_inputs, pairwise_inputs
 
 
-def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im, real_basis, inv_real_basis):
+def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im):
     ''' computes the inputs as only the distances between particles '''
 
     n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
@@ -206,7 +204,7 @@ def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im, real_basis, inv_r
 
     ee_vectors = compute_ee_vectors_i(walkers)
     ee_vectors = drop_diagonal_i(ee_vectors)
-    ee_vectors_min_im = apply_minimum_image_convention(ee_vectors, real_basis, inv_real_basis)
+    ee_vectors_min_im = apply_minimum_image_convention(ee_vectors)
     pairwise_inputs = jnp.linalg.norm(ee_vectors_min_im, axis=-1, keepdims=True)
     return single_inputs, pairwise_inputs
 
@@ -218,20 +216,7 @@ def compute_ee_vectors_no_grad_i(walkers, walkers_no_grad):
     return ee_vectors
 
 
-def compute_ee_vectors_mic_i(walkers, real_basis, inv_real_basis):
-    ''' implementation to avoid propagating the gradients through the adjustment '''
-    walkers_no_grad = lax.stop_gradient(walkers)
-    ee_vectors_no_grad = compute_ee_vectors_no_grad_i(walkers, walkers_no_grad)
-    ee_vectors_no_grad_mic = apply_minimum_image_convention(ee_vectors_no_grad, real_basis, inv_real_basis)
-
-    ee_vectors = compute_ee_vectors_i(walkers)
-    mask = displace == 0
-    min_image_unit_cell_displacement_vectors = jnp.where(mask, ee_vectors, ee_vectors_no_grad_mic)
-    return min_image_unit_cell_displacement_vectors
-
-
-
-def apply_minimum_image_convention(displacement_vectors, real_basis, inv_real_basis):
+def apply_minimum_image_convention(displacement_vectors):
     '''
     pseudocode:
         - translate to the unit cell 
@@ -239,11 +224,9 @@ def apply_minimum_image_convention(displacement_vectors, real_basis, inv_real_ba
         - 2 * element distances will be maximum 0.999 (as always in the same cell)
         - int(2 * element distances) will either be 0, 1 or -1
     '''
-    unit_cell_displacement = displacement_vectors.dot(inv_real_basis)  # translate to the unit cell
-    displace = (2 * unit_cell_displacement).astype(int).astype(unit_cell_displacement.dtype)  # 1 is length of unit cell put it here for clarity
-    min_image_unit_cell_displacement_vectors = unit_cell_displacement + displace
-    min_image_displacement_vectors = min_image_unit_cell_displacement_vectors.dot(real_basis)  # translate out of the unit cell
-    return min_image_displacement_vectors
+    displace = (2 * displacement_vectors).astype(int).astype(displacement_vectors.dtype)  # 1 is length of unit cell put it here for clarity
+    displacement_vectors = displacement_vectors + lax.stop_gradient(displace)  # 
+    return displacement_vectors
 
 
 def create_masks(n_atom, n_electrons, n_up, n_layers, n_sh, n_ph, n_in):
@@ -306,16 +289,11 @@ def compute_ae_vectors_i(walkers: jnp.array,
     return ae_vectors
 
 
-def compute_ae_vectors_periodic_i(walkers: jnp.array,
-                         r_atoms: jnp.array,
-                         real_basis: jnp.array,
-                         inv_real_basis: jnp.array) -> jnp.array:
+def compute_ae_vectors_periodic_i(walkers: jnp.array, r_atoms: jnp.array) -> jnp.array:
     r_atoms = jnp.expand_dims(r_atoms, axis=0)
     walkers = jnp.expand_dims(walkers, axis=1)
     ae_vectors = walkers - r_atoms
-    unit_cell_displacement = ae_vectors.dot(inv_real_basis)  # translate to the unit cell
-    min_image_unit_cell_displacement_vectors = (2. * unit_cell_displacement).astype(int).astype(walkers.dtype)
-    adjust = min_image_unit_cell_displacement_vectors.dot(real_basis)  # translate out of the unit cell
+    adjust = (2. * ae_vectors).astype(int).astype(walkers.dtype)
     r_atoms = lax.stop_gradient(r_atoms - adjust)
     ae_vectors = walkers - r_atoms
     return ae_vectors
@@ -400,28 +378,14 @@ def env_linear_i(params: jnp.array,
 
 
 def anisotropic_exponent(ae_vector, sigma, d0, n_spin, 
-                         periodic_boundaries=False, 
-                         boundary=None, 
-                         half_boundary=None, 
-                         min_cell_width=None,
-                         inv_real_basis=None,
-                         real_basis=None):
+                         periodic_boundaries=False):
     # sigma (3, 3 * n_det * n_spin)
     # ae_vector (n_spin_j, 3)
     # d0 (n_spin_j, n_det, n_spin_i)
+    
     if periodic_boundaries:
-
-        ae_vector = ae_vector.dot(inv_real_basis)
-        # ae_vector = jnp.clip(ae_vector, -0.5, 0.5)
         ae_vector = jnp.where(ae_vector < -0.25, -1./(8.*(1. + 2.*ae_vector)), ae_vector)
         ae_vector = jnp.where(ae_vector > 0.25, 1./(8.*(1. - 2.*ae_vector)), ae_vector)
-        # ae_vector = ae_vector.dot(real_basis)
-
-        # fix to half if below (with the minimum image convention applied it should never be below)
-        # ae_vector = jnp.clip(ae_vector, -boundary, boundary)
-        # apply case wise functions TURBOrvb eq 100
-        # ae_vector = jnp.where(ae_vector < -half_boundary, -min_cell_width**2./(8.*(min_cell_width + 2.*ae_vector)), ae_vector)
-        # ae_vector = jnp.where(ae_vector > half_boundary, min_cell_width**2./(8.*(min_cell_width - 2.*ae_vector)), ae_vector)
 
     pre_activation = jnp.matmul(ae_vector, sigma) + d0
     exponent = pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F')
@@ -430,15 +394,8 @@ def anisotropic_exponent(ae_vector, sigma, d0, n_spin,
     return ae_vector, exponential
 
 
-# talkers = walkers.dot(inv_real_basis)
-#     talkers = jnp.fmod(talkers, 1.)
-#     talkers = jnp.where(talkers < 0., talkers + 1., talkers)
-#     talkers = talkers.dot(real_basis)
-
-
 def isotropic_exponent(ae_vector, sigma, d0, n_spin, 
-                       periodic_boundaries=False, 
-                       min_cell_width=None):
+                       periodic_boundaries=False):
     # sigma (n_det, n_spin_i)
     # ae_vector (n_spin_j, 3)
     # d0 (n_spin_j, n_det, n_spin_i)
@@ -447,9 +404,9 @@ def isotropic_exponent(ae_vector, sigma, d0, n_spin,
         exponent = (norm  * sigma + d0).reshape(n_spin, -1, n_spin, 1, order='F')
         exponential = jnp.exp(-exponent)
     else:
-        exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(min_cell_width - norm) * sigma + d0) - 2 * jnp.exp(-(min_cell_width / 2.) * sigma)
+        exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(1. - norm) * sigma + d0) - 2 * jnp.exp(-(1. / 2.) * sigma)
         # out = jnp.exp(-exponent) + jnp.exp(-(min_cell_width - exponent)) - 2 * jnp.exp(-min_cell_width / 2.)
-        exponential = jnp.where(norm < min_cell_width / 2., exponential, jnp.zeros_like(exponential)).reshape(n_spin, -1, n_spin, 1, order='F')
+        exponential = jnp.where(norm < (1. / 2.), exponential, jnp.zeros_like(exponential)).reshape(n_spin, -1, n_spin, 1, order='F')
 
         # tr_ae_vector = ae_vector.dot(inv_real_basis)
         # tr_norm = jnp.linalg.norm(tr_ae_vector, axis=-1)
@@ -510,26 +467,14 @@ def env_sigma_i(sigmas: jnp.array,
     return jnp.concatenate(outs, axis=-1)
 
 
-def create_compute_orbital_exponents(min_cell_width, 
-                                     orbital_decay='anisotropic', 
-                                     periodic_boundaries=False,
-                                     inv_real_basis=None,
-                                     real_basis=None):
-
-    boundary = min_cell_width / 2.
-    half_boundary = boundary / 2.
+def create_compute_orbital_exponents(orbital_decay='anisotropic', 
+                                     periodic_boundaries=False):
 
     if orbital_decay == 'anisotropic':
-        _compute_exponent = partial(anisotropic_exponent, periodic_boundaries=periodic_boundaries, 
-                                                          boundary=boundary, 
-                                                          half_boundary=half_boundary, 
-                                                          min_cell_width=min_cell_width,
-                                                          inv_real_basis=inv_real_basis,
-                                                          real_basis=real_basis)
+        _compute_exponent = partial(anisotropic_exponent, periodic_boundaries=periodic_boundaries)
             
     elif orbital_decay == 'isotropic':
-        _compute_exponent = partial(isotropic_exponent, periodic_boundaries=periodic_boundaries, 
-                                                        min_cell_width=min_cell_width)
+        _compute_exponent = partial(isotropic_exponent, periodic_boundaries=periodic_boundaries)
         
     return _compute_exponent
 
