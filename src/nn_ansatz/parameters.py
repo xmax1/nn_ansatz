@@ -50,22 +50,43 @@ def init_linear_layer(key, shape, bias, bias_axis=0):
     return p
 
 
+def init_sigma(key, shape, bias=True, bias_axis=0):
+    n_det, n_spin, n_atom = shape[:3]
+    atom_subkeys = rnd.split(key, num=n_atom)
+    if len(shape) == 5:  # anisotropic
+        new_shape = (3, 3)
+        p = [jnp.concatenate([init_linear_layer(k, new_shape, bias) 
+             for k in rnd.split(atom_key, num=jnp.prod(n_det * n_spin))], axis=-1)
+             for atom_key in atom_subkeys]
+        # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[None, ...] for k in subkeys], axis=0)
+        # p = p.reshape(shape)
+    if len(shape) == 3:  # isotropic
+        p = [unit_plus_noise((1, n_spin * n_det), k) for m, k in zip(range(n_atom), atom_subkeys)]
+    return p
+
+
+def unit_plus_noise(shape, key):
+    return jnp.ones(shape) + rnd.normal(key, shape) * 0.01
+
+
+
 def count_mixed_features(n_sh, n_ph):
     #     n_sh_mix = 2 * n_ph + n_sh # change mixer
     return n_sh + 2 * n_ph
 
 
 def initialise_params(mol, key):
+    '''
+    Notes:
+        zip(*([iter(nums)]*2) nice idiom for iterating over in sets of 2
+    '''
+    
     if len(key.shape) > 1:
         key = key[0]
     n_layers, n_sh, n_ph, n_det, n_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
-    '''
-
-
-    Notes:
-    zip(*([iter(nums)]*2) nice idiom for iterating over in sets of 2
-    '''
+    orbital_decay = mol.orbital_decay
+    
     # count the number of input features
     n_sh_in = n_in * n_atoms
     n_ph_in = n_in
@@ -102,19 +123,20 @@ def initialise_params(mol, key):
     key, *subkeys = rnd.split(key, num=3)
     # SIGMA BROADCAST
     params['envelopes']['sigma'] = OrderedDict()
-    params['envelopes']['sigma']['up'] = init_linear(subkeys[0], (n_det, n_up, n_atoms, 3, 3), bias=False)
-    params['envelopes']['sigma']['down'] = init_linear(subkeys[1], (n_det, n_down, n_atoms, 3, 3), bias=False)
+    sigma_shape_up = (n_det, n_up, n_atoms, 3, 3) if orbital_decay == 'anisotropic' else (n_det, n_up, n_atoms)
+    sigma_shape_down = (n_det, n_down, n_atoms, 3, 3) if orbital_decay == 'anisotropic' else (n_det, n_down, n_atoms)
+    params['envelopes']['sigma']['up'] = init_sigma(subkeys[0], sigma_shape_up, bias=False)
+    params['envelopes']['sigma']['down'] = init_sigma(subkeys[1], sigma_shape_down, bias=False)
     # SIGMA LOOPY list(atom1, atom2)... atom1 = list( (3x3) n_det x n_spins)
     # params['envelopes']['sigma'] = OrderedDict()
     # params['envelopes']['sigma']['up'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_up)] for _ in range(n_atoms)]
     # params['envelopes']['sigma']['down'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_down)] for _ in range(n_atoms)]
 
-
     # env_pi
     key, *subkeys = rnd.split(key, num=3)
     up_shape, down_shape = (n_det * n_up * n_atoms,), (n_det * n_down * n_atoms,)
-    x = jnp.ones(up_shape) + rnd.normal(subkeys[0], up_shape) * 0.01
-    y = jnp.ones(down_shape) + rnd.normal(subkeys[1], down_shape) * 0.01
+    x = unit_plus_noise(up_shape, subkeys[0])
+    y = unit_plus_noise(down_shape, subkeys[1])
 
     x = [x[:, None] for x in jnp.split(x, n_det * n_up)]
     y = [y[:, None] for y in jnp.split(y, n_det * n_down)]
@@ -149,8 +171,9 @@ def initialise_d0s(mol, expand=False):
 
     # SIGMA BROADCAST
     d0s['envelopes']['sigma'] = OrderedDict()
-    d0s['envelopes']['sigma']['up'] = [jnp.zeros((n_up, 3 * n_det * n_up)) for _ in range(n_atoms)]
-    d0s['envelopes']['sigma']['down'] = [jnp.zeros((n_down, 3 * n_det * n_down)) for _ in range(n_atoms)]
+    n_exponent_dim = 3 if mol.orbital_decay == 'anisotropic' else 1
+    d0s['envelopes']['sigma']['up'] = [jnp.zeros((n_up, n_exponent_dim * n_det * n_up)) for _ in range(n_atoms)]
+    d0s['envelopes']['sigma']['down'] = [jnp.zeros((n_down, n_exponent_dim * n_det * n_down)) for _ in range(n_atoms)]
 
     # SIGMA LOOPY
     # d0s['envelopes']['sigma'] = OrderedDict()

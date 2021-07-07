@@ -117,7 +117,6 @@ def compute_covariances(activations, sensitivities):
     sss = []
     for a, s in zip(activations, sensitivities):
         n = a.shape[0]
-
         if len(a.shape) == 3:
             a = a.mean(1)
         if len(s.shape) == 3:

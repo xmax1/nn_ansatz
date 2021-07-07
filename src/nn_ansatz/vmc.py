@@ -46,7 +46,7 @@ def create_atom_batch(r_atoms, n_samples):
     return jnp.repeat(jnp.expand_dims(r_atoms, axis=0), n_samples, axis=0)
 
 
-def create_energy_fn(mol, vwf):
+def create_energy_fn(mol, vwf, separate=False):
 
     local_kinetic_energy = create_local_kinetic_energy(vwf)
     compute_potential_energy = create_potential_energy(mol)
@@ -56,6 +56,13 @@ def create_energy_fn(mol, vwf):
         kinetic_energy = local_kinetic_energy(params, walkers)
         return potential_energy + kinetic_energy
 
+    def _compute_local_energy_separate(params, walkers):
+        potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
+        kinetic_energy = local_kinetic_energy(params, walkers)
+        return potential_energy, kinetic_energy
+
+    if separate:
+        return jit(_compute_local_energy_separate)
     return jit(_compute_local_energy)
 
 

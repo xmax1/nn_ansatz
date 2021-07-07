@@ -1,5 +1,5 @@
 
-from .sampling import create_sampler, initialise_walkers, generate_walkers_around_nuclei
+from .sampling import create_sampler, initialise_walkers, generate_walkers_around_nuclei, keep_in_boundary
 from .ansatz import create_wf
 from .parameters import initialise_params, initialise_d0s, expand_d0s
 from .systems import SystemAnsatz

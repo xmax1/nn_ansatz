@@ -9,16 +9,21 @@ from .utils import remove_aux
 from .parameters import expand_d0s, initialise_d0s
 
 
-def create_wf(mol, kfac: bool=False, orbitals: bool=False):
+def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
     ''' initializes the wave function ansatz for various applications '''
 
     print('creating wf')
     masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_in)
 
-    _env_sigma_i = env_sigma_i
+    _compute_exponents = create_compute_orbital_exponents(periodic_boundaries=mol.periodic_boundaries,
+                                                          orbital_decay=mol.orbital_decay, 
+                                                          min_cell_width=mol.min_cell_width,
+                                                          inv_real_basis=mol.inv_real_basis,
+                                                          real_basis=mol.real_basis)
+    _env_sigma_i = partial(env_sigma_i, _compute_exponents=_compute_exponents)
+
     _compute_ae_vectors_i = compute_ae_vectors_i
     if mol.periodic_boundaries:  # weird namespace workaround
-        _env_sigma_i = env_sigma_i_periodic 
         _compute_ae_vectors_i = partial(compute_ae_vectors_periodic_i, 
                                         real_basis=mol.real_basis, 
                                         inv_real_basis=mol.inv_real_basis)
@@ -30,17 +35,27 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False):
                                         _env_sigma_i=_env_sigma_i,
                                         _compute_ae_vectors_i=_compute_ae_vectors_i)
 
+    def _signed_wf(params, walkers, d0s):
+        orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
+        log_psi, sign = logabssumdet(orb_up, orb_down)
+        return log_psi, sign
+
     def _wf(params, walkers, d0s):
         orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
-        log_psi = logabssumdet(orb_up, orb_down)
+        log_psi, _ = logabssumdet(orb_up, orb_down)
         return log_psi
 
     def _kfac_wf(params, walkers, d0s):
         orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
-        log_psi = logabssumdet(orb_up, orb_down)
+        log_psi, _ = logabssumdet(orb_up, orb_down)
         return log_psi, activations
     
     d0s = initialise_d0s(mol)
+
+    if signed:
+        _partial_wf = partial(_signed_wf, d0s=d0s)
+        _vwf = vmap(_partial_wf, in_axes=(None, 0))
+        return _vwf
 
     if orbitals:
         _wf_orbitals_remove_activations = remove_aux(_wf_orbitals, axis=1)
@@ -70,7 +85,6 @@ def wf_orbitals(params,
     activations = []
 
     ae_vectors = _compute_ae_vectors_i(walkers, mol.r_atoms)
-    # ae_vectors = compute_ae_vectors_i(walkers, mol.r_atoms)
 
     single, pairwise = _compute_inputs_i(walkers, ae_vectors)
 
@@ -94,8 +108,8 @@ def wf_orbitals(params,
     factor_up = env_linear_i(params['envelopes']['linear'][0], data_up, activations, d0s['envelopes']['linear'][0])
     factor_down = env_linear_i(params['envelopes']['linear'][1], data_down, activations, d0s['envelopes']['linear'][1])
 
-    exp_up = _env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'], mol.min_cell_width)
-    exp_down = _env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'], mol.min_cell_width)
+    exp_up = _env_sigma_i(params['envelopes']['sigma']['up'], ae_up, activations, d0s['envelopes']['sigma']['up'])
+    exp_down = _env_sigma_i(params['envelopes']['sigma']['down'], ae_down, activations, d0s['envelopes']['sigma']['down'])
 
     orb_up = env_pi_i(params['envelopes']['pi'][0], factor_up, exp_up, activations, d0s['envelopes']['pi'][0])
     orb_down = env_pi_i(params['envelopes']['pi'][1], factor_down, exp_down, activations, d0s['envelopes']['pi'][1])
@@ -365,35 +379,90 @@ def env_linear_i(params: jnp.array,
                  data: jnp.array,
                  activations: list,
                  d0: jnp.array) -> jnp.array:
+    '''
+    bias = jnp.ones((data.shape[0], 1))
+    data = jnp.concatenate((data, bias), axis=1)
+    out = jnp.einsum('jf,kif->kij', data, params)
+    print(out.shape)
+    print(params.shape, pre_activations.shape, activation.shape)
+    '''
     # params (k * i, f)
     # data (j, f)
 
     n_spins = data.shape[0]
-
-    # data = jnp.transpose(data)
-    # bias = jnp.ones((1, data.shape[-1]))
-    # data = jnp.concatenate((data, bias), axis=0)
-    # pre_activations = jnp.dot(params, data)
 
     bias = jnp.ones((n_spins, 1))
     activation = jnp.concatenate((data, bias), axis=1)
     activations.append(activation)
     pre_activations = jnp.matmul(activation, params) + d0
     pre_activations = jnp.transpose(pre_activations).reshape(-1, n_spins, n_spins)
-
-    # bias = jnp.ones((data.shape[0], 1))
-    # data = jnp.concatenate((data, bias), axis=1)
-    # out = jnp.einsum('jf,kif->kij', data, params)
-    # print(out.shape)
-    # print(params.shape, pre_activations.shape, activation.shape)
     return pre_activations
+
+
+def anisotropic_exponent(ae_vector, sigma, d0, n_spin, 
+                         periodic_boundaries=False, 
+                         boundary=None, 
+                         half_boundary=None, 
+                         min_cell_width=None,
+                         inv_real_basis=None,
+                         real_basis=None):
+    # sigma (3, 3 * n_det * n_spin)
+    # ae_vector (n_spin_j, 3)
+    # d0 (n_spin_j, n_det, n_spin_i)
+    if periodic_boundaries:
+
+        ae_vector = ae_vector.dot(inv_real_basis)
+        # ae_vector = jnp.clip(ae_vector, -0.5, 0.5)
+        ae_vector = jnp.where(ae_vector < -0.25, -1./(8.*(1. + 2.*ae_vector)), ae_vector)
+        ae_vector = jnp.where(ae_vector > 0.25, 1./(8.*(1. - 2.*ae_vector)), ae_vector)
+        # ae_vector = ae_vector.dot(real_basis)
+
+        # fix to half if below (with the minimum image convention applied it should never be below)
+        # ae_vector = jnp.clip(ae_vector, -boundary, boundary)
+        # apply case wise functions TURBOrvb eq 100
+        # ae_vector = jnp.where(ae_vector < -half_boundary, -min_cell_width**2./(8.*(min_cell_width + 2.*ae_vector)), ae_vector)
+        # ae_vector = jnp.where(ae_vector > half_boundary, min_cell_width**2./(8.*(min_cell_width - 2.*ae_vector)), ae_vector)
+
+    pre_activation = jnp.matmul(ae_vector, sigma) + d0
+    exponent = pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F')
+    exponent = jnp.linalg.norm(exponent, axis=1)
+    exponential = jnp.exp(-exponent)
+    return ae_vector, exponential
+
+
+# talkers = walkers.dot(inv_real_basis)
+#     talkers = jnp.fmod(talkers, 1.)
+#     talkers = jnp.where(talkers < 0., talkers + 1., talkers)
+#     talkers = talkers.dot(real_basis)
+
+
+def isotropic_exponent(ae_vector, sigma, d0, n_spin, 
+                       periodic_boundaries=False, 
+                       min_cell_width=None):
+    # sigma (n_det, n_spin_i)
+    # ae_vector (n_spin_j, 3)
+    # d0 (n_spin_j, n_det, n_spin_i)
+    norm = jnp.linalg.norm(ae_vector, axis=-1)[..., None] # (n_spin,)
+    if not periodic_boundaries:
+        exponent = (norm  * sigma + d0).reshape(n_spin, -1, n_spin, 1, order='F')
+        exponential = jnp.exp(-exponent)
+    else:
+        exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(min_cell_width - norm) * sigma + d0) - 2 * jnp.exp(-(min_cell_width / 2.) * sigma)
+        # out = jnp.exp(-exponent) + jnp.exp(-(min_cell_width - exponent)) - 2 * jnp.exp(-min_cell_width / 2.)
+        exponential = jnp.where(norm < min_cell_width / 2., exponential, jnp.zeros_like(exponential)).reshape(n_spin, -1, n_spin, 1, order='F')
+
+        # tr_ae_vector = ae_vector.dot(inv_real_basis)
+        # tr_norm = jnp.linalg.norm(tr_ae_vector, axis=-1)
+        # exponential = jnp.where(tr_norm < min_cell_width / 2., exponential, jnp.zeros_like(exponential)).reshape(n_spin, -1, n_spin, 1, order='F')
+
+    return norm, exponential
 
 
 def env_sigma_i(sigmas: jnp.array,
                 ae_vectors: jnp.array,
                 activations: list,
                 d0s: jnp.array,
-                min_cell_width: float) -> jnp.array:
+                _compute_exponents: Callable=anisotropic_exponent) -> jnp.array:
     """
 
     Notes:
@@ -420,84 +489,49 @@ def env_sigma_i(sigmas: jnp.array,
              for _ in range(n_atom)]
 
         then unroll Fortran style 'from the left' when doing the matmul putting the 3 at the start
+        
+        exponent = jnp.einsum('jmv,kimvc->jkimc', ae_vectors, sigma)
+        return jnp.exp(-jnp.linalg.norm(exponent, axis=-1))
     """
-    # sigma (n_det, n_spin, n_atom, 3, 3)
-    # ae_vectors (n_spin, n_atom, 3)
+    # sigma (n_det, n_spin_i, n_atom, 3, 3)
+    # ae_vectors (n_spin_j, n_atom, 3)
 
-    # exponent = jnp.einsum('jmv,kimvc->jkimc', ae_vectors, sigma)
-    # return jnp.exp(-jnp.linalg.norm(exponent, axis=-1))
-
-    # SIGMA BROADCAST VERSION
     n_spin, n_atom, _ = ae_vectors.shape
     ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
     outs = []
     for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
-        activations.append(ae_vector)
-        
-        pre_activation = jnp.matmul(ae_vector, sigma) + d0
-        exponent = pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F')
-        exponent = jnp.linalg.norm(exponent, axis=1)
-        out = jnp.exp(-exponent)
 
-        outs.append(out)
+        activation, exponential = _compute_exponents(ae_vector, sigma, d0, n_spin)
+
+        activations.append(activation)
+        
+        outs.append(exponential)
+
     return jnp.concatenate(outs, axis=-1)
 
-    # SIGMA LOOPY
-    # n_spins, n_atom, _ = ae_vectors.shape
-    # ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
-    # m_layer = []
-    # for i, ae_vector in enumerate(ae_vectors):
-    #     ki_layer = []
-    #     for sigma, d0 in zip(sigmas[i], d0s[i]):
-    #         activations.append(ae_vector)
-    #         pre_activation = jnp.matmul(ae_vector, sigma) + d0
-    #         out = jnp.exp(-jnp.linalg.norm(pre_activation, axis=1))
-    #         ki_layer.append(out)
-    #     m_layer.append(jnp.stack(ki_layer, axis=-1).reshape(n_spins, -1, n_spins))
-    # return jnp.stack(m_layer, axis=-1)
 
+def create_compute_orbital_exponents(min_cell_width, 
+                                     orbital_decay='anisotropic', 
+                                     periodic_boundaries=False,
+                                     inv_real_basis=None,
+                                     real_basis=None):
 
-def env_sigma_i_periodic(sigmas: jnp.array,
-                ae_vectors: jnp.array,
-                activations: list,
-                d0s: jnp.array,
-                min_cell_width: float) -> jnp.array:
-    
-    mcw = min_cell_width
     boundary = min_cell_width / 2.
     half_boundary = boundary / 2.
-    # sigma (n_det, n_spin, n_atom, 3, 3)
-    # ae_vectors (n_spin, n_atom, 3)
 
-    # exponent = jnp.einsum('jmv,kimvc->jkimc', ae_vectors, sigma)
-    # return jnp.exp(-jnp.linalg.norm(exponent, axis=-1))
-
-    # SIGMA BROADCAST VERSION
-    n_spin, n_atom, _ = ae_vectors.shape
-    ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
-    outs = []
-    for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
-
-        # fix to half if below (with the minimum image convention applied it should never be below)
-        ae_vector = jnp.where(ae_vector < -boundary, -boundary, ae_vector)
-        ae_vector = jnp.where(ae_vector > boundary, boundary, ae_vector)
-
-        # apply case wise functions TURBOrvb eq 100
-        ae_vector = jnp.where(ae_vector < -half_boundary, -mcw**2./(8.*(mcw + 2.*ae_vector)), ae_vector)
-        ae_vector = jnp.where(ae_vector > half_boundary, mcw**2./(8.*(mcw - 2.*ae_vector)), ae_vector)
-
-        activations.append(ae_vector)
-
-        pre_activation = jnp.matmul(ae_vector, sigma) + d0
-
-        exponent = jnp.linalg.norm(pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F'), axis=1)
-        out = jnp.exp(-exponent)
-
-        # out = jnp.exp(-r) + jnp.exp(-(min_cell_width - r)) - 2 * jnp.exp(-min_cell_width / 2.)
-        # out = jnp.exp(-exponent) + jnp.exp(-(min_cell_width - exponent)) - 2 * jnp.exp(-min_cell_width / 2.)
-        # out = jnp.where(exponent < min_cell_width / 2., out, jnp.zeros_like(out))
-        outs.append(out)
-    return jnp.concatenate(outs, axis=-1)
+    if orbital_decay == 'anisotropic':
+        _compute_exponent = partial(anisotropic_exponent, periodic_boundaries=periodic_boundaries, 
+                                                          boundary=boundary, 
+                                                          half_boundary=half_boundary, 
+                                                          min_cell_width=min_cell_width,
+                                                          inv_real_basis=inv_real_basis,
+                                                          real_basis=real_basis)
+            
+    elif orbital_decay == 'isotropic':
+        _compute_exponent = partial(isotropic_exponent, periodic_boundaries=periodic_boundaries, 
+                                                        min_cell_width=min_cell_width)
+        
+    return _compute_exponent
 
 
 def env_pi_i(pis: jnp.array,
@@ -540,8 +574,10 @@ def logabssumdet(orb_up: jnp.array,
     logdet_max = jnp.max(logdet_sum)
 
     argument = s_up * s_down * jnp.exp(logdet_sum - logdet_max)
+    sum_argument = jnp.sum(argument, axis=0)
+    sign = jnp.sign(sum_argument)
 
-    return jnp.log(jnp.abs(jnp.sum(argument, axis=0))) + logdet_max
+    return jnp.log(jnp.abs(sum_argument)) + logdet_max, sign
 
 
 def mixer_i(single: jnp.array,
@@ -599,3 +635,20 @@ def compute_ee_vectors_periodic_i_dep(walkers, real_basis, inv_real_basis):
     min_image_unit_cell_ee_vectors = unit_cell_ee_vectors - (2 * unit_cell_ee_vectors).astype(int) * 1.  # 1 is length of unit cell put it here for clarity
     min_image_ee_vectors = min_image_unit_cell_ee_vectors.dot(real_basis)  # translate out of the unit cell
     return min_image_ee_vectors
+
+
+def sigma_loopy_dep():
+    # SIGMA LOOPY
+    n_spins, n_atom, _ = ae_vectors.shape
+    ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
+    m_layer = []
+    for i, ae_vector in enumerate(ae_vectors):
+        ki_layer = []
+        for sigma, d0 in zip(sigmas[i], d0s[i]):
+            activations.append(ae_vector)
+            pre_activation = jnp.matmul(ae_vector, sigma) + d0
+            out = jnp.exp(-jnp.linalg.norm(pre_activation, axis=1))
+            ki_layer.append(out)
+        m_layer.append(jnp.stack(ki_layer, axis=-1).reshape(n_spins, -1, n_spins))
+    return jnp.stack(m_layer, axis=-1)
+    return

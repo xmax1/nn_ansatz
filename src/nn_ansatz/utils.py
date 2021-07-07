@@ -14,6 +14,8 @@ import toml
 import glob
 import os
 import pandas as pd
+from jax.tree_util import tree_flatten
+import numpy as np
 
 
 PATH = os.path.abspath(os.path.dirname(__file__))
@@ -192,9 +194,9 @@ def get_n_devices():
 
 def setup(system: str = 'Be',
           name: str = '',
-          exp: bool = False,
+          exp: bool = True,
           save_every: int = 1000,
-          print_every: int = 0,
+          print_every: int = 100,
 
           r_atoms=None,
           z_atoms=None,
@@ -204,16 +206,16 @@ def setup(system: str = 'Be',
           periodic_boundaries=False,
           real_basis=None,
           unit_cell_length=None,
-          real_cut=5,
-          reciprocal_cut=5,
-          kappa=1,
+          real_cut=6,
+          reciprocal_cut=6,
+          kappa=0.5,
 
           opt: str = 'kfac',
           lr: float = 1e-4,
-          damping: float = 1e-4,
+          damping: float = 1e-3,
           norm_constraint: float = 1e-4,
           n_it: int = 1000,
-          n_walkers: int = 1024,
+          n_walkers: int = 512,
 
           step_size: float = 0.02,
           correlation_length: int = 10,
@@ -223,7 +225,8 @@ def setup(system: str = 'Be',
           n_ph: int = 8,
           n_det: int = 2,
           scalar_inputs: bool = False,
-          n_periodic_input: int = 1,
+          n_periodic_input: int = 3,
+          orbital_decay: str = 'anisotropic',
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 1000,
@@ -309,6 +312,7 @@ def setup(system: str = 'Be',
               'n_det': n_det,
               'scalar_inputs': scalar_inputs, 
               'n_periodic_input': n_periodic_input,
+              'orbital_decay': orbital_decay,
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,
@@ -341,9 +345,54 @@ def setup(system: str = 'Be',
     return config
 
 
-def save_pk(data, path):
+def save_pk(x, path):
     with open(path, 'wb') as f:
-        pk.dump(data, f)
+        pk.dump(x, f)
+
+
+def load_pk(path):
+    with open(path, 'rb') as f:
+        x = pk.load(f)
+    return x
+
+
+def load_config_pk(path):
+    with open(path, 'rb') as f:
+        x = pk.load(f)
+    new_config = {}
+    for k, v in x.items():
+        if type(v) == type(np.array([1.])):
+            v = jnp.array(v)
+        new_config[k] = v
+        
+    return new_config
+
+
+def compare(a, b):
+    print(jnp.isclose(a, b, atol=1e-6).all())
+    print(jnp.max(jnp.abs(a - b)))
+    return jnp.abs(a - b).sum()
+
+
+def nans_in_tree(arg):
+    arg, _ = tree_flatten(arg)
+    print(jnp.array([jnp.isnan(x).any() for x in arg]).any())
+
+
+def nans(arg):
+    print(jnp.isnan(arg).any())
+
+
+def walker_checks(mol, vwf, params, walkers, r_atoms):
+    assert (walkers.dot(mol.inv_real_basis) > 0.).all()
+    ae_vectors = walkers[:, None, ...] - r_atoms[None, None, ...]
+    assert (ae_vectors.dot(mol.inv_real_basis) < 0.5).all()
+    log_psi = vwf(params, walkers.squeeze(0))
+    print('nans in log_psi ', jnp.isnan(log_psi).any())
+    flat_params, map = tree_flatten(params)
+    nans_in_params = jnp.array([jnp.isnan(x).any() for x in flat_params])
+    print('nans in params ', nans_in_params.any())
+    print('passed')
 
 
 def compute_last10(e_means):
@@ -374,6 +423,8 @@ class Logging():
         self.times = {}
         self.e_means = []
         self.data = {}
+
+        self.walkers = None
 
     def writer(self, name, value, step):
         self.summary_writer.add_scalar(name, value, step)
@@ -459,6 +510,7 @@ class Logging():
         for k, val in self.printer.items():
             string += ' %s %.4f |' % (k, val)
         print(string)
+
 
 
 if __name__ == '__main__':

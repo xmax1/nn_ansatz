@@ -20,7 +20,7 @@ from .optimisers import create_natural_gradients_fn, kfac
 from .utils import Logging, load_pk, save_pk, key_gen, split_variables_for_pmap
 
 
-def run_vmc(**cfg):
+def run_vmc(cfg, walkers=None):
 
     logger = Logging(**cfg)
 
@@ -35,15 +35,13 @@ def run_vmc(**cfg):
 
     sampler = create_sampler(mol, vwf)
 
-    walkers = None
     if cfg['load_pretrain']:
         params, walkers = load_pk(cfg['pre_path'])
     elif cfg['pretrain']:
         params, walkers = pretrain_wf(mol, **cfg)
     
-    # walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
-    # save_pk(walkers, './walkers_no_infs.pk')
-    walkers = load_pk('./walkers_no_infs.pk')
+    if walkers is None:
+        walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
 
     grad_fn = create_grad_function(mol, vwf)
 
@@ -56,7 +54,7 @@ def run_vmc(**cfg):
     else:
         exit('Optimiser not available')
 
-    steps = trange(0, cfg['n_it'], initial=0, total=cfg['n_it'], desc='training', disable=None)
+    steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='training', disable=None)
     step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
 
     for step in steps:
@@ -80,8 +78,10 @@ def run_vmc(**cfg):
                    params=params,
                    e_locs=e_locs,
                    acceptance=acceptance[0])
+
+    logger.walkers = walkers
     
-    return walkers
+    return logger
 
 
 def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute_energy=None, n_it=1000, step_size=0.02):

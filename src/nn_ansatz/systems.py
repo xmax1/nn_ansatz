@@ -48,6 +48,7 @@ class SystemAnsatz():
                  reciprocal_cut=None,
                  kappa=None,
                  scalar_inputs=False,
+                 orbital_decay='anisotropic',
                  n_periodic_input=1,
                  n_layers=2,
                  n_sh=64,
@@ -104,6 +105,7 @@ class SystemAnsatz():
         self.n_det = n_det
         self.scalar_inputs = scalar_inputs
         self.n_in = 1 if scalar_inputs else 4
+        self.orbital_decay=orbital_decay
 
         # throwaway
         self.min_cell_width = 1.
