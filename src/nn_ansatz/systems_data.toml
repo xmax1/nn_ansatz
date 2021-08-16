@@ -50,6 +50,17 @@ n_el_atoms = [3]
 n_el = 3
 
 
+[LiSolidBCC]
+periodic_boundaries = true
+real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+unit_cell_length = 6.63
+# unit_cell_length = 3.51  # Angstroms -> bohr is factro 1.8897161646320724
+r_atoms = [[0.25, 0.25, 0.25], [0.75, 0.75, 0.75]]
+z_atoms = [3.0, 3.0]
+n_el_atoms = [3, 3]
+n_el = 6
+
+
 # check the primitive lattice
 # check the reciprocal lattice
 # check the unit cell unit_cell_length

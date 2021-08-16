@@ -190,19 +190,25 @@ def generate_walkers_around_nuclei(ne_atoms, atom_positions, n_walkers):
 
 
 def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
-
+    n_walkers = len(walkers)
     step_size += 4.
 
     if bool(os.environ.get('DISTRIBUTE')) is True:
         vwf = pmap(vwf, in_axes=(None, 0))
     
     infs = True
+    it = 0
     while infs:
         keys, subkeys = key_gen(keys)
 
         walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
         log_psi = vwf(params, walkers)
         infs = jnp.isinf(log_psi).any() or jnp.isnan(log_psi).any()
+        n_infs = jnp.sum(jnp.isinf(log_psi))
+        n_nans = jnp.sum(jnp.isnan(log_psi))
+        it += 1 
+        if it % 1 == 0:
+            print('%.2f %% infs and %.2f %% nans' % (n_infs/n_walkers, n_nans/n_walkers))
 
     return walkers
 
