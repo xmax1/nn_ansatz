@@ -1,0 +1,80 @@
+version 		 190821
+seed 		 369
+n_devices 		 1
+save_every 		 5000
+print_every 		 1
+exp_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6
+events_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/events
+models_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/models
+opt_state_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/models/opt_state
+pre_path 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/pretrained/s32_p8_l2_det2_1lr-4_i0.pk
+timing_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/events/timing
+system 		 LiSolidBCC
+r_atoms 		 [[0.25 0.25 0.25]
+ [0.75 0.75 0.75]]
+z_atoms 		 [3. 3.]
+n_el 		 6
+n_el_atoms 		 [3 3]
+periodic_boundaries 		 True
+real_basis 		 [[1. 0. 0.]
+ [0. 1. 0.]
+ [0. 0. 1.]]
+unit_cell_length 		 6.63
+real_cut 		 6
+reciprocal_cut 		 6
+kappa 		 0.5
+n_layers 		 2
+n_sh 		 32
+n_ph 		 8
+n_det 		 2
+scalar_inputs 		 False
+n_periodic_input 		 3
+orbital_decay 		 anisotropic
+opt 		 kfac
+lr 		 0.0001
+damping 		 0.0001
+norm_constraint 		 0.0001
+n_it 		 1000
+load_it 		 0
+n_walkers 		 64
+n_walkers_per_device 		 64
+step_size 		 0.02
+correlation_length 		 10
+pre_lr 		 0.0001
+n_pre_it 		 0
+load_pretrain 		 False
+pretrain 		 False
+System: 
+ n_atoms = 2 
+ n_up    = 3 
+ n_down  = 3 
+ n_el    = 6 
+
+Ansatz: 
+ n_layers = 2 
+ n_det    = 2 
+ n_sh     = 32 
+ n_ph     = 8 
+
+Cell: 
+ real_basis: 
+ [[6.63 0.   0.  ]
+ [0.   6.63 0.  ]
+ [0.   0.   6.63]] 
+ reciprocal_basis: 
+ [[0.94769007 0.         0.        ]
+ [0.         0.94769007 0.        ]
+ [0.         0.         0.94769007]] 
+ real_cut         = 6.00 
+ reciprocal_cut   = 6 
+ kappa            = 0.50 
+ volume           = 291.43 
+ min_cell_width   = 6.63 
+ n_periodic_input = 3 
+
+converged SCF energy = -12.1628037018806
+creating wf
+sampling no infs, this could take a while
+end sampling no infs
+creating wf
+training:   0%|          | 1/1001 [00:00<?, ?it/s]

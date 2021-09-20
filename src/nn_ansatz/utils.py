@@ -16,6 +16,7 @@ import os
 import pandas as pd
 from jax.tree_util import tree_flatten
 import numpy as np
+import csv
 
 
 PATH = os.path.abspath(os.path.dirname(__file__))
@@ -28,6 +29,8 @@ def split_variables_for_pmap(n_devices, *args):
         for arg in args:
             if type(arg) in (float, int):
                 new_arg = jnp.array(arg).repeat(n_devices)
+            else:
+                print('argument for splitting is type %s' % str(type(arg)))
             new_args.append(new_arg)
         
         if len(new_args) == 1:  # needed to unpack the list if there is just one element
@@ -435,6 +438,7 @@ class Logging():
             params=None,
             e_locs=None,
             acceptance=None,
+            walkers=None,
             **kwargs):
 
         self.timer(step, 'iteration')
@@ -470,13 +474,15 @@ class Logging():
                 self.print_pretty(step)
 
         if step % self.save_every == 0:
-            self.save_state(step, opt_state=opt_state, params=params)
+            self.save_state(step, opt_state=opt_state, params=params, walkers=walkers)
             save_pk(self.data, os.path.join(self.events_dir, 'data.pk'))
+
+        self.params = params
 
     # def save_data(self):
         # save_pk(self.data, os.path.join(self.events_dir, 'data.pk'))
 
-    def save_state(self, step, opt_state=None, params=None):
+    def save_state(self, step, opt_state=None, params=None, walkers=None):
         if opt_state is not None:
             try:  # differences between kfac and adam state objects
                 save_pk(opt_state, os.path.join(self.opt_state_dir, 'i%i.pk' % step))
@@ -487,6 +493,9 @@ class Logging():
 
         if params is not None:
             save_pk(params, os.path.join(self.models_dir, 'i%i.pk' % step))
+
+        if walkers is not None:
+            save_pk(walkers, os.path.join(self.models_dir, 'i%i_walkers.pk' % step))
 
         if not len(self.times) == 0:
             save_pk(self.times, os.path.join(self.events_dir, 'timings.pk'))
@@ -507,6 +516,57 @@ class Logging():
             string += ' %s %.4f |' % (k, val)
         print(string)
 
+
+
+def results_name(root='.'):
+    files = os.listdir(root)
+    files = [f for f in files if 'results' in f]
+    number = 0
+    if len(files) == 0:
+        return 'results%i.csv' % number
+    number_in_files = True
+    while number_in_files:
+        for f in files:
+            if not str(number) in f:
+                number_in_files = False
+                break
+        if number_in_files:
+            number += 1
+    return 'results%i.csv' % number
+
+
+
+def write_into_common_csv_or_dump(row, root='.'):
+    name = results_name(root)
+    try:
+        with open(name, 'a+') as f:
+            writer = csv.writer(f)
+            writer.writerow(row)
+    except:
+        with open('results_%i.csv' % row[0], 'a+') as f:
+            writer = csv.writer(f)
+            writer.writerow(row)
+
+
+def check_if_nan(tensor, desc):
+    if jnp.isnan(tensor).any():
+        # save_pk(tensor, 'nan_%s.pk' % desc)
+        return True
+    return False
+
+
+def capture_nan(tensor, desc, stop_prev):
+    if isinstance(tensor, jnp.ndarray):
+        stop = check_if_nan(tensor, desc)
+    else:
+        tree, _ = tree_flatten(tensor)
+        stop = False
+        for tensor in tree: 
+            tmp_stop = check_if_nan(tensor, desc)
+            stop = stop or tmp_stop
+    if stop:
+        print('nans in %s' % desc)
+    return stop or stop_prev
 
 
 if __name__ == '__main__':

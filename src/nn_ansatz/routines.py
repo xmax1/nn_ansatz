@@ -17,7 +17,11 @@ from .pretraining import pretrain_wf
 from .vmc import create_energy_fn, create_grad_function
 # from .utils import *
 from .optimisers import create_natural_gradients_fn, kfac
-from .utils import Logging, load_pk, save_pk, key_gen, split_variables_for_pmap
+from .utils import Logging, load_pk, save_pk, key_gen, split_variables_for_pmap, capture_nan
+
+
+
+        
 
 
 def run_vmc(cfg, walkers=None):
@@ -61,14 +65,18 @@ def run_vmc(cfg, walkers=None):
         keys, subkeys = key_gen(keys)
 
         walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
+        # stop = capture_nan(walkers, 'walkers', False)
 
         grads, e_locs = grad_fn(params, walkers)
+        # stop = capture_nan(grads, 'e_locs', stop)
+        # stop = capture_nan(grads, 'grads', stop)
 
         if cfg['opt'] == 'kfac':
             grads, state = kfac_update(step, grads, state, walkers)
 
         state = update(step, grads, state)
         params = get_params(state)
+        # stop = capture_nan(params, 'params', stop)
 
         steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
         steps.refresh()
@@ -78,6 +86,9 @@ def run_vmc(cfg, walkers=None):
                    params=params,
                    e_locs=e_locs,
                    acceptance=acceptance[0])
+
+        # if stop:
+            # exit()
 
     logger.walkers = walkers
     

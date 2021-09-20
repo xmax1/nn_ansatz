@@ -39,9 +39,9 @@ from nn_ansatz import *
 # print(e_mean_mean)
 
 # isolated case
-config = setup(system='He',
-               opt='kfac',
-               n_it=200,
+config = setup(system='Be',
+               opt='adam',
+               n_it=2000,
                name='isolated',
                n_walkers=128,
                save_every=1000)

@@ -1,7 +1,6 @@
 
 [Li]
 r_atoms = [[0.0, 0.0, 0.0]]
-cell_basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
 z_atoms = [3.0]
 n_el_atoms = [3]
 n_el = 3
@@ -42,7 +41,6 @@ periodic_boundaries = true
 real_basis = [[1.0,  0.0,  0.0], [-0.33333335,  0.94280903,  0.0], [-0.33333335, -0.47140456,  0.81649655]]
 unit_cell_length = 5.608132296572055
 # unit_cell_length = 2.9677114487  # Angstroms -> bohr is factro 1.8897161646320724
-
 # r_atoms = [[0.25, 0.25, 0.25]]
 r_atoms = [[0.16666664, 0.23570224, 0.40824827]]
 z_atoms = [3.0]
@@ -55,10 +53,32 @@ periodic_boundaries = true
 real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
 unit_cell_length = 6.63
 # unit_cell_length = 3.51  # Angstroms -> bohr is factro 1.8897161646320724
-r_atoms = [[0.25, 0.25, 0.25], [0.75, 0.75, 0.75]]
+r_atoms = [[0.00, 0.00, 0.00], [0.5, 0.5, 0.5]]
 z_atoms = [3.0, 3.0]
 n_el_atoms = [3, 3]
 n_el = 6
+
+#[LiSolidBCC]
+#periodic_boundaries = true
+#real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+#unit_cell_length = 1.0
+## unit_cell_length = 3.51  # Angstroms -> bohr is factro 1.8897161646320724
+#r_atoms = [[0.5, 0.5, 0.5]]
+#z_atoms = [3.0]
+#n_el_atoms = [3]
+#n_el = 3
+
+
+
+[HeSolid]
+periodic_boundaries = true
+real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+unit_cell_length = 2.0
+# unit_cell_length = 3.51  # Angstroms -> bohr is factro 1.8897161646320724
+r_atoms = [[0.5, 0.5, 0.5]]
+z_atoms = [2.0]
+n_el_atoms = [2]
+n_el = 2
 
 
 # check the primitive lattice

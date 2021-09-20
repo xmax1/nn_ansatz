@@ -54,7 +54,7 @@ def create_energy_fn(mol, vwf, separate=False):
     def _compute_local_energy(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
         kinetic_energy = local_kinetic_energy(params, walkers)
-        return potential_energy + kinetic_energy
+        return potential_energy + kinetic_energy if not mol.periodic_boundaries else (potential_energy + kinetic_energy) / mol.n_atoms
 
     def _compute_local_energy_separate(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
@@ -112,7 +112,7 @@ def create_potential_energy(mol):
         real_lattice = generate_lattice(real_basis, mol.real_cut)  # (n_lattice, 3)
         reciprocal_lattice = generate_lattice(reciprocal_basis, mol.reciprocal_cut)
         rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
-        rl_factor = (4*jnp.pi / volume) * jnp.exp(- rl_inner_product / (4*kappa**2)) / rl_inner_product  
+        rl_factor = (4.*jnp.pi / volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product  
 
         e_charges = jnp.array([-1. for i in range(mol.n_el)])
         charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0)  # (n_particle, )
@@ -136,7 +136,8 @@ def compute_potential_energy_solid_i(walkers,
                                      q_q, 
                                      charges, 
                                      volume, 
-                                     rl_factor):
+                                     rl_factor, 
+                                     decompose=False):
 
     """
     :param walkers (n_el, 3):
@@ -154,17 +155,18 @@ def compute_potential_energy_solid_i(walkers,
     walkers = jnp.concatenate([r_atoms, walkers], axis=0)  # (n_particle, 3)
 
     # compute the Rs0 term
-    p_p_vectors = vector_sub(walkers, walkers)
-    p_p_distances = compute_distances(walkers, walkers)
-    # p_p_distances[p_p_distances < 1e-16] = 1e200  # doesn't matter, diagonal dropped, this is just here to suppress the error
-    Rs0 = jnp.tril(erfc(kappa * p_p_distances) / p_p_distances, k=-1)  # is half the value
+    p_p_vectors = vector_sub(walkers, walkers) # (n_particle, n_particle, 3)
+    p_p_distances = compute_distances(walkers, walkers) # (n_particle, n_particle)
+    # p_p_distances[p_p_distances < 1e-16] = 1e200  # doesn't matter, diagonal dropped via tril, this is just here to suppress the error
+    Rs0 = jnp.tril(erfc(kappa * p_p_distances) / p_p_distances, k=-1)  # (n_particle, n_particle) everything above and including the diagonal is zero
 
     # compute the Rs > 0 term
     ex_walkers = vector_add(walkers, real_lattice)  # (n_particle, n_lattice, 3)
     tmp = walkers[:, None, None, :] - ex_walkers[None, ...]  # (n_particle, n_particle, n_lattice, 3)
-    ex_distances = jnp.sqrt(jnp.sum(tmp**2, axis=-1))  
+    ex_distances = jnp.linalg.norm(tmp, axis=-1)
+    # ex_distances = jnp.sqrt(jnp.sum(tmp**2, axis=-1))  
     Rs1 = jnp.sum(erfc(kappa * ex_distances) / ex_distances, axis=-1)
-    real_sum = (q_q * (Rs0 + 0.5 * Rs1)).sum((-1, -2))
+    real_sum = (q_q * (Rs0 + 0.5 * Rs1)).sum((-1, -2))  # Rs0 no half because of previous tril
     
     # compute the constant factor
     self_interaction = - 0.5 * jnp.diag(q_q * 2 * kappa / jnp.sqrt(jnp.pi)).sum()
@@ -175,6 +177,62 @@ def compute_potential_energy_solid_i(walkers,
     reciprocal_sum = 0.5 * (q_q * exp).sum((-1,-2))
     
     potential = real_sum + reciprocal_sum + constant + self_interaction
+    if decompose:
+        return potential, real_sum, reciprocal_sum, constant, self_interaction
+    return potential
+
+
+
+def compute_potential_energy_solid_i_v2(walkers, 
+                                     r_atoms, 
+                                     z_atoms, 
+                                     kappa, 
+                                     real_lattice, 
+                                     reciprocal_lattice, 
+                                     q_q, 
+                                     charges, 
+                                     volume, 
+                                     rl_factor, 
+                                     decompose=False):
+
+    """
+    :param walkers (n_el, 3):
+    :param r_atoms (n_atoms, 3):
+    :param z_atoms (n_atoms, ):
+
+    Pseudocode:
+        - compute the potential energy (pe) of the cell
+        - compute the pe of the cell electrons with electrons outside
+        - compute the pe of the cell electrons with nuclei outside
+        - compute the pe of the cell nuclei with nuclei outside
+    """
+
+    # put the walkers and r_atoms together
+    walkers = jnp.concatenate([r_atoms, walkers], axis=0)  # (n_particle, 3)
+
+    # compute the Rs0 term
+    p_p_vectors = walkers[None, ...] - walkers[:, None, :]
+    p_p_distances = jnp.linalg.norm(p_p_vectors, axis=-1) # (n_particle, n_particle)
+    Rs0 = jnp.tril(erfc(kappa * p_p_distances) / p_p_distances, k=-1)  # (n_particle, n_particle) everything above and including the diagonal is zero
+
+    # compute the Rs > 0 term
+    ex_walkers = walkers[:, None, :] + real_lattice[None, ...] # (n_particle, n_lattice, 3)
+    ex_distances = jnp.linalg.norm(walkers[:, None, None, :] - ex_walkers[None, ...], axis=-1)  # (n_particle, n_particle, n_lattice)
+    Rs1 = jnp.sum(erfc(kappa * ex_distances) / ex_distances, axis=-1)
+    
+    real_sum = (q_q * (Rs0 + 0.5 * Rs1)).sum((-1, -2))  # Rs0 no half because of previous tril
+
+    # compute the reciprocal term reuse the ee vectors
+    exp = jnp.real(jnp.sum(rl_factor[None, None, :] * jnp.exp(1j * p_p_vectors @ jnp.transpose(reciprocal_lattice)), axis=-1))
+    reciprocal_sum = 0.5 * (q_q * exp).sum((-1,-2))
+
+    # compute the constant factor
+    self_interaction = - 0.5 * jnp.diag(q_q * 2 * kappa / jnp.sqrt(jnp.pi)).sum()
+    constant = - 0.5 * charges.sum()**2 * jnp.pi / (kappa**2 * volume)  # is zero in neutral case
+    
+    potential = real_sum + reciprocal_sum + constant + self_interaction
+    if decompose:
+        return potential, real_sum, reciprocal_sum, constant, self_interaction
     return potential
 
 
@@ -214,6 +272,24 @@ def clip_and_center(e_locs):
     return e_locs - jnp.mean(e_locs)
 
 
+def fast_generate_lattice(basis, cut):
+    
+    img_range = jnp.arange(-cut, cut+1)  # x2 to create sphere
+    img_sets = list(product(*[img_range, img_range, img_range]))
+    # first axis is the number of lattice vectors, second is the integers to scale the primitive vectors, third is the resulting set of vectors
+    # then sum over those
+    # print(len(img_sets))
+    img_sets = jnp.concatenate([jnp.array(x)[None, :, None] for x in img_sets if not jnp.sum(jnp.array(x) == 0) == 3], axis=0)
+    # print(img_sets.shape)
+    imgs = jnp.sum(img_sets * basis, axis=1)
+
+    # if a sphere around the image is within rcut then keep it
+    # lengths = jnp.linalg.norm(imgs, axis=-1)
+    # mask = lengths < (cut * len0)
+    # img = imgs[mask]
+    return imgs
+
+
 def generate_lattice(basis, cut):
     len0 = jnp.linalg.norm(basis, axis=-1).mean()  # get the mean length of the basis vectors
     
@@ -227,10 +303,9 @@ def generate_lattice(basis, cut):
     imgs = jnp.sum(img_sets * basis, axis=1)
 
     # if a sphere around the image is within rcut then keep it
-    lengths = jnp.linalg.norm(imgs, axis=-1)
-
-    mask = lengths < (cut * len0)
-    img = imgs[mask]
+    # lengths = jnp.linalg.norm(imgs, axis=-1)
+    # mask = lengths < (cut * len0)
+    # img = imgs[mask]
     return imgs
 
 

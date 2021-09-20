@@ -116,17 +116,18 @@ class SystemAnsatz():
         self.n_walkers = n_walkers
         self.periodic_boundaries = periodic_boundaries
 
+        self.unit_cell_length = unit_cell_length  # has to be here for in the ansatz
+        self.real_basis = unit_cell_length * real_basis if periodic_boundaries else None # each basis vector is (1, 3)
+        self.inv_real_basis = jnp.linalg.inv(self.real_basis) if periodic_boundaries else None
+
         if periodic_boundaries:
 
             self.n_in = 1 if scalar_inputs else (3 * n_periodic_input) + 1
             self.n_periodic_input = n_periodic_input
             
-            self.real_basis = unit_cell_length * real_basis  # each basis vector is (1, 3)
-            self.inv_real_basis = jnp.linalg.inv(self.real_basis)
             self.r_atoms = self.r_atoms * unit_cell_length
             self.volume = compute_volume(self.real_basis)
             self.reciprocal_basis = compute_reciprocal_basis(self.real_basis, self.volume)
-            self.unit_cell_length = unit_cell_length
             self.l0 = float(jnp.min(jnp.linalg.norm(self.real_basis, axis=-1)))
             self.min_cell_width = compute_min_width_of_cell(self.real_basis)
 
@@ -142,7 +143,8 @@ class SystemAnsatz():
               'kappa            = %.2f \n' % kappa,
               'volume           = %.2f \n' % self.volume,
               'min_cell_width   = %.2f \n' % self.min_cell_width,
-              'n_periodic_input = %i \n' % n_periodic_input)
+              'n_periodic_input = %i \n' % n_periodic_input,
+              'unit_cell_length = %.2f \n' % self.unit_cell_length)
 
         self.atom = create_atom(r_atoms, z_atoms)
 
