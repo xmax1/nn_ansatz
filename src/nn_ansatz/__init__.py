@@ -8,6 +8,7 @@ from .routines import run_vmc
 from .vmc import create_energy_fn, create_grad_function, create_local_kinetic_energy, create_potential_energy, clip_and_center
 from .utils import *
 from .optimisers import create_natural_gradients_fn, kfac
+from . import plot
 
 import toml
 PATH = os.path.abspath(os.path.dirname(__file__))

@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 import time
 from jax import jit
 from jax.experimental import optimizers
+import tensorflow as tf
 import jax
 import jax.random as rnd
 import jax.numpy as jnp
@@ -17,6 +18,7 @@ import pandas as pd
 from jax.tree_util import tree_flatten
 import numpy as np
 import csv
+import sys
 
 
 PATH = os.path.abspath(os.path.dirname(__file__))
@@ -92,19 +94,24 @@ def n2n(number, identifier=''):
     if type(number) is int:
         return identifier + str(number)
 
-
-def save_config_csv_and_pickle(config, exp_dir):
+def create_config_paths(exp_dir):
     files = os.listdir(exp_dir)
     files = [x for x in files if 'config' in x]
     n_config = (len(files) // 2) + 1
 
     csv_path = os.path.join(exp_dir, 'config%i.csv' % n_config)
+    pk_path = os.path.join(exp_dir, 'config%i.pk' % n_config)
+
+    return csv_path, pk_path
+
+
+def save_config_csv_and_pickle(config, csv_path, pk_path):
+    
     with open(csv_path, 'w') as f:
         for key, val in config.items():
             if not 'dir' in key:
                 f.write("%s,%s\n" % (key, val))
 
-    pk_path = os.path.join(exp_dir, 'config%i.pk' % n_config)
     with open(pk_path, 'wb') as f:
         pk.dump(config, f)
 
@@ -114,7 +121,7 @@ def are_we_loading(load_it, load_dir):
         if len(load_dir) > 0:
             if load_it == 0:
                 print('Provide load iteration load_it if loading')
-                exit()
+                sys.exit()
             return True
     return False
 
@@ -149,7 +156,7 @@ def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms,
             if system == 'Be':
                 n_el = 4
             else:
-                exit('Need number of electrons as minimum input or system in toml file')
+                sys.exit('Need number of electrons as minimum input or system in toml file')
         print('Assuming atomic system')
         n_el_atoms = jnp.array([n_el]) if n_el is not None else n_el_atoms
         n_el = n_el if n_el is not None else int(jnp.sum(n_el_atoms))
@@ -262,6 +269,7 @@ def setup(system: str = 'Be',
         exp_dir = load_dir
     else:
         hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
+        print(ansatz_hyperparameter_name, hyperparameter_name, name)
         exp_dir = os.path.join(root, system, today, name, hyperparameter_name + ansatz_hyperparameter_name)
         make_dir(exp_dir)
         run = 'run%i' % get_run(exp_dir)
@@ -282,6 +290,8 @@ def setup(system: str = 'Be',
         = get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, 
         periodic_boundaries, real_basis, unit_cell_length, real_cut, reciprocal_cut, kappa, ignore_toml)
 
+    csv_cfg_path, pk_cfg_path = create_config_paths(exp_dir)
+
     config = {'version': version,
               'seed': seed,
               'n_devices': n_devices,
@@ -295,6 +305,8 @@ def setup(system: str = 'Be',
               'opt_state_dir': opt_state_dir,
               'pre_path': pre_path,
               'timing_dir': timing_dir,
+              'csv_cfg_path':csv_cfg_path,
+              'pk_cfg_path': pk_cfg_path,
 
               # SYSTEM
               'system': system,
@@ -333,7 +345,7 @@ def setup(system: str = 'Be',
 
     }
 
-    save_config_csv_and_pickle(config, exp_dir)
+    save_config_csv_and_pickle(config, csv_cfg_path, pk_cfg_path)
 
     for k, v in config.items():
         print(k, '\t\t', v)
@@ -342,6 +354,13 @@ def setup(system: str = 'Be',
         os.environ['DISTRIBUTE'] = 'True'
 
     return config
+
+
+def write_summary_to_cfg(path, summary):
+    with open(path, 'a') as f:
+        f.write("# Final summary \n")
+        for key, val in summary.items():
+            f.write("%s,%s\n" % (key, val))
 
 
 def save_pk(x, path):
@@ -425,12 +444,19 @@ class Logging():
 
         self.walkers = None
 
+    def update_summary(self, name, value):
+        value = np.array(value)
+        if not np.isnan(value).any():
+            self.summary[name] = value
+
+
     def writer(self, name, value, step):
         self.summary_writer.add_scalar(name, value, step)
         if self.data.get(name) is None:
             self.data[name] = [value]
         else:
             self.data[name].append(value)
+        self.update_summary(name, value)
 
     def log(self,
             step,
@@ -448,6 +474,7 @@ class Logging():
         #         self.write(step, key, val)
 
         self.printer = {}
+        self.summary = {}
 
         if e_locs is not None:
             e_mean = float(jnp.mean(e_locs))
@@ -570,4 +597,5 @@ def capture_nan(tensor, desc, stop_prev):
 
 
 if __name__ == '__main__':
-    config = setup(system='LiH')
+    # config = setup(system='LiH')
+    c = load_pk()

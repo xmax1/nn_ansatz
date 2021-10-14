@@ -54,7 +54,7 @@ def create_energy_fn(mol, vwf, separate=False):
     def _compute_local_energy(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
         kinetic_energy = local_kinetic_energy(params, walkers)
-        return potential_energy + kinetic_energy if not mol.periodic_boundaries else (potential_energy + kinetic_energy) / mol.n_atoms
+        return potential_energy + kinetic_energy if not mol.periodic_boundaries else (potential_energy + kinetic_energy) # / mol.n_atoms
 
     def _compute_local_energy_separate(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)

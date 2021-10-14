@@ -58,17 +58,15 @@ z_atoms = [3.0, 3.0]
 n_el_atoms = [3, 3]
 n_el = 6
 
-#[LiSolidBCC]
-#periodic_boundaries = true
-#real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
-#unit_cell_length = 1.0
-## unit_cell_length = 3.51  # Angstroms -> bohr is factro 1.8897161646320724
-#r_atoms = [[0.5, 0.5, 0.5]]
-#z_atoms = [3.0]
-#n_el_atoms = [3]
-#n_el = 3
-
-
+[LiSolidSingleAtom]
+periodic_boundaries = true
+real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+unit_cell_length = 3.0
+# unit_cell_length = 3.51  # Angstroms -> bohr is factro 1.8897161646320724
+r_atoms = [[0.5, 0.5, 0.5]]
+z_atoms = [3.0]
+n_el_atoms = [3]
+n_el = 3
 
 [HeSolid]
 periodic_boundaries = true
@@ -80,6 +78,15 @@ z_atoms = [2.0]
 n_el_atoms = [2]
 n_el = 2
 
+[HSolid]
+periodic_boundaries = true
+real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+unit_cell_length = 1.0
+# unit_cell_length = 3.51  # Angstroms -> bohr is factro 1.8897161646320724
+r_atoms = [[0.5, 0.5, 0.5]]
+z_atoms = [1.0]
+n_el_atoms = [1]
+n_el = 1
 
 # check the primitive lattice
 # check the reciprocal lattice

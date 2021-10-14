@@ -185,12 +185,18 @@ def compute_inputs_i(walkers: jnp.array, ae_vectors: jnp.array):
     return single_inputs, pairwise_inputs
 
 
+def input_activation(inputs, unit_cell_length, n_periodic_input):
+    # return jnp.concatenate([jnp.sin((2.*i*jnp.pi / unit_cell_length) * inputs) for i in range(1, n_periodic_input+1)], axis=-1)
+    assert n_periodic_input == 1
+    # return jnp.concatenate([jnp.sin(jnp.abs((i*jnp.pi / unit_cell_length) * inputs)) for i in range(1, n_periodic_input+1)], axis=-1)
+    return inputs**2 / jnp.exp((4./unit_cell_length)*jnp.abs(inputs))
+
 def compute_inputs_periodic_i(walkers, ae_vectors_min_im, n_periodic_input, unit_cell_length=1.):
 
     n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
 
     ae_distances = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
-    ae_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi / unit_cell_length) * ae_vectors_min_im) for i in range(1, n_periodic_input+1)], axis=-1)
+    ae_vectors_periodic = input_activation(ae_vectors_min_im, unit_cell_length, n_periodic_input)
     single_inputs = jnp.concatenate([ae_vectors_periodic, ae_distances], axis=-1)
     single_inputs = single_inputs.reshape(n_electrons, ((n_periodic_input * 3) + 1) * n_atoms)
 
@@ -198,7 +204,7 @@ def compute_inputs_periodic_i(walkers, ae_vectors_min_im, n_periodic_input, unit
     ee_vectors = drop_diagonal_i(ee_vectors)
     ee_vectors = apply_minimum_image_convention(ee_vectors, unit_cell_length)
     ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
-    ee_vectors_periodic = jnp.concatenate([jnp.sin((2.*i*jnp.pi / unit_cell_length) * ee_vectors) for i in range(1, n_periodic_input+1)], axis=-1)
+    ee_vectors_periodic = input_activation(ee_vectors, unit_cell_length, n_periodic_input)
     pairwise_inputs = jnp.concatenate([ee_vectors_periodic, ee_distances], axis=-1)
 
     return single_inputs, pairwise_inputs
@@ -419,6 +425,7 @@ def isotropic_exponent(ae_vector, sigma, d0, n_spin,
         exponential = jnp.exp(-exponent)
     else:
         exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(unit_cell_length - norm) * sigma + d0) - 2 * jnp.exp(-sigma * unit_cell_length / 2.)
+        exponential = jnp.where(norm > unit_cell_length/2., 0.0, exponential)
         exponential = exponential.reshape(n_spin, -1, n_spin, 1, order='F')
 
         # exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(1. - norm) * sigma + d0) - 2 * jnp.exp(-(1. / 2.) * sigma)

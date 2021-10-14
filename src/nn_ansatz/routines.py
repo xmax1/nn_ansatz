@@ -17,7 +17,7 @@ from .pretraining import pretrain_wf
 from .vmc import create_energy_fn, create_grad_function
 # from .utils import *
 from .optimisers import create_natural_gradients_fn, kfac
-from .utils import Logging, load_pk, save_pk, key_gen, split_variables_for_pmap, capture_nan
+from .utils import Logging, load_pk, save_pk, key_gen, split_variables_for_pmap, capture_nan, write_summary_to_cfg
 
 
 
@@ -89,7 +89,7 @@ def run_vmc(cfg, walkers=None):
 
         # if stop:
             # exit()
-
+    write_summary_to_cfg(cfg["csv_cfg_path"], logger.summary)
     logger.walkers = walkers
     
     return logger

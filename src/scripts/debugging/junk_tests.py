@@ -1,20 +1,37 @@
 
-from jax import grad
-import jax.numpy as jnp
+import matplotlib.pyplot as plt
+plt.rcParams.update({"text.usetex": True})
+def pretty_base(title=None, 
+                xaxis=None, 
+                yaxis=None, 
+                xlims=None, 
+                ylims=None,
+                legend=None,
+                figsize=(4,4),
+                xlines=[],
+                ylines=[]):
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    
+    csfont = {'fontname':'Times New Roman'}
+    hfont = {'fontname':'Helvetica'}
 
-norm_grad = grad(jnp.linalg.norm)
-x = norm_grad(999999999999999.)
-print(x)
+    ax.set_title(title, fontsize=16)
+    ax.set_xlabel(xaxis, fontsize=14)
+    ax.set_ylabel(yaxis, fontsize=14)
+    if legend is None:
+        pass
+    elif legend is 'outside':
+        ax.legend(fontsize=12, bbox_to_anchor=(1.05, 1), loc='upper left')
+    elif legend is 'inside':
+        ax.legend(fontsize=12)
+    if xlims is not None: ax.set_xlim(xlims) 
+    if ylims is not None: ax.set_ylim(ylims)
+    ax.grid(b=True, which='major', axis='both')
+    [ax.axhline(y=x, ls='--') for x in xlines]
+    [ax.axvline(x=y, ls='--', alpha=0.5, color='r') for y in ylines]
+    return fig, ax
 
-def norm1(x):
-    y = x**2
-    return jnp.sqrt(y)
+# fig, ax = plt.subplots(1, 1)
 
-norm_grad = grad(norm1)
-x = norm_grad(jnp.inf)
-print(x)
-
-def norm2(x):
-    return jnp.sqrt(x)
-
-print(grad(norm2)(jnp.inf**2))
+pretty_base(title='x')
+plt.savefig('x.png')
