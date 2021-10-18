@@ -35,6 +35,11 @@ z_atoms = [6.0]
 n_el_atoms = [6]
 n_el = 6
 
+[HEG]
+periodic_boundaries = true
+real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+
+
 [LiSolid]
 periodic_boundaries = true
 # real_basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]

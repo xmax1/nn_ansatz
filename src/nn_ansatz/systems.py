@@ -38,6 +38,7 @@ def compute_volume(basis):
 
 class SystemAnsatz():
     def __init__(self,
+                 system=None,
                  r_atoms=None,
                  z_atoms=None,
                  n_el=None,
@@ -48,7 +49,7 @@ class SystemAnsatz():
                  reciprocal_cut=None,
                  kappa=None,
                  scalar_inputs=False,
-                 orbital_decay='anisotropic',
+                 orbitals='anisotropic',
                  n_periodic_input=1,
                  n_layers=2,
                  n_sh=64,
@@ -63,6 +64,9 @@ class SystemAnsatz():
                  device='cpu',
                  dtype=jnp.float32,
                  **kwargs):
+
+        self.system = system
+
         self.device, self.dtype = device, dtype
         self.n_walkers_per_device = kwargs['n_walkers_per_device']
         self.n_devices = kwargs['n_devices']
@@ -82,8 +86,7 @@ class SystemAnsatz():
         self.z_atoms = z_atoms
         self.r_atoms = r_atoms
 
-        if n_el_atoms is None:
-            n_el_atoms = jnp.array([int(x) for x in z_atoms])
+        if n_el_atoms is None: n_el_atoms = jnp.array([int(x) for x in z_atoms])
         self.n_el_atoms = n_el_atoms
 
         print('System: \n',
@@ -105,7 +108,7 @@ class SystemAnsatz():
         self.n_det = n_det
         self.scalar_inputs = scalar_inputs
         self.n_in = 1 if scalar_inputs else 4
-        self.orbital_decay=orbital_decay
+        self.orbitals=orbitals
 
         # throwaway
         self.min_cell_width = 1.

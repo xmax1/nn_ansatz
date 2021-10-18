@@ -201,7 +201,8 @@ def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
     
     infs = True
     it = 0
-    while infs:
+    equilibration = 0
+    while infs and equilibration < 10:
         # step_size += float(np.random.normal())
         keys, subkeys = key_gen(keys)
 
@@ -210,6 +211,8 @@ def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
         infs = jnp.isinf(log_psi).any() or jnp.isnan(log_psi).any()
         n_infs = jnp.sum(jnp.isinf(log_psi))
         n_nans = jnp.sum(jnp.isnan(log_psi))
+        if not infs:
+            equilibration += 1
         it += 1 
         if it % 10 == 0:
             print('%.2f %% infs and %.2f %% nans' % (n_infs/n_walkers, n_nans/n_walkers))

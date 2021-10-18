@@ -20,6 +20,8 @@ import numpy as np
 import csv
 import sys
 
+from .python_helpers import *
+
 
 PATH = os.path.abspath(os.path.dirname(__file__))
 systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
@@ -58,12 +60,6 @@ def key_gen(keys):
     return rnd.split(keys)
 
 # key_gen = lambda keys: [x.squeeze() for x in jnp.array([rnd.split(key) for key in keys]).split(2, axis=1)]
-
-
-def load_pk(path):
-    with open(path, 'rb') as f:
-        x = pk.load(f)
-    return x
 
 
 def compare(tc_arr, jnp_arr):
@@ -138,52 +134,46 @@ def are_we_loading_pretraining(root, system, pretrain, pre_lr, n_pre_it, ansatz_
     return True, pretrain_path
 
 
-def make_dir(path):
-    if os.path.exists(path):
-        return
-    os.makedirs(path)
+def to_array(object):
+    if object is None: return None
+    elif type(object) in (float, int, bool): return object
+    else: return jnp.array(object)
 
 
-def array_if_not_none(object):
-    return jnp.array(object) if object is not None else None
+def dict_entries_to_array(dictionary):
+    new_dict = {}
+    for k, v in dictionary.items():
+        new_dict[k] = to_array(v)
+    return new_dict
 
 
-def get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, 
-       periodic_boundaries, real_basis, unit_cell_length, real_cut, reciprocal_cut, kappa, ignore_toml):
-    
-    if ignore_toml or not system in systems_data:
-        if n_el is None and n_el_atoms is None:
-            if system == 'Be':
-                n_el = 4
-            else:
-                sys.exit('Need number of electrons as minimum input or system in toml file')
-        print('Assuming atomic system')
-        n_el_atoms = jnp.array([n_el]) if n_el is not None else n_el_atoms
-        n_el = n_el if n_el is not None else int(jnp.sum(n_el_atoms))
-        if r_atoms is None:
-            r_atoms = jnp.array([[0.0, 0.0, 0.0]])
-        if z_atoms is None:
-            z_atoms = jnp.ones((1,)) * n_el
-        return r_atoms, z_atoms, n_el, n_el_atoms, \
-        {'periodic_boundaries': periodic_boundaries, 
-        'real_basis': real_basis, 
-        'unit_cell_length': unit_cell_length,
-        'real_cut': real_cut,
-        'reciprocal_cut': reciprocal_cut,
-        'kappa': kappa}
-    else:
-        
-        d = systems_data[system]
-        return jnp.array(d['r_atoms']), \
-               jnp.array(d['z_atoms']), \
-               d['n_el'], \
-               jnp.array(d['n_el_atoms']), \
-               {'periodic_boundaries': d.get('periodic_boundaries', periodic_boundaries), 
-                'real_basis': array_if_not_none(d.get('real_basis', real_basis)),
-                'unit_cell_length': d.get('unit_cell_length', unit_cell_length),
-                'real_cut': d.get('real_cut', real_cut),
-                'reciprocal_cut': d.get('reciprocal_cut', reciprocal_cut),
-                'kappa': d.get('kappa', kappa)}
+def get_system(system, 
+               orbitals,
+               r_atoms, 
+               z_atoms, 
+               n_el, 
+               n_el_atoms, 
+               periodic_boundaries, 
+               real_basis, 
+               unit_cell_length):
+
+    PATH = os.path.abspath(os.path.dirname(__file__))
+    systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
+    if not system in systems_data:
+        if system is None or system == 'HEG':
+            assert orbitals == 'HEG'
+            systems_data = {
+                'r_atoms': jnp.array([[0.0]]),
+                'z_atoms': jnp.array([[0.0]]),
+                'n_el': n_el,
+                'n_el_atoms': [n_el],
+                'periodic_boundaries': periodic_boundaries,
+                'real_basis': real_basis,
+                'unit_cell_length': unit_cell_length,                
+            }
+        else: sys.exit('Need number of electrons as minimum input or system in toml file')
+
+    return dict_entries_to_array(systems_data[system])
 
 
 def get_run(exp_dir):
@@ -203,7 +193,7 @@ def get_n_devices():
 
 
 def setup(system: str = 'Be',
-          name: str = '',
+          name = None,
           save_every: int = 1000,
           print_every: int = 100,
 
@@ -235,7 +225,7 @@ def setup(system: str = 'Be',
           n_det: int = 2,
           scalar_inputs: bool = False,
           n_periodic_input: int = 3,
-          orbital_decay: str = 'anisotropic',
+          orbitals: str = 'anisotropic',
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 1000,
@@ -253,42 +243,38 @@ def setup(system: str = 'Be',
     assert n_walkers % n_devices == 0
 
     today = datetime.datetime.now().strftime("%d%m%y")
-
-    # version = subprocess.check_output(["git", "describe"]).strip()
-    version = today
-
-    # root = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'experiments')
+    version = today # version = subprocess.check_output(["git", "describe"]).strip()
     root = os.path.join(os.getcwd(), 'experiments')
 
-    if len(name) == 0:
-        name = 'junk'
+    if name is None: name = 'junk'
 
     loading = are_we_loading(load_it, load_dir)
     ansatz_hyperparameter_name = '%s_%s_%s_%s' % (n2n(n_sh, 's'), n2n(n_ph, 'p'), n2n(n_layers, 'l'), n2n(n_det, 'det'))
-    if loading:
-        exp_dir = load_dir
+    if loading: exp_dir = load_dir
     else:
         hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
-        print(ansatz_hyperparameter_name, hyperparameter_name, name)
-        exp_dir = os.path.join(root, system, today, name, hyperparameter_name + ansatz_hyperparameter_name)
-        make_dir(exp_dir)
+        exp_dir = join_and_create(root, system, today, name, hyperparameter_name + ansatz_hyperparameter_name)
         run = 'run%i' % get_run(exp_dir)
         exp_dir = os.path.join(exp_dir, run)
 
-    pretrain_dir = os.path.join(root, system, 'pretrained')
+    pretrain_dir = join_and_create(root, system, 'pretrained')
     hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
-    pre_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
-    make_dir(pre_path)
+    pre_path = join_and_create(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
 
-    events_dir = os.path.join(exp_dir, 'events')
-    timing_dir = os.path.join(events_dir, 'timing')
-    models_dir = os.path.join(exp_dir, 'models')
-    opt_state_dir = os.path.join(models_dir, 'opt_state')
-    [make_dir(x) for x in [events_dir, models_dir, opt_state_dir]]
+    events_dir = join_and_create(exp_dir, 'events')
+    timing_dir = join_and_create(events_dir, 'timing')
+    models_dir = join_and_create(exp_dir, 'models')
+    opt_state_dir = join_and_create(models_dir, 'opt_state')
 
-    r_atoms, z_atoms, n_el, n_el_atoms, cell_config \
-        = get_system(system, r_atoms, z_atoms, n_el, n_el_atoms, 
-        periodic_boundaries, real_basis, unit_cell_length, real_cut, reciprocal_cut, kappa, ignore_toml)
+    system_config = get_system(system, 
+                               orbitals,
+                               r_atoms, 
+                               z_atoms, 
+                               n_el, 
+                               n_el_atoms, 
+                               periodic_boundaries, 
+                               real_basis, 
+                               unit_cell_length)
 
     csv_cfg_path, pk_cfg_path = create_config_paths(exp_dir)
 
@@ -309,12 +295,10 @@ def setup(system: str = 'Be',
               'pk_cfg_path': pk_cfg_path,
 
               # SYSTEM
-              'system': system,
-              'r_atoms': r_atoms,
-              'z_atoms': z_atoms,
-              'n_el': n_el,
-              'n_el_atoms': n_el_atoms,
-              **cell_config,
+              **system_config,
+              'real_cut': real_cut,
+              'reciprocal_cut': reciprocal_cut,
+              'kappa': kappa,
 
               # ANSATZ
               'n_layers': n_layers,
@@ -323,7 +307,7 @@ def setup(system: str = 'Be',
               'n_det': n_det,
               'scalar_inputs': scalar_inputs, 
               'n_periodic_input': n_periodic_input,
-              'orbital_decay': orbital_decay,
+              'orbitals': orbitals, 
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,
@@ -350,8 +334,7 @@ def setup(system: str = 'Be',
     for k, v in config.items():
         print(k, '\t\t', v)
 
-    if distribute:
-        os.environ['DISTRIBUTE'] = 'True'
+    if distribute: os.environ['DISTRIBUTE'] = 'True'
 
     return config
 
@@ -361,17 +344,6 @@ def write_summary_to_cfg(path, summary):
         f.write("# Final summary \n")
         for key, val in summary.items():
             f.write("%s,%s\n" % (key, val))
-
-
-def save_pk(x, path):
-    with open(path, 'wb') as f:
-        pk.dump(x, f)
-
-
-def load_pk(path):
-    with open(path, 'rb') as f:
-        x = pk.load(f)
-    return x
 
 
 def load_config_pk(path):

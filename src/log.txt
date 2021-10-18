@@ -29,7 +29,7 @@ n_ph 		 8
 n_det 		 2
 scalar_inputs 		 False
 n_periodic_input 		 3
-orbital_decay 		 anisotropic
+orbitals 		 anisotropic
 opt 		 kfac
 lr 		 0.0001
 damping 		 0.0001

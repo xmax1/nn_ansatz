@@ -108,6 +108,7 @@ def create_potential_energy(mol):
         reciprocal_basis = mol.reciprocal_basis
         kappa = mol.kappa
         volume = mol.volume
+        system = mol.system
 
         real_lattice = generate_lattice(real_basis, mol.real_cut)  # (n_lattice, 3)
         reciprocal_lattice = generate_lattice(reciprocal_basis, mol.reciprocal_cut)
@@ -119,8 +120,13 @@ def create_potential_energy(mol):
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
         _compute_potential_energy_solid_i = partial(compute_potential_energy_solid_i, 
-                                                    kappa=kappa, real_lattice=real_lattice, reciprocal_lattice=reciprocal_lattice,
-                                                    q_q=q_q, charges=charges, volume=volume, rl_factor=rl_factor)
+                                                    kappa=kappa, 
+                                                    real_lattice=real_lattice, 
+                                                    reciprocal_lattice=reciprocal_lattice,
+                                                    q_q=q_q, 
+                                                    charges=charges, 
+                                                    volume=volume, 
+                                                    rl_factor=rl_factor)
 
         return vmap(_compute_potential_energy_solid_i, in_axes=(0, None, None))
 
@@ -136,7 +142,7 @@ def compute_potential_energy_solid_i(walkers,
                                      q_q, 
                                      charges, 
                                      volume, 
-                                     rl_factor, 
+                                     rl_factor,
                                      decompose=False):
 
     """

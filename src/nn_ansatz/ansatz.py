@@ -16,7 +16,7 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
     masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_in)
 
     _compute_exponents = create_compute_orbital_exponents(periodic_boundaries=mol.periodic_boundaries,
-                                                          orbital_decay=mol.orbital_decay,
+                                                          orbitals=mol.orbitals,
                                                           unit_cell_length=mol.unit_cell_length)
     
     _env_sigma_i = partial(env_sigma_i, _compute_exponents=_compute_exponents)
@@ -24,6 +24,8 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
     _compute_ae_vectors_i = compute_ae_vectors_i
     if mol.periodic_boundaries:
         _compute_ae_vectors_i = partial(compute_ae_vectors_periodic_i, unit_cell_length=mol.unit_cell_length)
+    elif mol.system == 'HEG':
+        _compute_ae_vectors_i = partial(compute_e_vectors_periodic_i, unit_cell_length=mol.unit_cell_length)
 
     _compute_inputs_i = create_compute_inputs_i(mol)
 
@@ -139,7 +141,15 @@ def compute_ae_vectors_i(walkers: jnp.array, r_atoms: jnp.array) -> jnp.array:
     return ae_vectors
 
 
-def compute_ae_vectors_periodic_i(walkers: jnp.array, r_atoms: jnp.array, unit_cell_length: float=1.) -> jnp.array:
+def compute_e_vectors_periodic_i(walkers: jnp.array,
+                                 r_atoms: jnp.array,
+                                 unit_cell_length: float) -> jnp.array:
+    return jnp.expand_dims(walkers, axis=1)
+
+
+def compute_ae_vectors_periodic_i(walkers: jnp.array, 
+                                  r_atoms: jnp.array, 
+                                  unit_cell_length: float=1.) -> jnp.array:
     ''' computes the nuclei-electron displacement vectors under the minimum image convention '''
     r_atoms = jnp.expand_dims(r_atoms, axis=0)
     walkers = jnp.expand_dims(walkers, axis=1)
@@ -369,7 +379,7 @@ def env_linear_i(params: jnp.array,
     print(out.shape)
     print(params.shape, pre_activations.shape, activation.shape)
     '''
-    # params (k * i, f)
+    # params (f, k * i)
     # data (j, f)
 
     n_spins = data.shape[0]
@@ -377,8 +387,8 @@ def env_linear_i(params: jnp.array,
     bias = jnp.ones((n_spins, 1))
     activation = jnp.concatenate((data, bias), axis=1)
     activations.append(activation)
-    pre_activations = jnp.matmul(activation, params) + d0
-    pre_activations = jnp.transpose(pre_activations).reshape(-1, n_spins, n_spins)
+    pre_activations = jnp.matmul(activation, params) + d0  # (j, k * i)
+    pre_activations = jnp.transpose(pre_activations).reshape(-1, n_spins, n_spins)  # (k, i, j)
     return pre_activations
 
 
@@ -494,14 +504,14 @@ def env_sigma_i(sigmas: jnp.array,
     return jnp.concatenate(outs, axis=-1)
 
 
-def create_compute_orbital_exponents(orbital_decay='anisotropic', 
+def create_compute_orbital_exponents(orbitals='anisotropic', 
                                      periodic_boundaries=False,
                                      unit_cell_length=1.):
 
-    if orbital_decay == 'anisotropic':
+    if orbitals == 'anisotropic':
         _compute_exponent = partial(anisotropic_exponent, periodic_boundaries=periodic_boundaries, unit_cell_length=unit_cell_length)
             
-    elif orbital_decay == 'isotropic':
+    elif orbitals == 'isotropic':
         _compute_exponent = partial(isotropic_exponent, periodic_boundaries=periodic_boundaries, unit_cell_length=unit_cell_length)
         
     return _compute_exponent

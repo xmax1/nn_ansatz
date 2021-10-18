@@ -11,35 +11,35 @@ INIT = 0.01
 init_orthogonal = orthogonal()
 
 
-def init_linear(key, shape, bias=True, bias_axis=0):
-    if len(shape) == 5:
-        n_det, n_spin, n_atom, _, _ = shape
-        subkeys = rnd.split(key, num=jnp.prod(n_det * n_spin))
-        new_shape = (3, 3)
-        # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[None, ...] for k in subkeys], axis=0)
-        # p = p.reshape(shape)
+# def init_linear(key, shape, bias=True, bias_axis=0):
+#     if len(shape) == 5:
+#         n_det, n_spin, n_atom, _, _ = shape
+#         subkeys = rnd.split(key, num=jnp.prod(n_det * n_spin))
+#         new_shape = (3, 3)
+#         # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[None, ...] for k in subkeys], axis=0)
+#         # p = p.reshape(shape)
 
-        p = [jnp.concatenate([init_linear_layer(k, new_shape, bias) for k in subkeys], axis=-1)
-             for _ in range(n_atom)]
+#         p = [jnp.concatenate([init_linear_layer(k, new_shape, bias) for k in subkeys], axis=-1)
+#              for _ in range(n_atom)]
 
-        # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[..., None] for k in subkeys], axis=-1)
-        # p = p.reshape(3, n_atom, -1)
-        # p = [jnp.squeeze(x) for x in jnp.split(p, n_atom, axis=1)]
+#         # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[..., None] for k in subkeys], axis=-1)
+#         # p = p.reshape(3, n_atom, -1)
+#         # p = [jnp.squeeze(x) for x in jnp.split(p, n_atom, axis=1)]
 
-        # subkeys = rnd.split(key, num=n_atom)
-        # p = [init_linear_layer(k, (3, n_det * n_spin * 3), bias) for k in subkeys]
-    elif len(shape) == 3:
-        subkeys = rnd.split(key, num=shape[0])
-        new_shape = shape[1:]
-        p = jnp.concatenate([init_linear_layer(k, new_shape, bias, bias_axis=-1)[None, ...] for k in subkeys], axis=0)
+#         # subkeys = rnd.split(key, num=n_atom)
+#         # p = [init_linear_layer(k, (3, n_det * n_spin * 3), bias) for k in subkeys]
+#     elif len(shape) == 3:
+#         subkeys = rnd.split(key, num=shape[0])
+#         new_shape = shape[1:]
+#         p = jnp.concatenate([init_linear_layer(k, new_shape, bias, bias_axis=-1)[None, ...] for k in subkeys], axis=0)
 
-    else:
-        p = init_linear_layer(key, shape, bias)
+#     else:
+#         p = init_linear_layer(key, shape, bias)
 
-    return p
+#     return p
 
 
-def init_linear_layer(key, shape, bias, bias_axis=0):
+def init_linear(key, shape, bias, bias_axis=0):
     key, subkey = rnd.split(key)
     p = init_orthogonal(key, shape)
     if bias:
@@ -55,13 +55,11 @@ def init_sigma(key, shape, bias=True, bias_axis=0):
     atom_subkeys = rnd.split(key, num=n_atom)
     if len(shape) == 5:  # anisotropic
         new_shape = (3, 3)
-        p = [jnp.concatenate([init_linear_layer(k, new_shape, bias) 
+        p = [jnp.concatenate([init_linear(k, new_shape, bias=False) 
              for k in rnd.split(atom_key, num=jnp.prod(n_det * n_spin))], axis=-1)
              for atom_key in atom_subkeys]
-        # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[None, ...] for k in subkeys], axis=0)
-        # p = p.reshape(shape)
     if len(shape) == 3:  # isotropic
-        p = [unit_plus_noise((1, n_spin * n_det), k) for m, k in zip(range(n_atom), atom_subkeys)]
+        p = [unit_plus_noise((1, n_spin * n_det), k) for k in atom_subkeys]
     return p
 
 
@@ -76,16 +74,11 @@ def count_mixed_features(n_sh, n_ph):
 
 
 def initialise_params(mol, key):
-    '''
-    Notes:
-        zip(*([iter(nums)]*2) nice idiom for iterating over in sets of 2
-    '''
-    
     if len(key.shape) > 1:
         key = key[0]
     n_layers, n_sh, n_ph, n_det, n_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
-    orbital_decay = mol.orbital_decay
+    orbitals = mol.orbitals
     
     # count the number of input features
     n_sh_in = n_in * n_atoms
@@ -105,53 +98,30 @@ def initialise_params(mol, key):
 
     # intermediate layers
     key, *subkeys = rnd.split(key, num=(n_layers * 3 + 1))
-    # params['intermediate'] = [[init_linear(sk2, (n_sh_split, n_sh), bias=False),
-    #                            init_linear(sk1, (n_sh_mix, n_sh), bias=True),
-    #                            init_linear(sk3, (n_ph, n_ph), bias=True)]
-    #                           for sk1, sk2, sk3 in zip(*([iter(subkeys)] * 3))]
 
-    for i, (sk1, sk2, sk3) in enumerate(zip(*([iter(subkeys)] * 3)), 1):
+    for i, (sk1, sk2, sk3) in enumerate(zip(*([iter(subkeys)] * 3)), 1):  # idiom for iterating in sets of 2/3/...
         params['split%i' % i] = init_linear(sk2, (n_sh_split, n_sh), bias=False)
         params['s%i' % i] = init_linear(sk1, (n_sh_mix, n_sh), bias=True)
         params['p%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)
 
-
-
     # env_linear
-    # params['envelopes'] = OrderedDict()
-
     key, *subkeys = rnd.split(key, num=3)
-    # params['envelopes']['linear'] = [init_linear(subkeys[0], (n_sh, n_det * n_up), bias=True),
-    #                                  init_linear(subkeys[1], (n_sh, n_det * n_down), bias=True)]
     params['env_lin_up'] = init_linear(subkeys[0], (n_sh, n_det * n_up), bias=True)
     params['env_lin_down'] = init_linear(subkeys[1], (n_sh, n_det * n_down), bias=True)
 
     # env_sigma
     key, *subkeys = rnd.split(key, num=3)
-    # SIGMA BROADCAST
-    # params['envelopes']['sigma'] = OrderedDict()
-    sigma_shape_up = (n_det, n_up, n_atoms, 3, 3) if orbital_decay == 'anisotropic' else (n_det, n_up, n_atoms)
-    sigma_shape_down = (n_det, n_down, n_atoms, 3, 3) if orbital_decay == 'anisotropic' else (n_det, n_down, n_atoms)
+    sigma_shape_up = (n_det, n_up, n_atoms, 3, 3) if orbitals == 'anisotropic' else (n_det, n_up, n_atoms)
+    sigma_shape_down = (n_det, n_down, n_atoms, 3, 3) if orbitals == 'anisotropic' else (n_det, n_down, n_atoms)
     
-    params['env_sigma_up'] = jnp.stack(init_sigma(subkeys[0], sigma_shape_up, bias=False))
+    params['env_sigma_up'] = jnp.stack(init_sigma(subkeys[0], sigma_shape_up, bias=False))  # list[n_atom] (n_det * n_spin, 3, 3)
     params['env_sigma_down'] = jnp.stack(init_sigma(subkeys[1], sigma_shape_down, bias=False))
-    # SIGMA LOOPY list(atom1, atom2)... atom1 = list( (3x3) n_det x n_spins)
-    # params['envelopes']['sigma'] = OrderedDict()
-    # params['envelopes']['sigma']['up'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_up)] for _ in range(n_atoms)]
-    # params['envelopes']['sigma']['down'] = [[init_linear_layer(subkeys[0], (3, 3), False) for _ in range(n_det * n_down)] for _ in range(n_atoms)]
 
     # env_pi
     key, *subkeys = rnd.split(key, num=3)
-    # up_shape, down_shape = (n_det * n_up * n_atoms,), (n_det * n_down * n_atoms,)
-    # x = unit_plus_noise(up_shape, subkeys[0])
-    # y = unit_plus_noise(down_shape, subkeys[1])
-
-    # x = [x[:, None] for x in jnp.split(x, n_det * n_up)]
-    # y = [y[:, None] for y in jnp.split(y, n_det * n_down)]
-    # params['envelopes']['pi'] = [x, y]
 
     up_shape, down_shape = (n_atoms, n_det * n_up), (n_atoms, n_det * n_down)
-    params['env_pi_up'] = unit_plus_noise(up_shape, subkeys[0])
+    params['env_pi_up'] = unit_plus_noise(up_shape, subkeys[0])  # (n_atom, n_det * n_up)
     params['env_pi_down'] = unit_plus_noise(down_shape, subkeys[1])
 
     # values, tree_map = tree_flatten(params)  # get the tree_map and then flatten
@@ -171,45 +141,20 @@ def initialise_d0s(mol, expand=False):
     d0s['s0'] = jnp.zeros((n_el, n_sh))
     d0s['p0'] = jnp.zeros((n_pairwise, n_ph))
 
-    # intermediate layers
-    # d0s['intermediate'] = [[jnp.zeros((1, n_sh)),
-    #                            jnp.zeros((n_el, n_sh)),
-    #                            jnp.zeros((n_pairwise, n_ph))]
-    #                            for _ in range(n_layers)]
-
     for i in range(1, n_layers+1):
         d0s['split%i' % i] = jnp.zeros((1, n_sh))
         d0s['s%i' % i] = jnp.zeros((n_el, n_sh))
         d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph))
 
-    # d0s['envelopes'] = OrderedDict()
-    # d0s['envelopes']['linear'] = [jnp.zeros((n_up, n_det * n_up)),
-    #                                  jnp.zeros((n_down, n_det * n_down))]
-
     d0s['env_lin_up'] = jnp.zeros((n_up, n_det * n_up))
     d0s['env_lin_down'] = jnp.zeros((n_down, n_det * n_down))
 
     # SIGMA BROADCAST
-    n_exponent_dim = 3 if mol.orbital_decay == 'anisotropic' else 1
-
-    # d0s['envelopes'] = OrderedDict()
-    # n_exponent_dim = 3 if mol.orbital_decay == 'anisotropic' else 1
-    # d0s['envelopes']['sigma']['up'] = [jnp.zeros((n_up, n_exponent_dim * n_det * n_up)) for _ in range(n_atoms)]
-    # d0s['envelopes']['sigma']['down'] = [jnp.zeros((n_down, n_exponent_dim * n_det * n_down)) for _ in range(n_atoms)]
+    n_exponent_dim = 3 if mol.orbitals == 'anisotropic' else 1
 
     d0s['env_sigma_up'] = jnp.zeros((n_atoms, n_up, n_exponent_dim * n_det * n_up))
     d0s['env_sigma_down'] = jnp.zeros((n_atoms, n_down, n_exponent_dim * n_det * n_down))
-    
-    # SIGMA LOOPY
-    # d0s['envelopes']['sigma'] = OrderedDict()
-    # d0s['envelopes']['sigma']['up'] = [[jnp.zeros((n_up, 3)) for _ in range(n_det * n_up)] for _ in range(n_atoms)]
-    # d0s['envelopes']['sigma']['down'] = [[jnp.zeros((n_down, 3)) for _ in range(n_det * n_down)] for _ in range(n_atoms)]
-
-    # d0s['envelopes']['pi'] = [[jnp.squeeze(x, axis=-1) for x in jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det*n_up, axis=1)],
-    #                              [jnp.squeeze(x, axis=-1) for x in jnp.split(jnp.zeros((n_down, n_det * n_down)), n_det*n_down, axis=1)]]
-    # d0s['envelopes']['pi'] = [jnp.split(jnp.zeros((n_up, n_det * n_up)), n_det * n_up, axis=1),
-    #                              jnp.split(jnp.zeros((n_down, n_det * n_down)), n_det * n_down, axis=1)
-    
+     
     d0s['env_pi_up'] = jnp.zeros((n_up, n_det * n_up))
     d0s['env_pi_down'] = jnp.zeros((n_down, n_det * n_down))
 

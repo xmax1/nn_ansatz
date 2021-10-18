@@ -42,7 +42,7 @@ for translation in translations:
                 step_size=0.02,
                 n_ph=16,
                 scalar_inputs=False,
-                orbital_decay='anisotropic',
+                orbitals='anisotropic',
                 n_periodic_input=1,
                 opt='adam',
                 n_det=4,

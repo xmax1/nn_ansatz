@@ -124,11 +124,11 @@ def env_sigma_i(sigmas: jnp.array,
     return jnp.concatenate(outs, axis=-1)
 
 
-def create_compute_orbital_exponents(orbital_decay='anisotropic', 
+def create_compute_orbital_exponents(orbitals='anisotropic', 
                                      periodic_boundaries=False,
                                      unit_cell_length=1.):
 
-    if orbital_decay == 'anisotropic':
+    if orbitals == 'anisotropic':
         _compute_exponent = partial(anisotropic_exponent, periodic_boundaries=periodic_boundaries, unit_cell_length=unit_cell_length)
             
     return _compute_exponent

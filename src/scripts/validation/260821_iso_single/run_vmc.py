@@ -8,14 +8,14 @@ from nn_ansatz import *
 # factor = float(sys.argv[1])
 
 config = setup(system='LiSolidBCC',
-               orbital_decay='isotropic',
+               orbitals='isotropic',
                scalar_inputs=True,
                opt='kfac',
                n_it=1000,
                n_walkers=128)
 
 # config = setup(system='LiH',
-#                orbital_decay='anisotropic',
+#                orbitals='anisotropic',
 #                opt='kfac',
 #                n_it=1000,
 #                n_walkers=128)
