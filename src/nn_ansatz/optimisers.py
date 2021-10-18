@@ -81,7 +81,7 @@ def get_sl_factors(activations):
         lena = len(a.shape) + correction
         sl_factor = 1.
         if lena == 3:
-            sl_factor = a.shape[1]
+            sl_factor = a.shape[-2]
         sl_factors.append(sl_factor**2)
     return sl_factors
 
@@ -147,7 +147,7 @@ def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac
 
     return ngs, (params, *state)
 
-@jit
+# @jit
 def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
 
     gradients, gradients_tree_map = tree_flatten(gradients)
@@ -155,6 +155,8 @@ def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, no
     new_maas = []
     new_msss = []
     for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
+
+        # print(g.shape, aa.shape, ss.shape, maa.shape, mss.shape, sl_factor)
 
         maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
 

@@ -104,14 +104,6 @@ def wf_orbitals(params,
     single = linear(params['s0'], single_mixed, split, activations, d0s['s0'])
     pairwise = linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
 
-    # for (split_params, s_params, p_params), (split_per, s_per, p_per), mask \
-    #         in zip(params['intermediate'], d0s['intermediate'], masks[1:]):
-    #     single_mixed, split = mixer_i(single, pairwise, mol.n_el, mol.n_up, mol.n_down, *mask)
-
-    #     split = linear_split(split_params, split, activations, split_per)
-    #     single = linear(s_params, single_mixed, split, activations, s_per) + single
-    #     pairwise = linear_pairwise(p_params, pairwise, activations, p_per) + pairwise
-
     for i, mask in enumerate(masks[1:], 1):
         single_mixed, split = mixer_i(single, pairwise, mol.n_el, mol.n_up, mol.n_down, *mask)
 
@@ -125,11 +117,21 @@ def wf_orbitals(params,
     factor_up = env_linear_i(params['env_lin_up'], data_up, activations, d0s['env_lin_up'])
     factor_down = env_linear_i(params['env_lin_down'], data_down, activations, d0s['env_lin_down'])
 
-    exp_up = _env_sigma_i(params['env_sigma_up'], ae_up, activations, d0s['env_sigma_up']) ##
-    exp_down = _env_sigma_i(params['env_sigma_down'], ae_down, activations, d0s['env_sigma_down']) ##
+    ae_up = split_and_squeeze(ae_up, axis=1)
+    ae_down = split_and_squeeze(ae_down, axis=1)
 
-    orb_up = env_pi_i(params['env_pi_up'], factor_up, exp_up, activations, d0s['env_pi_up'])
-    orb_down = env_pi_i(params['env_pi_down'], factor_down, exp_down, activations, d0s['env_pi_down'])
+    exp_up = []
+    exp_down = []
+    for m, (ae_up_m, ae_down_m) in enumerate(zip(ae_up, ae_down)):
+        exp_up_m = _env_sigma_i(params['env_sigma_up_m%i' % m], ae_up_m, activations, d0s['env_sigma_up_m%i' % m]) ##
+        exp_down_m = _env_sigma_i(params['env_sigma_down_m%i' % m], ae_down_m, activations, d0s['env_sigma_down_m%i' % m]) ##
+        exp_up.append(exp_up_m)
+        exp_down.append(exp_down_m)
+    exp_up = jnp.stack(exp_up, axis=-1)
+    exp_down = jnp.stack(exp_down, axis=-1)
+
+    orb_up = env_pi_i(params, factor_up, exp_up, activations, 'up', d0s)
+    orb_down = env_pi_i(params, factor_down, exp_down, activations, 'down', d0s)
     return orb_up, orb_down, activations
 
 
@@ -396,7 +398,13 @@ def split_and_squeeze(tensor, axis=0):
     return [x.squeeze(axis) for x in tensor.split(tensor.shape[axis], axis=axis)]
 
 
-def anisotropic_exponent(ae_vector, sigma, d0, n_spin, unit_cell_length=1., periodic_boundaries=False, eps=0.0001):
+def anisotropic_exponent(sigma,
+                         ae_vector,
+                         d0, 
+                         n_spin, 
+                         unit_cell_length=1., 
+                         periodic_boundaries=False, 
+                         eps=0.0001):
     # sigma (3, 3 * n_det * n_spin)
     # ae_vector (n_spin_j, 3)
     # d0 (n_spin_j, n_det, n_spin_i)
@@ -410,12 +418,14 @@ def anisotropic_exponent(ae_vector, sigma, d0, n_spin, unit_cell_length=1., peri
         # ae_vector = jnp.where(jnp.abs(ae_vector) == 0.5 * unit_cell_length, jnp.inf, ae_vector_tmp)
         # ae_vector = jnp.where(jnp.isinf(ae_vector), jnp.inf, ae_vector)
     
-    pre_activation = jnp.matmul(ae_vector, sigma)  + d0
+    pre_activation = jnp.matmul(ae_vector, sigma)  + d0  # n_spin_j, 3 * n_det * n_spin
     '''this line is required to force the situations where -jnp.inf + jnp.inf = jnp.nan creates a nan from the exponential and not a zero 
     (else jnp.inf + jnp.inf = jnp.inf)'''
     # pre_activation = jnp.where(jnp.isnan(pre_activation), jnp.inf, pre_activation)
 
-    exponent = pre_activation.reshape(n_spin, 3, -1, n_spin, 1, order='F')
+    # the way the activations are unpacked is important, order check in /home/amawi/projects/nn_ansatz/src/scripts/debugging/shapes/sigma_reshape.py
+    # surprisingly the alternate way 'works' but there is a difference in performance which is notable at larger system sizes
+    exponent = pre_activation.reshape(n_spin, 3, -1, order='F')  # order ='F'
     exponent = jnp.linalg.norm(exponent, axis=1)
     exponential = jnp.exp(-exponent)
     return ae_vector, exponential
@@ -448,10 +458,10 @@ def isotropic_exponent(ae_vector, sigma, d0, n_spin,
     return norm, exponential
 
 
-def env_sigma_i(sigmas: jnp.array,
-                ae_vectors: jnp.array,
+def env_sigma_i(sigma: jnp.array,
+                ae_vector: jnp.array,
                 activations: list,
-                d0s: jnp.array,
+                d0: jnp.array,
                 _compute_exponents: Callable=anisotropic_exponent) -> jnp.array:
     """
 
@@ -486,22 +496,18 @@ def env_sigma_i(sigmas: jnp.array,
     # sigma (n_det, n_spin_i, n_atom, 3, 3)
     # ae_vectors (n_spin_j, n_atom, 3)
 
-    n_spin, n_atom, _ = ae_vectors.shape
+    n_spin = ae_vector.shape[0]
     # ae_vectors = [jnp.squeeze(x) for x in jnp.split(ae_vectors, n_atom, axis=1)]
-    ae_vectors = split_and_squeeze(ae_vectors, 1)
-    d0s = split_and_squeeze(d0s, 0)
-    sigmas = split_and_squeeze(sigmas, 0)
+    # ae_vectors = split_and_squeeze(ae_vectors, 1)
+    # d0s = split_and_squeeze(d0s, 0)
+    # sigmas = split_and_squeeze(sigmas, 0)
+    # for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
 
-    outs = []
-    for ae_vector, sigma, d0 in zip(ae_vectors, sigmas, d0s):
+    activation, exponential = _compute_exponents(sigma, ae_vector, d0, n_spin)
 
-        activation, exponential = _compute_exponents(ae_vector, sigma, d0, n_spin)
-
-        activations.append(activation)
+    activations.append(activation)
         
-        outs.append(exponential)
-
-    return jnp.concatenate(outs, axis=-1)
+    return exponential
 
 
 def create_compute_orbital_exponents(orbitals='anisotropic', 
@@ -519,38 +525,27 @@ def create_compute_orbital_exponents(orbitals='anisotropic',
 
 
 
-def env_pi_i(pis: jnp.array,
+def env_pi_i(params: jnp.array,
              factor: jnp.array,
              exponential: jnp.array,
              activations: list,
+             spin: str,
              d0s) -> jnp.array:
-    # exponential (j k i m)
+    # exponential (j k*i m)
     # factor (k i j)
 
-    n_spins, n_det = exponential.shape[:2]
-
-    # EINSUM METHOD (does not work with kfac)
+    # Einsum sanity check
     # orbitals = factor * jnp.einsum('jkim,kim->kij', exponential, pi)
+    n_det, n_spins = factor.shape[:2]
 
-    # MATRIX METHOD (does not work with kfac, yet)
-    # shape = exponential.shape
-    # activation = exponential.reshape(shape[0], -1)
-    # activations.append(activation)
-    # pre_activations = activation * pi + d0
-    # orbitals = pre_activations.reshape(shape).sum(-1)
-
-    exponential = [jnp.squeeze(x, axis=(1, 2))
-                   for y in jnp.split(exponential, n_spins, axis=2)
-                   for x in jnp.split(y, n_det, axis=1)]  # n_det * n_spin of (n_spin, n_atom)
+    # n_det * n_spin of (n_spin, n_atom)
+    exponential = [jnp.squeeze(x, axis=1) for x in jnp.split(exponential, n_spins*n_det, axis=1)]  
 
     [activations.append(x) for x in exponential]
-    # [print((e @ pi).shape, d0.shape) for pi, e, d0 in zip(pis, exponential, d0s)]
-    # pis = [pi for pi in pis.split(n_spins * n_det, axis=-1)]  # n_det * n_spin of pi (n_atom, )
-    pis = split_and_squeeze(pis, -1) # n_det * n_spin of pi (n_atom, )
-    d0s = split_and_squeeze(d0s, -1)  # d0s (n_spin, )
 
-    orbitals = jnp.stack([(e @ pi) + d0 for pi, e, d0 in zip(pis, exponential, d0s)], axis=-1)
-    # print(factor.shape, orbitals.shape)
+    orbitals = jnp.stack([(e @ params['env_pi_%s_%i' % (spin, i)]) + d0s['env_pi_%s_%i' % (spin, i)] 
+                           for i, e in enumerate(exponential)], axis=-1)
+
     return factor * jnp.transpose(orbitals.reshape(n_spins, n_det, n_spins), (1, 2, 0))
 
 

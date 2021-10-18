@@ -35,6 +35,12 @@ z_atoms = [6.0]
 n_el_atoms = [6]
 n_el = 6
 
+[Ne]
+r_atoms = [[0.0, 0.0, 0.0]]
+z_atoms = [10.0]
+n_el_atoms = [10]
+n_el = 10
+
 [HEG]
 periodic_boundaries = true
 real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
