@@ -11,14 +11,13 @@ from tqdm.notebook import trange
 from jax import pmap, vmap, grad
 
 
-cfg = setup(system='HEG',
+cfg = setup(system='LiSolidBCC',
                     n_pre_it=0,
-                    n_walkers=4,
+                    n_walkers=512,
                     n_layers=2,
                     n_sh=32,
                     step_size=0.02,
                     n_ph=16,
-                    n_el=7,
                     scalar_inputs=False,
                     orbitals='anisotropic',
                     n_periodic_input=1,
@@ -28,7 +27,6 @@ cfg = setup(system='HEG',
                     save_every=2500,
                     lr=1e-4,
                     n_it=10000,
-                    unit_cell_length=2., 
                     name='heg_tests',
                     distribute=False,
                     debug=True)

@@ -165,7 +165,7 @@ def get_system(system,
             'density_parameter': density_parameter}              
         }
         # if unit_cell_length is None: sys.exit('unit cell length needed')
-    else: sys.exit('Need number of electrons as minimum input or system in toml file')
+    # else: sys.exit('Need number of electrons as minimum input or system in toml file')
 
     return dict_entries_to_array(systems_data[system])
 

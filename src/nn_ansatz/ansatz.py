@@ -76,7 +76,7 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
 
 
 def split_and_squeeze(tensor, axis=0):
-    return [x.squeeze(axis) for x in tensor.split(1, axis=axis)]
+    return [x.squeeze(axis) for x in tensor.split(tensor.shape[axis], axis=axis)]
 
 
 def wf_orbitals(params, 
@@ -113,18 +113,18 @@ def wf_orbitals(params,
         single = linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i]) + single
         pairwise = linear_pairwise(params['p%i'%i], pairwise, activations, d0s['p%i'%i]) + pairwise
 
-    ae_up, ae_down = jnp.split(ae_vectors, [mol.n_up], axis=0)
+    # ae_up, ae_down = jnp.split(ae_vectors, [mol.n_up], axis=0)
     data_up, data_down = jnp.split(single, [mol.n_up], axis=0)
 
     factor_up = env_linear_i(params['env_lin_up'], data_up, activations, d0s['env_lin_up'])
     factor_down = env_linear_i(params['env_lin_down'], data_down, activations, d0s['env_lin_down'])
 
-    ae_up = split_and_squeeze(ae_up, axis=1)
-    ae_down = split_and_squeeze(ae_down, axis=1)
+    ae_vectors = split_and_squeeze(ae_vectors, axis=1)
 
     exp_up = []
     exp_down = []
-    for m, (ae_up_m, ae_down_m) in enumerate(zip(ae_up, ae_down)):
+    for m, ae_vector in enumerate(ae_vectors):
+        ae_up_m, ae_down_m = jnp.split(ae_vector, [mol.n_up], axis=0)
         exp_up_m = _env_sigma_i(params['env_sigma_up_m%i' % m], ae_up_m, activations, d0s['env_sigma_up_m%i' % m]) ##
         exp_down_m = _env_sigma_i(params['env_sigma_down_m%i' % m], ae_down_m, activations, d0s['env_sigma_down_m%i' % m]) ##
         exp_up.append(exp_up_m)

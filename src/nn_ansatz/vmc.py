@@ -54,18 +54,12 @@ def create_energy_fn(mol, vwf, separate=False):
     def _compute_local_energy(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
         kinetic_energy = local_kinetic_energy(params, walkers)
+        if separate:
+            return potential_energy, kinetic_energy
         if mol.system == 'HEG':
             return potential_energy/mol.density_parameter + kinetic_energy/(mol.density_parameter**2)
-        
         return potential_energy + kinetic_energy
-
-    def _compute_local_energy_separate(params, walkers):
-        potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
-        kinetic_energy = local_kinetic_energy(params, walkers)
-        return potential_energy, kinetic_energy
-
-    if separate:
-        return jit(_compute_local_energy_separate)
+        
     return jit(_compute_local_energy)
 
 
@@ -163,7 +157,7 @@ def compute_potential_energy_solid_i(walkers,
     """
 
     # put the walkers and r_atoms together
-    walkers = jnp.concatenate([r_atoms, walkers], axis=0) if system == 'atomic' else walkers  # (n_particle, 3)
+    walkers = jnp.concatenate([r_atoms, walkers], axis=0) if not system == 'HEG' else walkers  # (n_particle, 3)
 
     # compute the Rs0 term
     p_p_vectors = vector_sub(walkers, walkers) # (n_particle, n_particle, 3)
