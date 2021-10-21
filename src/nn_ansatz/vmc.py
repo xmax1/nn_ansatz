@@ -54,7 +54,10 @@ def create_energy_fn(mol, vwf, separate=False):
     def _compute_local_energy(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
         kinetic_energy = local_kinetic_energy(params, walkers)
-        return potential_energy + kinetic_energy if not mol.periodic_boundaries else (potential_energy + kinetic_energy) # / mol.n_atoms
+        if mol.system == 'HEG':
+            return potential_energy/mol.density_parameter + kinetic_energy/(mol.density_parameter**2)
+        
+        return potential_energy + kinetic_energy
 
     def _compute_local_energy_separate(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
@@ -116,7 +119,7 @@ def create_potential_energy(mol):
         rl_factor = (4.*jnp.pi / volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product  
 
         e_charges = jnp.array([-1. for i in range(mol.n_el)])
-        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0)  # (n_particle, )
+        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.system == 'HEG' else e_charges # (n_particle, )
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
         _compute_potential_energy_solid_i = partial(compute_potential_energy_solid_i, 
@@ -126,6 +129,7 @@ def create_potential_energy(mol):
                                                     q_q=q_q, 
                                                     charges=charges, 
                                                     volume=volume, 
+                                                    system=mol.system, 
                                                     rl_factor=rl_factor)
 
         return vmap(_compute_potential_energy_solid_i, in_axes=(0, None, None))
@@ -143,6 +147,7 @@ def compute_potential_energy_solid_i(walkers,
                                      charges, 
                                      volume, 
                                      rl_factor,
+                                     system='atomic',
                                      decompose=False):
 
     """
@@ -158,7 +163,7 @@ def compute_potential_energy_solid_i(walkers,
     """
 
     # put the walkers and r_atoms together
-    walkers = jnp.concatenate([r_atoms, walkers], axis=0)  # (n_particle, 3)
+    walkers = jnp.concatenate([r_atoms, walkers], axis=0) if system == 'atomic' else walkers  # (n_particle, 3)
 
     # compute the Rs0 term
     p_p_vectors = vector_sub(walkers, walkers) # (n_particle, n_particle, 3)

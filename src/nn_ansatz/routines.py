@@ -20,8 +20,7 @@ from .optimisers import create_natural_gradients_fn, kfac
 from .utils import Logging, load_pk, save_pk, key_gen, split_variables_for_pmap, capture_nan, write_summary_to_cfg
 
 
-
-        
+  
 
 
 def run_vmc(cfg, walkers=None):
@@ -46,6 +45,8 @@ def run_vmc(cfg, walkers=None):
     
     if walkers is None:
         walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
+
+    
 
     grad_fn = create_grad_function(mol, vwf)
 

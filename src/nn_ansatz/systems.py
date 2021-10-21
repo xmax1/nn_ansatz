@@ -44,6 +44,8 @@ class SystemAnsatz():
                  n_el=None,
                  real_basis=None,
                  periodic_boundaries=False,
+                 spin_polarized=None,
+                 density_parameter=None,
                  unit_cell_length=None,
                  real_cut=None,
                  reciprocal_cut=None,
@@ -72,7 +74,7 @@ class SystemAnsatz():
         self.n_devices = kwargs['n_devices']
 
         if n_up is None:
-            n_up = math.ceil(n_el / 2.)
+            n_up = math.ceil(n_el / 2.) if not spin_polarized else n_el
         n_down = n_el - n_up
 
         self.n_el = n_el
@@ -119,6 +121,15 @@ class SystemAnsatz():
         self.n_walkers = n_walkers
         self.periodic_boundaries = periodic_boundaries
 
+        self.density_parameter = density_parameter
+
+        volume = None
+        if not density_parameter is None:
+            v_per_electron = 4. * jnp.pi * density_parameter**3 / 3. 
+            volume = n_el * v_per_electron
+            unit_cell_length = volume**(1./3.)
+            self.density_parameter = density_parameter
+
         self.unit_cell_length = unit_cell_length  # has to be here for in the ansatz
         self.real_basis = unit_cell_length * real_basis if periodic_boundaries else None # each basis vector is (1, 3)
         self.inv_real_basis = jnp.linalg.inv(self.real_basis) if periodic_boundaries else None
@@ -130,13 +141,17 @@ class SystemAnsatz():
             
             self.r_atoms = self.r_atoms * unit_cell_length
             self.volume = compute_volume(self.real_basis)
+            if volume is not None:
+                assert volume == self.volume
             self.reciprocal_basis = compute_reciprocal_basis(self.real_basis, self.volume)
             self.l0 = float(jnp.min(jnp.linalg.norm(self.real_basis, axis=-1)))
             self.min_cell_width = compute_min_width_of_cell(self.real_basis)
-
+            
             self.real_cut = real_cut
             self.reciprocal_cut = reciprocal_cut
             self.kappa = kappa
+            
+            self.spin_polarized = spin_polarized  # heg
 
             print('Cell: \n',
               'real_basis:', '\n', self.real_basis, '\n',
@@ -149,23 +164,24 @@ class SystemAnsatz():
               'n_periodic_input = %i \n' % n_periodic_input,
               'unit_cell_length = %.2f \n' % self.unit_cell_length)
 
-        self.atom = create_atom(r_atoms, z_atoms)
+        if not system == 'HEG':
+            self.atom = create_atom(r_atoms, z_atoms)
 
-        mol = gto.Mole(
-            atom=self.atom,
-            unit='Bohr',
-            basis=basis,
-            charge=self.charge,
-            spin=self.spin
-        )
-        mol.build()
-        self.pyscf_mol = mol
+            mol = gto.Mole(
+                atom=self.atom,
+                unit='Bohr',
+                basis=basis,
+                charge=self.charge,
+                spin=self.spin
+            )
+            mol.build()
+            self.pyscf_mol = mol
 
-        mf = RHF(mol)
-        mf.kernel()
+            mf = RHF(mol)
+            mf.kernel()
 
-        self.mf = mf
-        self.moT = jnp.array(mf.mo_coeff.T)
+            self.mf = mf
+            self.moT = jnp.array(mf.mo_coeff.T)
 
     @property
     def atom_positions(self):

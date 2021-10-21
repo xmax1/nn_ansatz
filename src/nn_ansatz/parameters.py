@@ -11,34 +11,6 @@ INIT = 0.01
 init_orthogonal = orthogonal()
 
 
-# def init_linear(key, shape, bias=True, bias_axis=0):
-#     if len(shape) == 5:
-#         n_det, n_spin, n_atom, _, _ = shape
-#         subkeys = rnd.split(key, num=jnp.prod(n_det * n_spin))
-#         new_shape = (3, 3)
-#         # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[None, ...] for k in subkeys], axis=0)
-#         # p = p.reshape(shape)
-
-#         p = [jnp.concatenate([init_linear_layer(k, new_shape, bias) for k in subkeys], axis=-1)
-#              for _ in range(n_atom)]
-
-#         # p = jnp.concatenate([init_linear_layer(k, new_shape, bias)[..., None] for k in subkeys], axis=-1)
-#         # p = p.reshape(3, n_atom, -1)
-#         # p = [jnp.squeeze(x) for x in jnp.split(p, n_atom, axis=1)]
-
-#         # subkeys = rnd.split(key, num=n_atom)
-#         # p = [init_linear_layer(k, (3, n_det * n_spin * 3), bias) for k in subkeys]
-#     elif len(shape) == 3:
-#         subkeys = rnd.split(key, num=shape[0])
-#         new_shape = shape[1:]
-#         p = jnp.concatenate([init_linear_layer(k, new_shape, bias, bias_axis=-1)[None, ...] for k in subkeys], axis=0)
-
-#     else:
-#         p = init_linear_layer(key, shape, bias)
-
-#     return p
-
-
 def init_linear(key, shape, bias, bias_axis=0):
     key, subkey = rnd.split(key)
     p = init_orthogonal(key, shape)
@@ -64,9 +36,9 @@ def unit_plus_noise(shape, key):
 
 
 
-def count_mixed_features(n_sh, n_ph):
+def count_mixed_features(n_sh, n_ph, n_down):
     #     n_sh_mix = 2 * n_ph + n_sh # change mixer
-    return n_sh + 2 * n_ph
+    return n_sh + n_ph * (2 - int(n_down==0))
 
 
 def initialise_params(mol, key):
@@ -81,15 +53,15 @@ def initialise_params(mol, key):
     n_ph_in = n_in
 
     # count the features in the intermediate layers
-    n_sh_mix = count_mixed_features(n_sh, n_ph)
-    n_sh_split = 2 * n_sh
+    n_sh_mix = count_mixed_features(n_sh, n_ph, n_down)
+    n_sh_split = n_sh * (2 - int(n_down==0)) # n_down==0 reduces the hidden dimension when n_down is zero
 
     params = OrderedDict()
 
     # initial layers
     key, *subkeys = rnd.split(key, num=4)
-    params['split0'] = init_linear(subkeys[0], (n_sh_in * 2, n_sh), bias=False)
-    params['s0'] = init_linear(subkeys[1], (count_mixed_features(n_sh_in, n_ph_in), n_sh), bias=True)
+    params['split0'] = init_linear(subkeys[0], (n_sh_in * (2 - int(n_down==0)), n_sh), bias=False)  # n_down==0 modifies the input when n_down is zero
+    params['s0'] = init_linear(subkeys[1], (count_mixed_features(n_sh_in, n_ph_in, n_down), n_sh), bias=True)
     params['p0'] = init_linear(subkeys[2], (n_ph_in, n_ph), bias=True)
 
     # intermediate layers
@@ -103,24 +75,27 @@ def initialise_params(mol, key):
     # env_linear
     key, *subkeys = rnd.split(key, num=3)
     params['env_lin_up'] = init_linear(subkeys[0], (n_sh, n_det * n_up), bias=True)
-    params['env_lin_down'] = init_linear(subkeys[1], (n_sh, n_det * n_down), bias=True)
+    if not mol.spin_polarized: params['env_lin_down'] = init_linear(subkeys[1], (n_sh, n_det * n_down), bias=True)
 
     # env_sigma
-    key, *subkeys = rnd.split(key, num=3)
-    sigma_shape_up = (3, 3, n_det * n_up) if orbitals == 'anisotropic' else (1, n_det * n_up)
-    sigma_shape_down = (3, 3, n_det * n_down) if orbitals == 'anisotropic' else (1, n_det * n_down)
-    
-    for m, (k1, k2) in enumerate(zip(rnd.split(subkeys[0], num=n_atoms), rnd.split(subkeys[1], num=n_atoms))):
-        params['env_sigma_up_m%i' % m] = init_sigma(k1, sigma_shape_up, bias=False)  # (3, 3 * n_det*n_spin)
-        params['env_sigma_down_m%i' % m] = init_sigma(k2, sigma_shape_down, bias=False)
+    if not mol.system == 'HEG':
+        key, *subkeys = rnd.split(key, num=3)
+        sigma_shape_up = (3, 3, n_det * n_up) if orbitals == 'anisotropic' else (1, n_det * n_up)
+        sigma_shape_down = (3, 3, n_det * n_down) if orbitals == 'anisotropic' else (1, n_det * n_down)
+        
+        for m, (k1, k2) in enumerate(zip(rnd.split(subkeys[0], num=n_atoms), rnd.split(subkeys[1], num=n_atoms))):
+            params['env_sigma_up_m%i' % m] = init_sigma(k1, sigma_shape_up, bias=False)  # (3, 3 * n_det*n_spin)
+            if not mol.spin_polarized:
+                params['env_sigma_down_m%i' % m] = init_sigma(k2, sigma_shape_down, bias=False)
 
-    # env_pi
-    key, *subkeys = rnd.split(key, num=3)
-    for i, k in enumerate(rnd.split(subkeys[0], num=n_up*n_det)):
-        params['env_pi_up_%i' % i] = unit_plus_noise((n_atoms, 1), k)
-    
-    for i, k in enumerate(rnd.split(subkeys[1], num=n_down*n_det)):
-        params['env_pi_down_%i' % i] = unit_plus_noise((n_atoms, 1), k)
+        # env_pi
+        key, *subkeys = rnd.split(key, num=3)
+        for i, k in enumerate(rnd.split(subkeys[0], num=n_up*n_det)):
+            params['env_pi_up_%i' % i] = unit_plus_noise((n_atoms, 1), k)
+        
+        if not mol.spin_polarized:
+            for i, k in enumerate(rnd.split(subkeys[1], num=n_down*n_det)):
+                params['env_pi_down_%i' % i] = unit_plus_noise((n_atoms, 1), k)
 
     # values, tree_map = tree_flatten(params)  # get the tree_map and then flatten
     # values = [v * INIT for v in values]  # scale all of the parameters
@@ -148,17 +123,18 @@ def initialise_d0s(mol, expand=False):
     d0s['env_lin_down'] = jnp.zeros((n_down, n_det * n_down))
 
     # SIGMA BROADCAST
-    n_exponent_dim = 3 if mol.orbitals == 'anisotropic' else 1
+    if not mol.system == 'HEG':
+        n_exponent_dim = 3 if mol.orbitals == 'anisotropic' else 1
 
-    for m in range(n_atoms):
-        d0s['env_sigma_up_m%i' % m] = jnp.zeros((n_up, n_exponent_dim * n_det * n_up))
-        d0s['env_sigma_down_m%i' % m] = jnp.zeros((n_down, n_exponent_dim * n_det * n_down))
-    
-    for i in range(n_det * n_up):
-        d0s['env_pi_up_%i' % i] = jnp.zeros((1,))
-    
-    for i in range(n_det * n_down):
-        d0s['env_pi_down_%i' % i] = jnp.zeros((1,))
+        for m in range(n_atoms):
+            d0s['env_sigma_up_m%i' % m] = jnp.zeros((n_up, n_exponent_dim * n_det * n_up))
+            d0s['env_sigma_down_m%i' % m] = jnp.zeros((n_down, n_exponent_dim * n_det * n_down))
+        
+        for i in range(n_det * n_up):
+            d0s['env_pi_up_%i' % i] = jnp.zeros((1,))
+        
+        for i in range(n_det * n_down):
+            d0s['env_pi_down_%i' % i] = jnp.zeros((1,))
 
     if expand: # distinguish between the cases 1- used to create a partial function (don't expand) 2- used to find the sensitivities (expand)
         d0s = expand_d0s(d0s, mol.n_devices, mol.n_walkers_per_device)

@@ -148,30 +148,24 @@ def dict_entries_to_array(dictionary):
 
 
 def get_system(system, 
-               orbitals,
-               r_atoms, 
-               z_atoms, 
                n_el, 
-               n_el_atoms, 
-               periodic_boundaries, 
-               real_basis, 
-               unit_cell_length):
+               unit_cell_length,
+               density_parameter):
 
     PATH = os.path.abspath(os.path.dirname(__file__))
     systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
-    if not system in systems_data:
-        if system is None or system == 'HEG':
-            assert orbitals == 'HEG'
-            systems_data = {
-                'r_atoms': jnp.array([[0.0]]),
-                'z_atoms': jnp.array([[0.0]]),
-                'n_el': n_el,
-                'n_el_atoms': [n_el],
-                'periodic_boundaries': periodic_boundaries,
-                'real_basis': real_basis,
-                'unit_cell_length': unit_cell_length,                
-            }
-        else: sys.exit('Need number of electrons as minimum input or system in toml file')
+    if system is None or system == 'HEG':
+        systems_data = {'HEG':{
+            **systems_data['HEG'],  # real_basis, periodic_boundaries
+            'r_atoms': jnp.array([[0.0, 0.0, 0.0]]),  # enforces n_atoms = 1 in the molecule class HACKY
+            'z_atoms': jnp.array([0.0]),
+            'n_el': n_el,
+            'n_el_atoms': [n_el],
+            'unit_cell_length': unit_cell_length,
+            'density_parameter': density_parameter}              
+        }
+        # if unit_cell_length is None: sys.exit('unit cell length needed')
+    else: sys.exit('Need number of electrons as minimum input or system in toml file')
 
     return dict_entries_to_array(systems_data[system])
 
@@ -205,6 +199,7 @@ def setup(system: str = 'Be',
           periodic_boundaries=False,
           real_basis=None,
           unit_cell_length=None,
+          density_parameter=None,
           real_cut=6,
           reciprocal_cut=6,
           kappa=0.5,
@@ -236,6 +231,7 @@ def setup(system: str = 'Be',
           load_dir: str = '',
 
           distribute: bool = True, 
+          debug: bool = False,
 
           seed: int = 369):
 
@@ -267,14 +263,9 @@ def setup(system: str = 'Be',
     opt_state_dir = join_and_create(models_dir, 'opt_state')
 
     system_config = get_system(system, 
-                               orbitals,
-                               r_atoms, 
-                               z_atoms, 
                                n_el, 
-                               n_el_atoms, 
-                               periodic_boundaries, 
-                               real_basis, 
-                               unit_cell_length)
+                               unit_cell_length,
+                               density_parameter)
 
     csv_cfg_path, pk_cfg_path = create_config_paths(exp_dir)
 
@@ -296,6 +287,7 @@ def setup(system: str = 'Be',
 
               # SYSTEM
               **system_config,
+              'system': system,
               'real_cut': real_cut,
               'reciprocal_cut': reciprocal_cut,
               'kappa': kappa,
@@ -335,6 +327,7 @@ def setup(system: str = 'Be',
         print(k, '\t\t', v)
 
     if distribute: os.environ['DISTRIBUTE'] = 'True'
+    if debug: os.environ['DEBUG'] = 'True'
 
     return config
 

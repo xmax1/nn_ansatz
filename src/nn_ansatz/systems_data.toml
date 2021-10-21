@@ -44,7 +44,7 @@ n_el = 10
 [HEG]
 periodic_boundaries = true
 real_basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
-
+spin_polarized = true
 
 [LiSolid]
 periodic_boundaries = true

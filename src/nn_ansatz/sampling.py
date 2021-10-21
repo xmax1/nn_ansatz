@@ -30,6 +30,8 @@ def create_sampler(mol, vwf):
     if bool(os.environ.get('DISTRIBUTE')) is True:
         _sampler = pmap(_sampler, in_axes=(None, 0, 0, 0))
 
+    if  bool(os.environ.get('DEBUG')) is True:
+        return _sampler
     return jit(_sampler)
 
 
