@@ -1,0 +1,732 @@
++ '[' -z '' ']'
++ case "$-" in
++ __lmod_vx=x
++ '[' -n x ']'
++ set +x
+Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for this output (/usr/share/lmod/lmod/init/bash)
+Shell debugging restarted
++ unset __lmod_vx
++ source /home/energy/amawi/.bashrc
+++ '[' -f /etc/bashrc ']'
+++ . /etc/bashrc
++++ '[' '' ']'
++++ shopt -q login_shell
++++ '[' 261833 -gt 199 ']'
+++++ /usr/bin/id -gn
+++++ /usr/bin/id -un
++++ '[' ecsvip = amawi ']'
++++ umask 022
++++ SHELL=/bin/bash
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/00-modulepath.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/00-modulepath.sh
+++++ '[' -z /home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core ']'
+++++ :
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/256term.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/256term.sh
+++++ local256=
+++++ '[' -n '' ']'
+++++ '[' -n '' ']'
+++++ unset local256
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/colorgrep.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/colorgrep.sh
+++++ /usr/libexec/grepconf.sh -c
+++++ alias 'grep=grep --color=auto'
+++++ alias 'egrep=egrep --color=auto'
+++++ alias 'fgrep=fgrep --color=auto'
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/colorls.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/colorls.sh
+++++ '[' '!' -t 0 ']'
+++++ return
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/cpu_arch.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/cpu_arch.sh
+++++ export CPU_ARCH=skylake
+++++ CPU_ARCH=skylake
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/lang.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/lang.sh
+++++ sourced=0
+++++ '[' -n en_US.UTF-8 ']'
+++++ saved_lang=en_US.UTF-8
+++++ '[' -f /home/energy/amawi/.i18n ']'
+++++ LANG=en_US.UTF-8
+++++ unset saved_lang
+++++ '[' 0 = 1 ']'
+++++ unset sourced
+++++ unset langfile
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/less.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/less.sh
+++++ '[' -x /usr/bin/lesspipe.sh ']'
+++++ export 'LESSOPEN=||/usr/bin/lesspipe.sh %s'
+++++ LESSOPEN='||/usr/bin/lesspipe.sh %s'
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/modules.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/modules.sh
+++++++ /bin/ps -p 23574 -ocomm=
++++++ /bin/basename slurm_script
+++++ shell=slurm_script
+++++ '[' -f /usr/share/Modules/init/slurm_script ']'
+++++ . /usr/share/Modules/init/sh
++++++ MODULESHOME=/usr/share/Modules
++++++ export MODULESHOME
++++++ '[' GCCcore/10.3.0:zlib/1.2.11-GCCcore-10.3.0:binutils/2.36.1-GCCcore-10.3.0:GCC/10.3.0 = '' ']'
++++++ '[' /home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core = '' ']'
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/omp_num_threads.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/omp_num_threads.sh
+++++ export OMP_NUM_THREADS=1
+++++ OMP_NUM_THREADS=1
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/ulimit.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/ulimit.sh
+++++ ulimit -c 0
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/which2.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/which2.sh
+++++ alias 'which=alias | /usr/bin/which --tty-only --read-alias --show-dot --show-tilde'
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/z00_lmod.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/z00_lmod.sh
+++++ . /etc/profile.d/00-modulepath.sh
++++++ '[' -z /home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core ']'
++++++ :
+++++ '[' -z '' ']'
+++++ '[' -z /usr/share/modulefiles ']'
+++++ PS_CMD=/usr/bin/ps
+++++ '[' '!' -x /usr/bin/ps ']'
+++++ EXPR_CMD=/usr/bin/expr
+++++ '[' '!' -x /usr/bin/expr ']'
+++++ BASENAME_CMD=/usr/bin/basename
+++++ '[' '!' -x /usr/bin/basename ']'
++++++ /usr/bin/ps -p 23574 -ocomm=
+++++ my_shell=slurm_script
++++++ /usr/bin/expr slurm_script : '-*\(.*\)'
+++++ my_shell=slurm_script
++++++ /usr/bin/basename slurm_script
+++++ my_shell=slurm_script
+++++ '[' -f /usr/share/lmod/lmod/init/slurm_script ']'
+++++ . /usr/share/lmod/lmod/init/sh
++++++ LMOD_ROOT=/usr/share/lmod
++++++ LMOD_PKG=/usr/share/lmod/lmod
++++++ LMOD_DIR=/usr/share/lmod/lmod/libexec/
++++++ LMOD_CMD=/usr/share/lmod/lmod/libexec/lmod
++++++ MODULESHOME=/usr/share/lmod/lmod
++++++ export LMOD_CMD
++++++ export LMOD_PKG
++++++ export LMOD_DIR
++++++ export MODULESHOME
++++++ export LMOD_DIR
+++++ unset my_shell PS_CMD EXPR_CMD BASENAME_CMD MODULEPATH_INIT
++++ for i in '/etc/profile.d/*.sh'
++++ '[' -r /etc/profile.d/z01_EasyBuild.sh ']'
++++ '[' '' ']'
++++ . /etc/profile.d/z01_EasyBuild.sh
+++++ '[' -z 1 ']'
+++++ module refresh
++++++ /usr/share/lmod/lmod/libexec/lmod sh refresh
+++++ eval 'MODULEPATH=/home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core;' export 'MODULEPATH;' '_ModuleTable001_=X01vZHVsZVRhYmxlXz17WyJNVHZlcnNpb24iXT0zLFsiY19yZWJ1aWxkVGltZSJdPWZhbHNlLFsiY19zaG9ydFRpbWUiXT1mYWxzZSxkZXB0aFQ9e30sZmFtaWx5PXt9LG1UPXtHQ0M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9HQ0MvMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJHQ0MvMTAuMy4wIixbImxvYWRPcmRlciJdPTQscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDLzEwLjMuMCIsfSxHQ0Njb3JlPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvR0NDY29yZS8xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09IkdDQ2NvcmUvMTAuMy4wIixbImxvYWRPcmRlciJdPTEscHJv;' export '_ModuleTable001_;' '_ModuleTable002_=cFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDY29yZS8xMC4zLjAiLH0sYmludXRpbHM9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9iaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT0zLHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsfSx6bGliPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAubHVhIixb;' export '_ModuleTable002_;' '_ModuleTable003_=ImZ1bGxOYW1lIl09InpsaWIvMS4yLjExLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTIscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAiLH0sfSxtcGF0aEE9eyIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsIiwiL2V0Yy9tb2R1bGVmaWxlcyIsIi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMiLCIvdXNyL3NoYXJlL21vZHVsZWZpbGVzL0xpbnV4IiwiL3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9Db3JlIiwiL3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfSxbInN5c3RlbUJhc2VNUEFUSCJdPSIvZXRjL21vZHVsZWZpbGVzOi91c3Ivc2hhcmUvbW9k;' export '_ModuleTable003_;' '_ModuleTable004_=dWxlZmlsZXM6L3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9MaW51eDovdXNyL3NoYXJlL21vZHVsZWZpbGVzL0NvcmU6L3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfQ==;' export '_ModuleTable004_;' '_ModuleTable_Sz_=4;' export '_ModuleTable_Sz_;'
++++++ MODULEPATH=/home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core
++++++ export MODULEPATH
++++++ _ModuleTable001_=X01vZHVsZVRhYmxlXz17WyJNVHZlcnNpb24iXT0zLFsiY19yZWJ1aWxkVGltZSJdPWZhbHNlLFsiY19zaG9ydFRpbWUiXT1mYWxzZSxkZXB0aFQ9e30sZmFtaWx5PXt9LG1UPXtHQ0M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9HQ0MvMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJHQ0MvMTAuMy4wIixbImxvYWRPcmRlciJdPTQscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDLzEwLjMuMCIsfSxHQ0Njb3JlPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvR0NDY29yZS8xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09IkdDQ2NvcmUvMTAuMy4wIixbImxvYWRPcmRlciJdPTEscHJv
++++++ export _ModuleTable001_
++++++ _ModuleTable002_=cFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDY29yZS8xMC4zLjAiLH0sYmludXRpbHM9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9iaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT0zLHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsfSx6bGliPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAubHVhIixb
++++++ export _ModuleTable002_
++++++ _ModuleTable003_=ImZ1bGxOYW1lIl09InpsaWIvMS4yLjExLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTIscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAiLH0sfSxtcGF0aEE9eyIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsIiwiL2V0Yy9tb2R1bGVmaWxlcyIsIi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMiLCIvdXNyL3NoYXJlL21vZHVsZWZpbGVzL0xpbnV4IiwiL3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9Db3JlIiwiL3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfSxbInN5c3RlbUJhc2VNUEFUSCJdPSIvZXRjL21vZHVsZWZpbGVzOi91c3Ivc2hhcmUvbW9k
++++++ export _ModuleTable003_
++++++ _ModuleTable004_=dWxlZmlsZXM6L3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9MaW51eDovdXNyL3NoYXJlL21vZHVsZWZpbGVzL0NvcmU6L3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfQ==
++++++ export _ModuleTable004_
++++++ _ModuleTable_Sz_=4
++++++ export _ModuleTable_Sz_
++++ unset i
++++ unset -f pathmunge
+++ [[ /home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin =~ /home/energy/amawi/\.local/bin:/home/energy/amawi/bin: ]]
+++ export PATH
++++ /home/energy/amawi/miniconda3/bin/conda shell.bash hook
+++ __conda_setup='export CONDA_EXE='\''/home/energy/amawi/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/home/energy/amawi/miniconda3/bin/python'\''
+
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
+__add_sys_prefix_to_path() {
+    # In dev-mode CONDA_EXE is python.exe and on Windows
+    # it is in a different relative location to condabin.
+    if [ -n "${_CE_CONDA}" ] && [ -n "${WINDIR+x}" ]; then
+        SYSP=$(\dirname "${CONDA_EXE}")
+    else
+        SYSP=$(\dirname "${CONDA_EXE}")
+        SYSP=$(\dirname "${SYSP}")
+    fi
+
+    if [ -n "${WINDIR+x}" ]; then
+        PATH="${SYSP}/bin:${PATH}"
+        PATH="${SYSP}/Scripts:${PATH}"
+        PATH="${SYSP}/Library/bin:${PATH}"
+        PATH="${SYSP}/Library/usr/bin:${PATH}"
+        PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
+        PATH="${SYSP}:${PATH}"
+    else
+        PATH="${SYSP}/bin:${PATH}"
+    fi
+    \export PATH
+}
+
+__conda_exe() (
+    __add_sys_prefix_to_path
+    "$CONDA_EXE" $_CE_M $_CE_CONDA "$@"
+)
+
+__conda_hashr() {
+    if [ -n "${ZSH_VERSION:+x}" ]; then
+        \rehash
+    elif [ -n "${POSH_VERSION:+x}" ]; then
+        :  # pass
+    else
+        \hash -r
+    fi
+}
+
+__conda_activate() {
+    if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
+        # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
+        # after conda updated to >= 4.4. See issue #6173.
+        PS1="$CONDA_PS1_BACKUP"
+        \unset CONDA_PS1_BACKUP
+    fi
+    \local ask_conda
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix "$@")" || \return
+    \eval "$ask_conda"
+    __conda_hashr
+}
+
+__conda_reactivate() {
+    \local ask_conda
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
+    \eval "$ask_conda"
+    __conda_hashr
+}
+
+conda() {
+    \local cmd="${1-__missing__}"
+    case "$cmd" in
+        activate|deactivate)
+            __conda_activate "$@"
+            ;;
+        install|update|upgrade|remove|uninstall)
+            __conda_exe "$@" || \return
+            __conda_reactivate
+            ;;
+        *)
+            __conda_exe "$@"
+            ;;
+    esac
+}
+
+if [ -z "${CONDA_SHLVL+x}" ]; then
+    \export CONDA_SHLVL=0
+    # In dev-mode CONDA_EXE is python.exe and on Windows
+    # it is in a different relative location to condabin.
+    if [ -n "${_CE_CONDA:+x}" ] && [ -n "${WINDIR+x}" ]; then
+        PATH="$(\dirname "$CONDA_EXE")/condabin${PATH:+":${PATH}"}"
+    else
+        PATH="$(\dirname "$(\dirname "$CONDA_EXE")")/condabin${PATH:+":${PATH}"}"
+    fi
+    \export PATH
+
+    # We'\''re not allowing PS1 to be unbound. It must at least be set.
+    # However, we'\''re not exporting it, which can cause problems when starting a second shell
+    # via a first shell (i.e. starting zsh from bash).
+    if [ -z "${PS1+x}" ]; then
+        PS1=
+    fi
+fi
+
+conda activate base'
+++ '[' 0 -eq 0 ']'
+++ eval 'export CONDA_EXE='\''/home/energy/amawi/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/home/energy/amawi/miniconda3/bin/python'\''
+
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
+__add_sys_prefix_to_path() {
+    # In dev-mode CONDA_EXE is python.exe and on Windows
+    # it is in a different relative location to condabin.
+    if [ -n "${_CE_CONDA}" ] && [ -n "${WINDIR+x}" ]; then
+        SYSP=$(\dirname "${CONDA_EXE}")
+    else
+        SYSP=$(\dirname "${CONDA_EXE}")
+        SYSP=$(\dirname "${SYSP}")
+    fi
+
+    if [ -n "${WINDIR+x}" ]; then
+        PATH="${SYSP}/bin:${PATH}"
+        PATH="${SYSP}/Scripts:${PATH}"
+        PATH="${SYSP}/Library/bin:${PATH}"
+        PATH="${SYSP}/Library/usr/bin:${PATH}"
+        PATH="${SYSP}/Library/mingw-w64/bin:${PATH}"
+        PATH="${SYSP}:${PATH}"
+    else
+        PATH="${SYSP}/bin:${PATH}"
+    fi
+    \export PATH
+}
+
+__conda_exe() (
+    __add_sys_prefix_to_path
+    "$CONDA_EXE" $_CE_M $_CE_CONDA "$@"
+)
+
+__conda_hashr() {
+    if [ -n "${ZSH_VERSION:+x}" ]; then
+        \rehash
+    elif [ -n "${POSH_VERSION:+x}" ]; then
+        :  # pass
+    else
+        \hash -r
+    fi
+}
+
+__conda_activate() {
+    if [ -n "${CONDA_PS1_BACKUP:+x}" ]; then
+        # Handle transition from shell activated with conda <= 4.3 to a subsequent activation
+        # after conda updated to >= 4.4. See issue #6173.
+        PS1="$CONDA_PS1_BACKUP"
+        \unset CONDA_PS1_BACKUP
+    fi
+    \local ask_conda
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix "$@")" || \return
+    \eval "$ask_conda"
+    __conda_hashr
+}
+
+__conda_reactivate() {
+    \local ask_conda
+    ask_conda="$(PS1="${PS1:-}" __conda_exe shell.posix reactivate)" || \return
+    \eval "$ask_conda"
+    __conda_hashr
+}
+
+conda() {
+    \local cmd="${1-__missing__}"
+    case "$cmd" in
+        activate|deactivate)
+            __conda_activate "$@"
+            ;;
+        install|update|upgrade|remove|uninstall)
+            __conda_exe "$@" || \return
+            __conda_reactivate
+            ;;
+        *)
+            __conda_exe "$@"
+            ;;
+    esac
+}
+
+if [ -z "${CONDA_SHLVL+x}" ]; then
+    \export CONDA_SHLVL=0
+    # In dev-mode CONDA_EXE is python.exe and on Windows
+    # it is in a different relative location to condabin.
+    if [ -n "${_CE_CONDA:+x}" ] && [ -n "${WINDIR+x}" ]; then
+        PATH="$(\dirname "$CONDA_EXE")/condabin${PATH:+":${PATH}"}"
+    else
+        PATH="$(\dirname "$(\dirname "$CONDA_EXE")")/condabin${PATH:+":${PATH}"}"
+    fi
+    \export PATH
+
+    # We'\''re not allowing PS1 to be unbound. It must at least be set.
+    # However, we'\''re not exporting it, which can cause problems when starting a second shell
+    # via a first shell (i.e. starting zsh from bash).
+    if [ -z "${PS1+x}" ]; then
+        PS1=
+    fi
+fi
+
+conda activate base'
++++ export CONDA_EXE=/home/energy/amawi/miniconda3/bin/conda
++++ CONDA_EXE=/home/energy/amawi/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/home/energy/amawi/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/home/energy/amawi/miniconda3/bin/python
++++ '[' -z x ']'
++++ conda activate base
++++ local cmd=activate
++++ case "$cmd" in
++++ __conda_activate activate base
++++ '[' -n '' ']'
++++ local ask_conda
+++++ PS1=
+++++ __conda_exe shell.posix activate base
+++++ __add_sys_prefix_to_path
+++++ '[' -n '' ']'
++++++ dirname /home/energy/amawi/miniconda3/bin/conda
+++++ SYSP=/home/energy/amawi/miniconda3/bin
++++++ dirname /home/energy/amawi/miniconda3/bin
+++++ SYSP=/home/energy/amawi/miniconda3
+++++ '[' -n '' ']'
+++++ PATH=/home/energy/amawi/miniconda3/bin:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin
+++++ export PATH
+++++ /home/energy/amawi/miniconda3/bin/conda shell.posix activate base
++++ ask_conda='export PATH='\''/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin'\''
+unset CONDA_PREFIX_1
+PS1='\''(base) '\''
+export CONDA_PREFIX='\''/home/energy/amawi/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/home/energy/amawi/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/home/energy/amawi/miniconda3/bin/python'\'''
++++ eval 'export PATH='\''/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin'\''
+unset CONDA_PREFIX_1
+PS1='\''(base) '\''
+export CONDA_PREFIX='\''/home/energy/amawi/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/home/energy/amawi/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/home/energy/amawi/miniconda3/bin/python'\'''
+++++ export PATH=/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin
+++++ PATH=/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin
+++++ unset CONDA_PREFIX_1
+++++ PS1='(base) '
+++++ export CONDA_PREFIX=/home/energy/amawi/miniconda3
+++++ CONDA_PREFIX=/home/energy/amawi/miniconda3
+++++ export CONDA_SHLVL=1
+++++ CONDA_SHLVL=1
+++++ export CONDA_DEFAULT_ENV=base
+++++ CONDA_DEFAULT_ENV=base
+++++ export 'CONDA_PROMPT_MODIFIER=(base) '
+++++ CONDA_PROMPT_MODIFIER='(base) '
+++++ export CONDA_EXE=/home/energy/amawi/miniconda3/bin/conda
+++++ CONDA_EXE=/home/energy/amawi/miniconda3/bin/conda
+++++ export _CE_M=
+++++ _CE_M=
+++++ export _CE_CONDA=
+++++ _CE_CONDA=
+++++ export CONDA_PYTHON_EXE=/home/energy/amawi/miniconda3/bin/python
+++++ CONDA_PYTHON_EXE=/home/energy/amawi/miniconda3/bin/python
++++ __conda_hashr
++++ '[' -n '' ']'
++++ '[' -n '' ']'
++++ hash -r
+++ unset __conda_setup
+++ module load GCC/10.3.0
++++ /usr/share/lmod/lmod/libexec/lmod sh load GCC/10.3.0
+++ eval 'EBDEVELGCC=/home/modules/software/GCC/10.3.0/easybuild/GCC-10.3.0-easybuild-devel;' export 'EBDEVELGCC;' 'EBROOTGCC=/home/modules/software/GCCcore/10.3.0;' export 'EBROOTGCC;' 'EBVERSIONGCC=10.3.0;' export 'EBVERSIONGCC;' 'LOADEDMODULES=GCCcore/10.3.0:zlib/1.2.11-GCCcore-10.3.0:binutils/2.36.1-GCCcore-10.3.0:GCC/10.3.0;' export 'LOADEDMODULES;' 'MODULEPATH=/home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core;' export 'MODULEPATH;' '_LMFILES_=/home/modules/modules/all/GCCcore/10.3.0.lua:/home/modules/modules/all/zlib/1.2.11-GCCcore-10.3.0.lua:/home/modules/modules/all/binutils/2.36.1-GCCcore-10.3.0.lua:/home/modules/modules/all/GCC/10.3.0.lua;' export '_LMFILES_;' '_ModuleTable001_=X01vZHVsZVRhYmxlXz17WyJNVHZlcnNpb24iXT0zLFsiY19yZWJ1aWxkVGltZSJdPWZhbHNlLFsiY19zaG9ydFRpbWUiXT1mYWxzZSxkZXB0aFQ9e30sZmFtaWx5PXt9LG1UPXtHQ0M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9HQ0MvMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJHQ0MvMTAuMy4wIixbImxvYWRPcmRlciJdPTQscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDLzEwLjMuMCIsfSxHQ0Njb3JlPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvR0NDY29yZS8xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09IkdDQ2NvcmUvMTAuMy4wIixbImxvYWRPcmRlciJdPTEscHJv;' export '_ModuleTable001_;' '_ModuleTable002_=cFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDY29yZS8xMC4zLjAiLH0sYmludXRpbHM9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9iaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT0zLHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsfSx6bGliPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAubHVhIixb;' export '_ModuleTable002_;' '_ModuleTable003_=ImZ1bGxOYW1lIl09InpsaWIvMS4yLjExLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTIscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAiLH0sfSxtcGF0aEE9eyIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsIiwiL2V0Yy9tb2R1bGVmaWxlcyIsIi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMiLCIvdXNyL3NoYXJlL21vZHVsZWZpbGVzL0xpbnV4IiwiL3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9Db3JlIiwiL3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfSxbInN5c3RlbUJhc2VNUEFUSCJdPSIvZXRjL21vZHVsZWZpbGVzOi91c3Ivc2hhcmUvbW9k;' export '_ModuleTable003_;' '_ModuleTable004_=dWxlZmlsZXM6L3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9MaW51eDovdXNyL3NoYXJlL21vZHVsZWZpbGVzL0NvcmU6L3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfQ==;' export '_ModuleTable004_;' '_ModuleTable_Sz_=4;' export '_ModuleTable_Sz_;'
++++ EBDEVELGCC=/home/modules/software/GCC/10.3.0/easybuild/GCC-10.3.0-easybuild-devel
++++ export EBDEVELGCC
++++ EBROOTGCC=/home/modules/software/GCCcore/10.3.0
++++ export EBROOTGCC
++++ EBVERSIONGCC=10.3.0
++++ export EBVERSIONGCC
++++ LOADEDMODULES=GCCcore/10.3.0:zlib/1.2.11-GCCcore-10.3.0:binutils/2.36.1-GCCcore-10.3.0:GCC/10.3.0
++++ export LOADEDMODULES
++++ MODULEPATH=/home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core
++++ export MODULEPATH
++++ _LMFILES_=/home/modules/modules/all/GCCcore/10.3.0.lua:/home/modules/modules/all/zlib/1.2.11-GCCcore-10.3.0.lua:/home/modules/modules/all/binutils/2.36.1-GCCcore-10.3.0.lua:/home/modules/modules/all/GCC/10.3.0.lua
++++ export _LMFILES_
++++ _ModuleTable001_=X01vZHVsZVRhYmxlXz17WyJNVHZlcnNpb24iXT0zLFsiY19yZWJ1aWxkVGltZSJdPWZhbHNlLFsiY19zaG9ydFRpbWUiXT1mYWxzZSxkZXB0aFQ9e30sZmFtaWx5PXt9LG1UPXtHQ0M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9HQ0MvMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJHQ0MvMTAuMy4wIixbImxvYWRPcmRlciJdPTQscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDLzEwLjMuMCIsfSxHQ0Njb3JlPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvR0NDY29yZS8xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09IkdDQ2NvcmUvMTAuMy4wIixbImxvYWRPcmRlciJdPTEscHJv
++++ export _ModuleTable001_
++++ _ModuleTable002_=cFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDY29yZS8xMC4zLjAiLH0sYmludXRpbHM9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9iaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT0zLHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09ImJpbnV0aWxzLzIuMzYuMS1HQ0Njb3JlLTEwLjMuMCIsfSx6bGliPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAubHVhIixb
++++ export _ModuleTable002_
++++ _ModuleTable003_=ImZ1bGxOYW1lIl09InpsaWIvMS4yLjExLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTIscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAiLH0sfSxtcGF0aEE9eyIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsIiwiL2V0Yy9tb2R1bGVmaWxlcyIsIi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMiLCIvdXNyL3NoYXJlL21vZHVsZWZpbGVzL0xpbnV4IiwiL3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9Db3JlIiwiL3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfSxbInN5c3RlbUJhc2VNUEFUSCJdPSIvZXRjL21vZHVsZWZpbGVzOi91c3Ivc2hhcmUvbW9k
++++ export _ModuleTable003_
++++ _ModuleTable004_=dWxlZmlsZXM6L3Vzci9zaGFyZS9tb2R1bGVmaWxlcy9MaW51eDovdXNyL3NoYXJlL21vZHVsZWZpbGVzL0NvcmU6L3Vzci9zaGFyZS9sbW9kL2xtb2QvbW9kdWxlZmlsZXMvQ29yZSIsfQ==
++++ export _ModuleTable004_
++++ _ModuleTable_Sz_=4
++++ export _ModuleTable_Sz_
+++ conda activate general
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate general
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(base) '
++++ __conda_exe shell.posix activate general
++++ __add_sys_prefix_to_path
++++ '[' -n '' ']'
+++++ dirname /home/energy/amawi/miniconda3/bin/conda
++++ SYSP=/home/energy/amawi/miniconda3/bin
+++++ dirname /home/energy/amawi/miniconda3/bin
++++ SYSP=/home/energy/amawi/miniconda3
++++ '[' -n '' ']'
++++ PATH=/home/energy/amawi/miniconda3/bin:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin
++++ export PATH
++++ /home/energy/amawi/miniconda3/bin/conda shell.posix activate general
+++ ask_conda='PS1='\''(general) '\''
+export PATH='\''/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin'\''
+export CONDA_PREFIX='\''/home/energy/amawi/miniconda3/envs/general'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''general'\''
+export CONDA_PROMPT_MODIFIER='\''(general) '\''
+export CONDA_EXE='\''/home/energy/amawi/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/home/energy/amawi/miniconda3/bin/python'\''
+export CONDA_PREFIX_1='\''/home/energy/amawi/miniconda3'\'''
+++ eval 'PS1='\''(general) '\''
+export PATH='\''/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin'\''
+export CONDA_PREFIX='\''/home/energy/amawi/miniconda3/envs/general'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''general'\''
+export CONDA_PROMPT_MODIFIER='\''(general) '\''
+export CONDA_EXE='\''/home/energy/amawi/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/home/energy/amawi/miniconda3/bin/python'\''
+export CONDA_PREFIX_1='\''/home/energy/amawi/miniconda3'\'''
++++ PS1='(general) '
++++ export PATH=/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin
++++ PATH=/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin
++++ export CONDA_PREFIX=/home/energy/amawi/miniconda3/envs/general
++++ CONDA_PREFIX=/home/energy/amawi/miniconda3/envs/general
++++ export CONDA_SHLVL=2
++++ CONDA_SHLVL=2
++++ export CONDA_DEFAULT_ENV=general
++++ CONDA_DEFAULT_ENV=general
++++ export 'CONDA_PROMPT_MODIFIER=(general) '
++++ CONDA_PROMPT_MODIFIER='(general) '
++++ export CONDA_EXE=/home/energy/amawi/miniconda3/bin/conda
++++ CONDA_EXE=/home/energy/amawi/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/home/energy/amawi/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/home/energy/amawi/miniconda3/bin/python
++++ export CONDA_PREFIX_1=/home/energy/amawi/miniconda3
++++ CONDA_PREFIX_1=/home/energy/amawi/miniconda3
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ module load foss
+++ /usr/share/lmod/lmod/libexec/lmod sh load foss
++ eval '__LMOD_REF_COUNT_ACLOCAL_PATH=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/aclocal:1;' export '__LMOD_REF_COUNT_ACLOCAL_PATH;' 'ACLOCAL_PATH=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/aclocal;' export 'ACLOCAL_PATH;' '__LMOD_REF_COUNT_CMAKE_PREFIX_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb:1\;/home/modules/software/FFTW/3.3.9-gompi-2021a:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0:1\;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0:1\;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0:1\;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0:1\;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0:1\;/home/modules/software/OpenSSL/1.1:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0:1\;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0:1\;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0:1\;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0:1\;/home/modules/software/GCCcore/10.3.0:1;' export '__LMOD_REF_COUNT_CMAKE_PREFIX_PATH;' 'CMAKE_PREFIX_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb:/home/modules/software/FFTW/3.3.9-gompi-2021a:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0:/home/modules/software/OpenSSL/1.1:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0:/home/modules/software/GCCcore/10.3.0;' export 'CMAKE_PREFIX_PATH;' '__LMOD_REF_COUNT_CPATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/include:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/include:1\;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/include:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/include:1\;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/include:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/include:1\;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/include:1\;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/include:1\;/home/modules/software/OpenSSL/1.1/include:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/include:1\;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/include:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include/libxml2:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/include:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/include:1\;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/include:1\;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/include:1;' export '__LMOD_REF_COUNT_CPATH;' 'CPATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/include:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/include:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/include:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/include:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/include:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/include:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/include:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/include:/home/modules/software/OpenSSL/1.1/include:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/include:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/include:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include/libxml2:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/include:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/include:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/include:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/include;' export 'CPATH;' 'EBDEVELFFTW=/home/modules/software/FFTW/3.3.9-gompi-2021a/easybuild/FFTW-3.3.9-gompi-2021a-easybuild-devel;' export 'EBDEVELFFTW;' 'EBDEVELFLEXIBLAS=/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/easybuild/FlexiBLAS-3.0.4-GCC-10.3.0-easybuild-devel;' export 'EBDEVELFLEXIBLAS;' 'EBDEVELFOSS=/home/modules/software/foss/2021a/easybuild/foss-2021a-easybuild-devel;' export 'EBDEVELFOSS;' 'EBDEVELGOMPI=/home/modules/software/gompi/2021a/easybuild/gompi-2021a-easybuild-devel;' export 'EBDEVELGOMPI;' 'EBDEVELHWLOC=/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/easybuild/hwloc-2.4.1-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELHWLOC;' 'EBDEVELLIBEVENT=/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/easybuild/libevent-2.1.12-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELLIBEVENT;' 'EBDEVELLIBFABRIC=/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/easybuild/libfabric-1.12.1-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELLIBFABRIC;' 'EBDEVELLIBPCIACCESS=/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/easybuild/libpciaccess-0.16-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELLIBPCIACCESS;' 'EBDEVELLIBXML2=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/easybuild/libxml2-2.9.10-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELLIBXML2;' 'EBDEVELNUMACTL=/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/easybuild/numactl-2.0.14-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELNUMACTL;' 'EBDEVELOPENBLAS=/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/easybuild/OpenBLAS-0.3.15-GCC-10.3.0-easybuild-devel;' export 'EBDEVELOPENBLAS;' 'EBDEVELOPENMPI=/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/easybuild/OpenMPI-4.1.1-GCC-10.3.0-easybuild-devel;' export 'EBDEVELOPENMPI;' 'EBDEVELOPENSSL=/home/modules/software/OpenSSL/1.1/easybuild/OpenSSL-1.1-easybuild-devel;' export 'EBDEVELOPENSSL;' 'EBDEVELPMIX=/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/easybuild/PMIx-3.2.3-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELPMIX;' 'EBDEVELSCALAPACK=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/easybuild/ScaLAPACK-2.1.0-gompi-2021a-fb-easybuild-devel;' export 'EBDEVELSCALAPACK;' 'EBDEVELUCX=/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/easybuild/UCX-1.10.0-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELUCX;' 'EBDEVELXZ=/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/easybuild/XZ-5.2.5-GCCcore-10.3.0-easybuild-devel;' export 'EBDEVELXZ;' 'EBROOTFFTW=/home/modules/software/FFTW/3.3.9-gompi-2021a;' export 'EBROOTFFTW;' 'EBROOTFLEXIBLAS=/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0;' export 'EBROOTFLEXIBLAS;' 'EBROOTFOSS=/home/modules/software/foss/2021a;' export 'EBROOTFOSS;' 'EBROOTGOMPI=/home/modules/software/gompi/2021a;' export 'EBROOTGOMPI;' 'EBROOTHWLOC=/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0;' export 'EBROOTHWLOC;' 'EBROOTLIBEVENT=/home/modules/software/libevent/2.1.12-GCCcore-10.3.0;' export 'EBROOTLIBEVENT;' 'EBROOTLIBFABRIC=/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0;' export 'EBROOTLIBFABRIC;' 'EBROOTLIBPCIACCESS=/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0;' export 'EBROOTLIBPCIACCESS;' 'EBROOTLIBXML2=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0;' export 'EBROOTLIBXML2;' 'EBROOTNUMACTL=/home/modules/software/numactl/2.0.14-GCCcore-10.3.0;' export 'EBROOTNUMACTL;' 'EBROOTOPENBLAS=/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0;' export 'EBROOTOPENBLAS;' 'EBROOTOPENMPI=/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0;' export 'EBROOTOPENMPI;' 'EBROOTOPENSSL=/home/modules/software/OpenSSL/1.1;' export 'EBROOTOPENSSL;' 'EBROOTPMIX=/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0;' export 'EBROOTPMIX;' 'EBROOTSCALAPACK=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb;' export 'EBROOTSCALAPACK;' 'EBROOTUCX=/home/modules/software/UCX/1.10.0-GCCcore-10.3.0;' export 'EBROOTUCX;' 'EBROOTXZ=/home/modules/software/XZ/5.2.5-GCCcore-10.3.0;' export 'EBROOTXZ;' 'EBVERSIONFFTW=3.3.9;' export 'EBVERSIONFFTW;' 'EBVERSIONFLEXIBLAS=3.0.4;' export 'EBVERSIONFLEXIBLAS;' 'EBVERSIONFOSS=2021a;' export 'EBVERSIONFOSS;' 'EBVERSIONGOMPI=2021a;' export 'EBVERSIONGOMPI;' 'EBVERSIONHWLOC=2.4.1;' export 'EBVERSIONHWLOC;' 'EBVERSIONLIBEVENT=2.1.12;' export 'EBVERSIONLIBEVENT;' 'EBVERSIONLIBFABRIC=1.12.1;' export 'EBVERSIONLIBFABRIC;' 'EBVERSIONLIBPCIACCESS=0.16;' export 'EBVERSIONLIBPCIACCESS;' 'EBVERSIONLIBXML2=2.9.10;' export 'EBVERSIONLIBXML2;' 'EBVERSIONNUMACTL=2.0.14;' export 'EBVERSIONNUMACTL;' 'EBVERSIONOPENBLAS=0.3.15;' export 'EBVERSIONOPENBLAS;' 'EBVERSIONOPENMPI=4.1.1;' export 'EBVERSIONOPENMPI;' 'EBVERSIONOPENSSL=1.1;' export 'EBVERSIONOPENSSL;' 'EBVERSIONPMIX=3.2.3;' export 'EBVERSIONPMIX;' 'EBVERSIONSCALAPACK=2.1.0;' export 'EBVERSIONSCALAPACK;' 'EBVERSIONUCX=1.10.0;' export 'EBVERSIONUCX;' 'EBVERSIONXZ=5.2.5;' export 'EBVERSIONXZ;' '__LMOD_REF_COUNT_LD_LIBRARY_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:1\;/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:1\;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:1\;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:1\;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:1\;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:1\;/home/modules/software/OpenSSL/1.1/lib:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:1\;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:1\;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:1\;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib:1\;/home/modules/software/GCCcore/10.3.0/lib64:1\;/home/modules/software/GCCcore/10.3.0/lib:1;' export '__LMOD_REF_COUNT_LD_LIBRARY_PATH;' 'LD_LIBRARY_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:/home/modules/software/OpenSSL/1.1/lib:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib:/home/modules/software/GCCcore/10.3.0/lib64:/home/modules/software/GCCcore/10.3.0/lib;' export 'LD_LIBRARY_PATH;' '__LMOD_REF_COUNT_LIBRARY_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:1\;/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:1\;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:1\;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:1\;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:1\;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:1\;/home/modules/software/OpenSSL/1.1/lib:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:1\;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:1\;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:1\;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib:1;' export '__LMOD_REF_COUNT_LIBRARY_PATH;' 'LIBRARY_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:/home/modules/software/OpenSSL/1.1/lib:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib;' export 'LIBRARY_PATH;' '__LMOD_REF_COUNT_LOADEDMODULES=GCCcore/10.3.0:1\;zlib/1.2.11-GCCcore-10.3.0:1\;binutils/2.36.1-GCCcore-10.3.0:1\;GCC/10.3.0:1\;numactl/2.0.14-GCCcore-10.3.0:1\;XZ/5.2.5-GCCcore-10.3.0:1\;libxml2/2.9.10-GCCcore-10.3.0:1\;libpciaccess/0.16-GCCcore-10.3.0:1\;hwloc/2.4.1-GCCcore-10.3.0:1\;OpenSSL/1.1:1\;libevent/2.1.12-GCCcore-10.3.0:1\;UCX/1.10.0-GCCcore-10.3.0:1\;libfabric/1.12.1-GCCcore-10.3.0:1\;PMIx/3.2.3-GCCcore-10.3.0:1\;OpenMPI/4.1.1-GCC-10.3.0:1\;OpenBLAS/0.3.15-GCC-10.3.0:1\;FlexiBLAS/3.0.4-GCC-10.3.0:1\;gompi/2021a:1\;FFTW/3.3.9-gompi-2021a:1\;ScaLAPACK/2.1.0-gompi-2021a-fb:1\;foss/2021a:1;' export '__LMOD_REF_COUNT_LOADEDMODULES;' 'LOADEDMODULES=GCCcore/10.3.0:zlib/1.2.11-GCCcore-10.3.0:binutils/2.36.1-GCCcore-10.3.0:GCC/10.3.0:numactl/2.0.14-GCCcore-10.3.0:XZ/5.2.5-GCCcore-10.3.0:libxml2/2.9.10-GCCcore-10.3.0:libpciaccess/0.16-GCCcore-10.3.0:hwloc/2.4.1-GCCcore-10.3.0:OpenSSL/1.1:libevent/2.1.12-GCCcore-10.3.0:UCX/1.10.0-GCCcore-10.3.0:libfabric/1.12.1-GCCcore-10.3.0:PMIx/3.2.3-GCCcore-10.3.0:OpenMPI/4.1.1-GCC-10.3.0:OpenBLAS/0.3.15-GCC-10.3.0:FlexiBLAS/3.0.4-GCC-10.3.0:gompi/2021a:FFTW/3.3.9-gompi-2021a:ScaLAPACK/2.1.0-gompi-2021a-fb:foss/2021a;' export 'LOADEDMODULES;' '__LMOD_REF_COUNT_MANPATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/share/man:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share/man:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share/man:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share/man:1\;/home/modules/software/OpenSSL/1.1/share/man:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share/man:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/man:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share/man:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share/man:1\;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share/man:1\;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share/man:1\;/home/modules/software/GCCcore/10.3.0/share/man:1\;/usr/share/lmod/lmod/share/man:1;' export '__LMOD_REF_COUNT_MANPATH;' 'MANPATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/share/man:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share/man:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share/man:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share/man:/home/modules/software/OpenSSL/1.1/share/man:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share/man:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/man:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share/man:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share/man:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share/man:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share/man:/home/modules/software/GCCcore/10.3.0/share/man:/usr/share/lmod/lmod/share/man::;' export 'MANPATH;' 'MODULEPATH=/home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core;' export 'MODULEPATH;' '__LMOD_REF_COUNT_PATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/bin:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/bin:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/bin:1\;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/bin:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/bin:1\;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/bin:1\;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/bin:1\;/home/modules/software/OpenSSL/1.1/bin:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/sbin:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/bin:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/bin:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/bin:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/bin:1\;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:1\;/home/modules/software/GCCcore/10.3.0/bin:1\;/home/energy/amawi/miniconda3/envs/general/bin:1\;/home/energy/amawi/miniconda3/condabin:1\;/home/energy/amawi/.local/bin:1\;/home/energy/amawi/bin:1\;/usr/local/bin:1\;/usr/bin:1\;/usr/local/sbin:1\;/usr/sbin:1\;/opt/dell/srvadmin/bin:1;' export '__LMOD_REF_COUNT_PATH;' 'PATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/bin:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/bin:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/bin:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/bin:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/bin:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/bin:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/bin:/home/modules/software/OpenSSL/1.1/bin:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/sbin:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/bin:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/bin:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/bin:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/bin:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin;' export 'PATH;' '__LMOD_REF_COUNT_PKG_CONFIG_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib/pkgconfig:1\;/home/modules/software/FFTW/3.3.9-gompi-2021a/lib/pkgconfig:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib/pkgconfig:1\;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib/pkgconfig:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib/pkgconfig:1\;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/OpenSSL/1.1/lib/pkgconfig:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib/pkgconfig:1\;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib/pkgconfig:1;' export '__LMOD_REF_COUNT_PKG_CONFIG_PATH;' 'PKG_CONFIG_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib/pkgconfig:/home/modules/software/FFTW/3.3.9-gompi-2021a/lib/pkgconfig:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib/pkgconfig:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib/pkgconfig:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib/pkgconfig:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/OpenSSL/1.1/lib/pkgconfig:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib/pkgconfig;' export 'PKG_CONFIG_PATH;' '__LMOD_REF_COUNT_XDG_DATA_DIRS=/home/modules/software/FFTW/3.3.9-gompi-2021a/share:1\;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share:1\;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share:1\;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/share:1\;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share:1\;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/share:1\;/home/modules/software/OpenSSL/1.1/share:1\;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share:1\;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share:1\;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share:1\;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share:1\;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share:1\;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share:1\;/home/modules/software/GCCcore/10.3.0/share:1\;/home/energy/amawi/.local/share/flatpak/exports/share:1\;/var/lib/flatpak/exports/share:1\;/usr/local/share:1\;/usr/share:1;' export '__LMOD_REF_COUNT_XDG_DATA_DIRS;' 'XDG_DATA_DIRS=/home/modules/software/FFTW/3.3.9-gompi-2021a/share:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/share:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/share:/home/modules/software/OpenSSL/1.1/share:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share:/home/modules/software/GCCcore/10.3.0/share:/home/energy/amawi/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share;' export 'XDG_DATA_DIRS;' '__LMOD_REF_COUNT__LMFILES_=/home/modules/modules/all/GCCcore/10.3.0.lua:1\;/home/modules/modules/all/zlib/1.2.11-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/binutils/2.36.1-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/GCC/10.3.0.lua:1\;/home/modules/modules/all/numactl/2.0.14-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/XZ/5.2.5-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/libxml2/2.9.10-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/libpciaccess/0.16-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/hwloc/2.4.1-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/OpenSSL/1.1.lua:1\;/home/modules/modules/all/libevent/2.1.12-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/UCX/1.10.0-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/libfabric/1.12.1-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/PMIx/3.2.3-GCCcore-10.3.0.lua:1\;/home/modules/modules/all/OpenMPI/4.1.1-GCC-10.3.0.lua:1\;/home/modules/modules/all/OpenBLAS/0.3.15-GCC-10.3.0.lua:1\;/home/modules/modules/all/FlexiBLAS/3.0.4-GCC-10.3.0.lua:1\;/home/modules/modules/all/gompi/2021a.lua:1\;/home/modules/modules/all/FFTW/3.3.9-gompi-2021a.lua:1\;/home/modules/modules/all/ScaLAPACK/2.1.0-gompi-2021a-fb.lua:1\;/home/modules/modules/all/foss/2021a.lua:1;' export '__LMOD_REF_COUNT__LMFILES_;' '_LMFILES_=/home/modules/modules/all/GCCcore/10.3.0.lua:/home/modules/modules/all/zlib/1.2.11-GCCcore-10.3.0.lua:/home/modules/modules/all/binutils/2.36.1-GCCcore-10.3.0.lua:/home/modules/modules/all/GCC/10.3.0.lua:/home/modules/modules/all/numactl/2.0.14-GCCcore-10.3.0.lua:/home/modules/modules/all/XZ/5.2.5-GCCcore-10.3.0.lua:/home/modules/modules/all/libxml2/2.9.10-GCCcore-10.3.0.lua:/home/modules/modules/all/libpciaccess/0.16-GCCcore-10.3.0.lua:/home/modules/modules/all/hwloc/2.4.1-GCCcore-10.3.0.lua:/home/modules/modules/all/OpenSSL/1.1.lua:/home/modules/modules/all/libevent/2.1.12-GCCcore-10.3.0.lua:/home/modules/modules/all/UCX/1.10.0-GCCcore-10.3.0.lua:/home/modules/modules/all/libfabric/1.12.1-GCCcore-10.3.0.lua:/home/modules/modules/all/PMIx/3.2.3-GCCcore-10.3.0.lua:/home/modules/modules/all/OpenMPI/4.1.1-GCC-10.3.0.lua:/home/modules/modules/all/OpenBLAS/0.3.15-GCC-10.3.0.lua:/home/modules/modules/all/FlexiBLAS/3.0.4-GCC-10.3.0.lua:/home/modules/modules/all/gompi/2021a.lua:/home/modules/modules/all/FFTW/3.3.9-gompi-2021a.lua:/home/modules/modules/all/ScaLAPACK/2.1.0-gompi-2021a-fb.lua:/home/modules/modules/all/foss/2021a.lua;' export '_LMFILES_;' '_ModuleTable001_=X01vZHVsZVRhYmxlXz17WyJNVHZlcnNpb24iXT0zLFsiY19yZWJ1aWxkVGltZSJdPWZhbHNlLFsiY19zaG9ydFRpbWUiXT1mYWxzZSxkZXB0aFQ9e30sZmFtaWx5PXt9LG1UPXtGRlRXPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvRkZUVy8zLjMuOS1nb21waS0yMDIxYS5sdWEiLFsiZnVsbE5hbWUiXT0iRkZUVy8zLjMuOS1nb21waS0yMDIxYSIsWyJsb2FkT3JkZXIiXT0xOSxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJGRlRXLzMuMy45LWdvbXBpLTIwMjFhIix9LEZsZXhpQkxBUz17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL0ZsZXhpQkxBUy8zLjAuNC1HQ0MtMTAuMy4wLmx1;' export '_ModuleTable001_;' '_ModuleTable002_=YSIsWyJmdWxsTmFtZSJdPSJGbGV4aUJMQVMvMy4wLjQtR0NDLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT0xNyxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJGbGV4aUJMQVMvMy4wLjQtR0NDLTEwLjMuMCIsfSxHQ0M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9HQ0MvMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJHQ0MvMTAuMy4wIixbImxvYWRPcmRlciJdPTQscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDLzEwLjMuMCIsfSxHQ0Njb3JlPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvR0NDY29yZS8xMC4zLjAubHVh;' export '_ModuleTable002_;' '_ModuleTable003_=IixbImZ1bGxOYW1lIl09IkdDQ2NvcmUvMTAuMy4wIixbImxvYWRPcmRlciJdPTEscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDY29yZS8xMC4zLjAiLH0sT3BlbkJMQVM9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9PcGVuQkxBUy8wLjMuMTUtR0NDLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0iT3BlbkJMQVMvMC4zLjE1LUdDQy0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTYscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iT3BlbkJMQVMvMC4zLjE1LUdDQy0xMC4zLjAiLH0sT3Blbk1QST17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21v;' export '_ModuleTable003_;' '_ModuleTable004_=ZHVsZXMvYWxsL09wZW5NUEkvNC4xLjEtR0NDLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0iT3Blbk1QSS80LjEuMS1HQ0MtMTAuMy4wIixbImxvYWRPcmRlciJdPTE1LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Ik9wZW5NUEkvNC4xLjEtR0NDLTEwLjMuMCIsfSxPcGVuU1NMPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvT3BlblNTTC8xLjEubHVhIixbImZ1bGxOYW1lIl09Ik9wZW5TU0wvMS4xIixbImxvYWRPcmRlciJdPTEwLHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTMsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Ik9wZW5TU0wvMS4xIix9LFBNSXg9e1siZm4iXT0iL2hvbWUv;' export '_ModuleTable004_;' '_ModuleTable005_=bW9kdWxlcy9tb2R1bGVzL2FsbC9QTUl4LzMuMi4zLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJQTUl4LzMuMi4zLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTE0LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTIsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09IlBNSXgvMy4yLjMtR0NDY29yZS0xMC4zLjAiLH0sU2NhTEFQQUNLPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvU2NhTEFQQUNLLzIuMS4wLWdvbXBpLTIwMjFhLWZiLmx1YSIsWyJmdWxsTmFtZSJdPSJTY2FMQVBBQ0svMi4xLjAtZ29tcGktMjAyMWEtZmIiLFsibG9hZE9yZGVyIl09MjAscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3Rp;' export '_ModuleTable005_;' '_ModuleTable006_=dmUiLFsidXNlck5hbWUiXT0iU2NhTEFQQUNLLzIuMS4wLWdvbXBpLTIwMjFhLWZiIix9LFVDWD17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL1VDWC8xLjEwLjAtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09IlVDWC8xLjEwLjAtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTIscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iVUNYLzEuMTAuMC1HQ0Njb3JlLTEwLjMuMCIsfSxYWj17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL1haLzUuMi41LUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJYWi81LjIuNS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3Jk;' export '_ModuleTable006_;' '_ModuleTable007_=ZXIiXT02LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTQsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09IlhaLzUuMi41LUdDQ2NvcmUtMTAuMy4wIix9LGJpbnV0aWxzPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvYmludXRpbHMvMi4zNi4xLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJiaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09Myxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJiaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAiLH0sZm9zcz17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2Zvc3MvMjAyMWEubHVh;' export '_ModuleTable007_;' '_ModuleTable008_=IixbImZ1bGxOYW1lIl09ImZvc3MvMjAyMWEiLFsibG9hZE9yZGVyIl09MjEscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iZm9zcyIsfSxnb21waT17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2dvbXBpLzIwMjFhLmx1YSIsWyJmdWxsTmFtZSJdPSJnb21waS8yMDIxYSIsWyJsb2FkT3JkZXIiXT0xOCxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0yLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJnb21waS8yMDIxYSIsfSxod2xvYz17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2h3bG9jLzIuNC4xLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJod2xvYy8y;' export '_ModuleTable008_;' '_ModuleTable009_=LjQuMS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT05LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTIsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Imh3bG9jLzIuNC4xLUdDQ2NvcmUtMTAuMy4wIix9LGxpYmV2ZW50PXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvbGliZXZlbnQvMi4xLjEyLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJsaWJldmVudC8yLjEuMTItR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTEscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0ibGliZXZlbnQvMi4xLjEyLUdDQ2NvcmUtMTAuMy4wIix9LGxpYmZhYnJpYz17WyJmbiJdPSIv;' export '_ModuleTable009_;' '_ModuleTable010_=aG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2xpYmZhYnJpYy8xLjEyLjEtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImxpYmZhYnJpYy8xLjEyLjEtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTMscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0ibGliZmFicmljLzEuMTIuMS1HQ0Njb3JlLTEwLjMuMCIsfSxsaWJwY2lhY2Nlc3M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9saWJwY2lhY2Nlc3MvMC4xNi1HQ0Njb3JlLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0ibGlicGNpYWNjZXNzLzAuMTYtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09OCxwcm9wVD17fSxbInN0;' export '_ModuleTable010_;' '_ModuleTable011_=YWNrRGVwdGgiXT0zLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJsaWJwY2lhY2Nlc3MvMC4xNi1HQ0Njb3JlLTEwLjMuMCIsfSxsaWJ4bWwyPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvbGlieG1sMi8yLjkuMTAtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImxpYnhtbDIvMi45LjEwLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTcscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MyxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0ibGlieG1sMi8yLjkuMTAtR0NDY29yZS0xMC4zLjAiLH0sbnVtYWN0bD17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL251bWFjdGwvMi4wLjE0LUdDQ2NvcmUtMTAu;' export '_ModuleTable011_;' '_ModuleTable012_=My4wLmx1YSIsWyJmdWxsTmFtZSJdPSJudW1hY3RsLzIuMC4xNC1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT01LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTMsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Im51bWFjdGwvMi4wLjE0LUdDQ2NvcmUtMTAuMy4wIix9LHpsaWI9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC96bGliLzEuMi4xMS1HQ0Njb3JlLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0iemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09Mixwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0yLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJ6bGliLzEuMi4xMS1HQ0Njb3JlLTEwLjMuMCIsfSx9;' export '_ModuleTable012_;' '_ModuleTable013_=LG1wYXRoQT17Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwiLCIvZXRjL21vZHVsZWZpbGVzIiwiL3Vzci9zaGFyZS9tb2R1bGVmaWxlcyIsIi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMvTGludXgiLCIvdXNyL3NoYXJlL21vZHVsZWZpbGVzL0NvcmUiLCIvdXNyL3NoYXJlL2xtb2QvbG1vZC9tb2R1bGVmaWxlcy9Db3JlIix9LFsic3lzdGVtQmFzZU1QQVRIIl09Ii9ldGMvbW9kdWxlZmlsZXM6L3Vzci9zaGFyZS9tb2R1bGVmaWxlczovdXNyL3NoYXJlL21vZHVsZWZpbGVzL0xpbnV4Oi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMvQ29yZTovdXNyL3NoYXJlL2xtb2QvbG1vZC9tb2R1bGVmaWxlcy9Db3JlIix9;' export '_ModuleTable013_;' '_ModuleTable_Sz_=13;' export '_ModuleTable_Sz_;'
+++ __LMOD_REF_COUNT_ACLOCAL_PATH=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/aclocal:1
+++ export __LMOD_REF_COUNT_ACLOCAL_PATH
+++ ACLOCAL_PATH=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/aclocal
+++ export ACLOCAL_PATH
+++ __LMOD_REF_COUNT_CMAKE_PREFIX_PATH='/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb:1;/home/modules/software/FFTW/3.3.9-gompi-2021a:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0:1;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0:1;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0:1;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0:1;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0:1;/home/modules/software/OpenSSL/1.1:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0:1;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0:1;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0:1;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0:1;/home/modules/software/GCCcore/10.3.0:1'
+++ export __LMOD_REF_COUNT_CMAKE_PREFIX_PATH
+++ CMAKE_PREFIX_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb:/home/modules/software/FFTW/3.3.9-gompi-2021a:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0:/home/modules/software/OpenSSL/1.1:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0:/home/modules/software/GCCcore/10.3.0
+++ export CMAKE_PREFIX_PATH
+++ __LMOD_REF_COUNT_CPATH='/home/modules/software/FFTW/3.3.9-gompi-2021a/include:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/include:1;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/include:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/include:1;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/include:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/include:1;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/include:1;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/include:1;/home/modules/software/OpenSSL/1.1/include:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/include:1;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/include:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include/libxml2:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/include:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/include:1;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/include:1;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/include:1'
+++ export __LMOD_REF_COUNT_CPATH
+++ CPATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/include:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/include:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/include:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/include:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/include:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/include:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/include:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/include:/home/modules/software/OpenSSL/1.1/include:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/include:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/include:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include/libxml2:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/include:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/include:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/include:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/include:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/include
+++ export CPATH
+++ EBDEVELFFTW=/home/modules/software/FFTW/3.3.9-gompi-2021a/easybuild/FFTW-3.3.9-gompi-2021a-easybuild-devel
+++ export EBDEVELFFTW
+++ EBDEVELFLEXIBLAS=/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/easybuild/FlexiBLAS-3.0.4-GCC-10.3.0-easybuild-devel
+++ export EBDEVELFLEXIBLAS
+++ EBDEVELFOSS=/home/modules/software/foss/2021a/easybuild/foss-2021a-easybuild-devel
+++ export EBDEVELFOSS
+++ EBDEVELGOMPI=/home/modules/software/gompi/2021a/easybuild/gompi-2021a-easybuild-devel
+++ export EBDEVELGOMPI
+++ EBDEVELHWLOC=/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/easybuild/hwloc-2.4.1-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELHWLOC
+++ EBDEVELLIBEVENT=/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/easybuild/libevent-2.1.12-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELLIBEVENT
+++ EBDEVELLIBFABRIC=/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/easybuild/libfabric-1.12.1-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELLIBFABRIC
+++ EBDEVELLIBPCIACCESS=/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/easybuild/libpciaccess-0.16-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELLIBPCIACCESS
+++ EBDEVELLIBXML2=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/easybuild/libxml2-2.9.10-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELLIBXML2
+++ EBDEVELNUMACTL=/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/easybuild/numactl-2.0.14-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELNUMACTL
+++ EBDEVELOPENBLAS=/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/easybuild/OpenBLAS-0.3.15-GCC-10.3.0-easybuild-devel
+++ export EBDEVELOPENBLAS
+++ EBDEVELOPENMPI=/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/easybuild/OpenMPI-4.1.1-GCC-10.3.0-easybuild-devel
+++ export EBDEVELOPENMPI
+++ EBDEVELOPENSSL=/home/modules/software/OpenSSL/1.1/easybuild/OpenSSL-1.1-easybuild-devel
+++ export EBDEVELOPENSSL
+++ EBDEVELPMIX=/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/easybuild/PMIx-3.2.3-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELPMIX
+++ EBDEVELSCALAPACK=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/easybuild/ScaLAPACK-2.1.0-gompi-2021a-fb-easybuild-devel
+++ export EBDEVELSCALAPACK
+++ EBDEVELUCX=/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/easybuild/UCX-1.10.0-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELUCX
+++ EBDEVELXZ=/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/easybuild/XZ-5.2.5-GCCcore-10.3.0-easybuild-devel
+++ export EBDEVELXZ
+++ EBROOTFFTW=/home/modules/software/FFTW/3.3.9-gompi-2021a
+++ export EBROOTFFTW
+++ EBROOTFLEXIBLAS=/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0
+++ export EBROOTFLEXIBLAS
+++ EBROOTFOSS=/home/modules/software/foss/2021a
+++ export EBROOTFOSS
+++ EBROOTGOMPI=/home/modules/software/gompi/2021a
+++ export EBROOTGOMPI
+++ EBROOTHWLOC=/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0
+++ export EBROOTHWLOC
+++ EBROOTLIBEVENT=/home/modules/software/libevent/2.1.12-GCCcore-10.3.0
+++ export EBROOTLIBEVENT
+++ EBROOTLIBFABRIC=/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0
+++ export EBROOTLIBFABRIC
+++ EBROOTLIBPCIACCESS=/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0
+++ export EBROOTLIBPCIACCESS
+++ EBROOTLIBXML2=/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0
+++ export EBROOTLIBXML2
+++ EBROOTNUMACTL=/home/modules/software/numactl/2.0.14-GCCcore-10.3.0
+++ export EBROOTNUMACTL
+++ EBROOTOPENBLAS=/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0
+++ export EBROOTOPENBLAS
+++ EBROOTOPENMPI=/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0
+++ export EBROOTOPENMPI
+++ EBROOTOPENSSL=/home/modules/software/OpenSSL/1.1
+++ export EBROOTOPENSSL
+++ EBROOTPMIX=/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0
+++ export EBROOTPMIX
+++ EBROOTSCALAPACK=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb
+++ export EBROOTSCALAPACK
+++ EBROOTUCX=/home/modules/software/UCX/1.10.0-GCCcore-10.3.0
+++ export EBROOTUCX
+++ EBROOTXZ=/home/modules/software/XZ/5.2.5-GCCcore-10.3.0
+++ export EBROOTXZ
+++ EBVERSIONFFTW=3.3.9
+++ export EBVERSIONFFTW
+++ EBVERSIONFLEXIBLAS=3.0.4
+++ export EBVERSIONFLEXIBLAS
+++ EBVERSIONFOSS=2021a
+++ export EBVERSIONFOSS
+++ EBVERSIONGOMPI=2021a
+++ export EBVERSIONGOMPI
+++ EBVERSIONHWLOC=2.4.1
+++ export EBVERSIONHWLOC
+++ EBVERSIONLIBEVENT=2.1.12
+++ export EBVERSIONLIBEVENT
+++ EBVERSIONLIBFABRIC=1.12.1
+++ export EBVERSIONLIBFABRIC
+++ EBVERSIONLIBPCIACCESS=0.16
+++ export EBVERSIONLIBPCIACCESS
+++ EBVERSIONLIBXML2=2.9.10
+++ export EBVERSIONLIBXML2
+++ EBVERSIONNUMACTL=2.0.14
+++ export EBVERSIONNUMACTL
+++ EBVERSIONOPENBLAS=0.3.15
+++ export EBVERSIONOPENBLAS
+++ EBVERSIONOPENMPI=4.1.1
+++ export EBVERSIONOPENMPI
+++ EBVERSIONOPENSSL=1.1
+++ export EBVERSIONOPENSSL
+++ EBVERSIONPMIX=3.2.3
+++ export EBVERSIONPMIX
+++ EBVERSIONSCALAPACK=2.1.0
+++ export EBVERSIONSCALAPACK
+++ EBVERSIONUCX=1.10.0
+++ export EBVERSIONUCX
+++ EBVERSIONXZ=5.2.5
+++ export EBVERSIONXZ
+++ __LMOD_REF_COUNT_LD_LIBRARY_PATH='/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:1;/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:1;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:1;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:1;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:1;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:1;/home/modules/software/OpenSSL/1.1/lib:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:1;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:1;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:1;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib:1;/home/modules/software/GCCcore/10.3.0/lib64:1;/home/modules/software/GCCcore/10.3.0/lib:1'
+++ export __LMOD_REF_COUNT_LD_LIBRARY_PATH
+++ LD_LIBRARY_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:/home/modules/software/OpenSSL/1.1/lib:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib:/home/modules/software/GCCcore/10.3.0/lib64:/home/modules/software/GCCcore/10.3.0/lib
+++ export LD_LIBRARY_PATH
+++ __LMOD_REF_COUNT_LIBRARY_PATH='/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:1;/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:1;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:1;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:1;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:1;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:1;/home/modules/software/OpenSSL/1.1/lib:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:1;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:1;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:1;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib:1'
+++ export __LMOD_REF_COUNT_LIBRARY_PATH
+++ LIBRARY_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib:/home/modules/software/FFTW/3.3.9-gompi-2021a/lib:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib:/home/modules/software/OpenSSL/1.1/lib:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/lib:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib
+++ export LIBRARY_PATH
+++ __LMOD_REF_COUNT_LOADEDMODULES='GCCcore/10.3.0:1;zlib/1.2.11-GCCcore-10.3.0:1;binutils/2.36.1-GCCcore-10.3.0:1;GCC/10.3.0:1;numactl/2.0.14-GCCcore-10.3.0:1;XZ/5.2.5-GCCcore-10.3.0:1;libxml2/2.9.10-GCCcore-10.3.0:1;libpciaccess/0.16-GCCcore-10.3.0:1;hwloc/2.4.1-GCCcore-10.3.0:1;OpenSSL/1.1:1;libevent/2.1.12-GCCcore-10.3.0:1;UCX/1.10.0-GCCcore-10.3.0:1;libfabric/1.12.1-GCCcore-10.3.0:1;PMIx/3.2.3-GCCcore-10.3.0:1;OpenMPI/4.1.1-GCC-10.3.0:1;OpenBLAS/0.3.15-GCC-10.3.0:1;FlexiBLAS/3.0.4-GCC-10.3.0:1;gompi/2021a:1;FFTW/3.3.9-gompi-2021a:1;ScaLAPACK/2.1.0-gompi-2021a-fb:1;foss/2021a:1'
+++ export __LMOD_REF_COUNT_LOADEDMODULES
+++ LOADEDMODULES=GCCcore/10.3.0:zlib/1.2.11-GCCcore-10.3.0:binutils/2.36.1-GCCcore-10.3.0:GCC/10.3.0:numactl/2.0.14-GCCcore-10.3.0:XZ/5.2.5-GCCcore-10.3.0:libxml2/2.9.10-GCCcore-10.3.0:libpciaccess/0.16-GCCcore-10.3.0:hwloc/2.4.1-GCCcore-10.3.0:OpenSSL/1.1:libevent/2.1.12-GCCcore-10.3.0:UCX/1.10.0-GCCcore-10.3.0:libfabric/1.12.1-GCCcore-10.3.0:PMIx/3.2.3-GCCcore-10.3.0:OpenMPI/4.1.1-GCC-10.3.0:OpenBLAS/0.3.15-GCC-10.3.0:FlexiBLAS/3.0.4-GCC-10.3.0:gompi/2021a:FFTW/3.3.9-gompi-2021a:ScaLAPACK/2.1.0-gompi-2021a-fb:foss/2021a
+++ export LOADEDMODULES
+++ __LMOD_REF_COUNT_MANPATH='/home/modules/software/FFTW/3.3.9-gompi-2021a/share/man:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share/man:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share/man:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share/man:1;/home/modules/software/OpenSSL/1.1/share/man:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share/man:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/man:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share/man:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share/man:1;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share/man:1;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share/man:1;/home/modules/software/GCCcore/10.3.0/share/man:1;/usr/share/lmod/lmod/share/man:1'
+++ export __LMOD_REF_COUNT_MANPATH
+++ MANPATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/share/man:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share/man:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share/man:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share/man:/home/modules/software/OpenSSL/1.1/share/man:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share/man:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share/man:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share/man:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share/man:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share/man:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share/man:/home/modules/software/GCCcore/10.3.0/share/man:/usr/share/lmod/lmod/share/man::
+++ export MANPATH
+++ MODULEPATH=/home/modules/modules/all:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core
+++ export MODULEPATH
+++ __LMOD_REF_COUNT_PATH='/home/modules/software/FFTW/3.3.9-gompi-2021a/bin:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/bin:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/bin:1;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/bin:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/bin:1;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/bin:1;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/bin:1;/home/modules/software/OpenSSL/1.1/bin:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/sbin:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/bin:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/bin:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/bin:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/bin:1;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:1;/home/modules/software/GCCcore/10.3.0/bin:1;/home/energy/amawi/miniconda3/envs/general/bin:1;/home/energy/amawi/miniconda3/condabin:1;/home/energy/amawi/.local/bin:1;/home/energy/amawi/bin:1;/usr/local/bin:1;/usr/bin:1;/usr/local/sbin:1;/usr/sbin:1;/opt/dell/srvadmin/bin:1'
+++ export __LMOD_REF_COUNT_PATH
+++ PATH=/home/modules/software/FFTW/3.3.9-gompi-2021a/bin:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/bin:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/bin:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/bin:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/bin:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/bin:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/bin:/home/modules/software/OpenSSL/1.1/bin:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/sbin:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/bin:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/bin:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/bin:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/bin:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/bin:/home/modules/software/GCCcore/10.3.0/bin:/home/energy/amawi/miniconda3/envs/general/bin:/home/energy/amawi/miniconda3/condabin:/home/energy/amawi/.local/bin:/home/energy/amawi/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/dell/srvadmin/bin
+++ export PATH
+++ __LMOD_REF_COUNT_PKG_CONFIG_PATH='/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib/pkgconfig:1;/home/modules/software/FFTW/3.3.9-gompi-2021a/lib/pkgconfig:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib/pkgconfig:1;/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib/pkgconfig:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib/pkgconfig:1;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/OpenSSL/1.1/lib/pkgconfig:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib/pkgconfig:1;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib/pkgconfig:1'
+++ export __LMOD_REF_COUNT_PKG_CONFIG_PATH
+++ PKG_CONFIG_PATH=/home/modules/software/ScaLAPACK/2.1.0-gompi-2021a-fb/lib/pkgconfig:/home/modules/software/FFTW/3.3.9-gompi-2021a/lib/pkgconfig:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/lib/pkgconfig:/home/modules/software/OpenBLAS/0.3.15-GCC-10.3.0/lib/pkgconfig:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/lib/pkgconfig:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libevent/2.1.12-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/OpenSSL/1.1/lib/pkgconfig:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libpciaccess/0.16-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/lib/pkgconfig:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/lib/pkgconfig
+++ export PKG_CONFIG_PATH
+++ __LMOD_REF_COUNT_XDG_DATA_DIRS='/home/modules/software/FFTW/3.3.9-gompi-2021a/share:1;/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share:1;/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share:1;/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/share:1;/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share:1;/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/share:1;/home/modules/software/OpenSSL/1.1/share:1;/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share:1;/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share:1;/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share:1;/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share:1;/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share:1;/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share:1;/home/modules/software/GCCcore/10.3.0/share:1;/home/energy/amawi/.local/share/flatpak/exports/share:1;/var/lib/flatpak/exports/share:1;/usr/local/share:1;/usr/share:1'
+++ export __LMOD_REF_COUNT_XDG_DATA_DIRS
+++ XDG_DATA_DIRS=/home/modules/software/FFTW/3.3.9-gompi-2021a/share:/home/modules/software/FlexiBLAS/3.0.4-GCC-10.3.0/share:/home/modules/software/OpenMPI/4.1.1-GCC-10.3.0/share:/home/modules/software/PMIx/3.2.3-GCCcore-10.3.0/share:/home/modules/software/libfabric/1.12.1-GCCcore-10.3.0/share:/home/modules/software/UCX/1.10.0-GCCcore-10.3.0/share:/home/modules/software/OpenSSL/1.1/share:/home/modules/software/hwloc/2.4.1-GCCcore-10.3.0/share:/home/modules/software/libxml2/2.9.10-GCCcore-10.3.0/share:/home/modules/software/XZ/5.2.5-GCCcore-10.3.0/share:/home/modules/software/numactl/2.0.14-GCCcore-10.3.0/share:/home/modules/software/binutils/2.36.1-GCCcore-10.3.0/share:/home/modules/software/zlib/1.2.11-GCCcore-10.3.0/share:/home/modules/software/GCCcore/10.3.0/share:/home/energy/amawi/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+++ export XDG_DATA_DIRS
+++ __LMOD_REF_COUNT__LMFILES_='/home/modules/modules/all/GCCcore/10.3.0.lua:1;/home/modules/modules/all/zlib/1.2.11-GCCcore-10.3.0.lua:1;/home/modules/modules/all/binutils/2.36.1-GCCcore-10.3.0.lua:1;/home/modules/modules/all/GCC/10.3.0.lua:1;/home/modules/modules/all/numactl/2.0.14-GCCcore-10.3.0.lua:1;/home/modules/modules/all/XZ/5.2.5-GCCcore-10.3.0.lua:1;/home/modules/modules/all/libxml2/2.9.10-GCCcore-10.3.0.lua:1;/home/modules/modules/all/libpciaccess/0.16-GCCcore-10.3.0.lua:1;/home/modules/modules/all/hwloc/2.4.1-GCCcore-10.3.0.lua:1;/home/modules/modules/all/OpenSSL/1.1.lua:1;/home/modules/modules/all/libevent/2.1.12-GCCcore-10.3.0.lua:1;/home/modules/modules/all/UCX/1.10.0-GCCcore-10.3.0.lua:1;/home/modules/modules/all/libfabric/1.12.1-GCCcore-10.3.0.lua:1;/home/modules/modules/all/PMIx/3.2.3-GCCcore-10.3.0.lua:1;/home/modules/modules/all/OpenMPI/4.1.1-GCC-10.3.0.lua:1;/home/modules/modules/all/OpenBLAS/0.3.15-GCC-10.3.0.lua:1;/home/modules/modules/all/FlexiBLAS/3.0.4-GCC-10.3.0.lua:1;/home/modules/modules/all/gompi/2021a.lua:1;/home/modules/modules/all/FFTW/3.3.9-gompi-2021a.lua:1;/home/modules/modules/all/ScaLAPACK/2.1.0-gompi-2021a-fb.lua:1;/home/modules/modules/all/foss/2021a.lua:1'
+++ export __LMOD_REF_COUNT__LMFILES_
+++ _LMFILES_=/home/modules/modules/all/GCCcore/10.3.0.lua:/home/modules/modules/all/zlib/1.2.11-GCCcore-10.3.0.lua:/home/modules/modules/all/binutils/2.36.1-GCCcore-10.3.0.lua:/home/modules/modules/all/GCC/10.3.0.lua:/home/modules/modules/all/numactl/2.0.14-GCCcore-10.3.0.lua:/home/modules/modules/all/XZ/5.2.5-GCCcore-10.3.0.lua:/home/modules/modules/all/libxml2/2.9.10-GCCcore-10.3.0.lua:/home/modules/modules/all/libpciaccess/0.16-GCCcore-10.3.0.lua:/home/modules/modules/all/hwloc/2.4.1-GCCcore-10.3.0.lua:/home/modules/modules/all/OpenSSL/1.1.lua:/home/modules/modules/all/libevent/2.1.12-GCCcore-10.3.0.lua:/home/modules/modules/all/UCX/1.10.0-GCCcore-10.3.0.lua:/home/modules/modules/all/libfabric/1.12.1-GCCcore-10.3.0.lua:/home/modules/modules/all/PMIx/3.2.3-GCCcore-10.3.0.lua:/home/modules/modules/all/OpenMPI/4.1.1-GCC-10.3.0.lua:/home/modules/modules/all/OpenBLAS/0.3.15-GCC-10.3.0.lua:/home/modules/modules/all/FlexiBLAS/3.0.4-GCC-10.3.0.lua:/home/modules/modules/all/gompi/2021a.lua:/home/modules/modules/all/FFTW/3.3.9-gompi-2021a.lua:/home/modules/modules/all/ScaLAPACK/2.1.0-gompi-2021a-fb.lua:/home/modules/modules/all/foss/2021a.lua
+++ export _LMFILES_
+++ _ModuleTable001_=X01vZHVsZVRhYmxlXz17WyJNVHZlcnNpb24iXT0zLFsiY19yZWJ1aWxkVGltZSJdPWZhbHNlLFsiY19zaG9ydFRpbWUiXT1mYWxzZSxkZXB0aFQ9e30sZmFtaWx5PXt9LG1UPXtGRlRXPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvRkZUVy8zLjMuOS1nb21waS0yMDIxYS5sdWEiLFsiZnVsbE5hbWUiXT0iRkZUVy8zLjMuOS1nb21waS0yMDIxYSIsWyJsb2FkT3JkZXIiXT0xOSxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJGRlRXLzMuMy45LWdvbXBpLTIwMjFhIix9LEZsZXhpQkxBUz17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL0ZsZXhpQkxBUy8zLjAuNC1HQ0MtMTAuMy4wLmx1
+++ export _ModuleTable001_
+++ _ModuleTable002_=YSIsWyJmdWxsTmFtZSJdPSJGbGV4aUJMQVMvMy4wLjQtR0NDLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT0xNyxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJGbGV4aUJMQVMvMy4wLjQtR0NDLTEwLjMuMCIsfSxHQ0M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9HQ0MvMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJHQ0MvMTAuMy4wIixbImxvYWRPcmRlciJdPTQscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDLzEwLjMuMCIsfSxHQ0Njb3JlPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvR0NDY29yZS8xMC4zLjAubHVh
+++ export _ModuleTable002_
+++ _ModuleTable003_=IixbImZ1bGxOYW1lIl09IkdDQ2NvcmUvMTAuMy4wIixbImxvYWRPcmRlciJdPTEscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iR0NDY29yZS8xMC4zLjAiLH0sT3BlbkJMQVM9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9PcGVuQkxBUy8wLjMuMTUtR0NDLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0iT3BlbkJMQVMvMC4zLjE1LUdDQy0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTYscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iT3BlbkJMQVMvMC4zLjE1LUdDQy0xMC4zLjAiLH0sT3Blbk1QST17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21v
+++ export _ModuleTable003_
+++ _ModuleTable004_=ZHVsZXMvYWxsL09wZW5NUEkvNC4xLjEtR0NDLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0iT3Blbk1QSS80LjEuMS1HQ0MtMTAuMy4wIixbImxvYWRPcmRlciJdPTE1LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTEsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Ik9wZW5NUEkvNC4xLjEtR0NDLTEwLjMuMCIsfSxPcGVuU1NMPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvT3BlblNTTC8xLjEubHVhIixbImZ1bGxOYW1lIl09Ik9wZW5TU0wvMS4xIixbImxvYWRPcmRlciJdPTEwLHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTMsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Ik9wZW5TU0wvMS4xIix9LFBNSXg9e1siZm4iXT0iL2hvbWUv
+++ export _ModuleTable004_
+++ _ModuleTable005_=bW9kdWxlcy9tb2R1bGVzL2FsbC9QTUl4LzMuMi4zLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJQTUl4LzMuMi4zLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTE0LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTIsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09IlBNSXgvMy4yLjMtR0NDY29yZS0xMC4zLjAiLH0sU2NhTEFQQUNLPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvU2NhTEFQQUNLLzIuMS4wLWdvbXBpLTIwMjFhLWZiLmx1YSIsWyJmdWxsTmFtZSJdPSJTY2FMQVBBQ0svMi4xLjAtZ29tcGktMjAyMWEtZmIiLFsibG9hZE9yZGVyIl09MjAscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MSxbInN0YXR1cyJdPSJhY3Rp
+++ export _ModuleTable005_
+++ _ModuleTable006_=dmUiLFsidXNlck5hbWUiXT0iU2NhTEFQQUNLLzIuMS4wLWdvbXBpLTIwMjFhLWZiIix9LFVDWD17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL1VDWC8xLjEwLjAtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09IlVDWC8xLjEwLjAtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTIscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iVUNYLzEuMTAuMC1HQ0Njb3JlLTEwLjMuMCIsfSxYWj17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL1haLzUuMi41LUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJYWi81LjIuNS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3Jk
+++ export _ModuleTable006_
+++ _ModuleTable007_=ZXIiXT02LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTQsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09IlhaLzUuMi41LUdDQ2NvcmUtMTAuMy4wIix9LGJpbnV0aWxzPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvYmludXRpbHMvMi4zNi4xLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJiaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09Myxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0xLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJiaW51dGlscy8yLjM2LjEtR0NDY29yZS0xMC4zLjAiLH0sZm9zcz17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2Zvc3MvMjAyMWEubHVh
+++ export _ModuleTable007_
+++ _ModuleTable008_=IixbImZ1bGxOYW1lIl09ImZvc3MvMjAyMWEiLFsibG9hZE9yZGVyIl09MjEscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MCxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0iZm9zcyIsfSxnb21waT17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2dvbXBpLzIwMjFhLmx1YSIsWyJmdWxsTmFtZSJdPSJnb21waS8yMDIxYSIsWyJsb2FkT3JkZXIiXT0xOCxwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0yLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJnb21waS8yMDIxYSIsfSxod2xvYz17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2h3bG9jLzIuNC4xLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJod2xvYy8y
+++ export _ModuleTable008_
+++ _ModuleTable009_=LjQuMS1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT05LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTIsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Imh3bG9jLzIuNC4xLUdDQ2NvcmUtMTAuMy4wIix9LGxpYmV2ZW50PXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvbGliZXZlbnQvMi4xLjEyLUdDQ2NvcmUtMTAuMy4wLmx1YSIsWyJmdWxsTmFtZSJdPSJsaWJldmVudC8yLjEuMTItR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTEscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0ibGliZXZlbnQvMi4xLjEyLUdDQ2NvcmUtMTAuMy4wIix9LGxpYmZhYnJpYz17WyJmbiJdPSIv
+++ export _ModuleTable009_
+++ _ModuleTable010_=aG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL2xpYmZhYnJpYy8xLjEyLjEtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImxpYmZhYnJpYy8xLjEyLjEtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09MTMscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MixbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0ibGliZmFicmljLzEuMTIuMS1HQ0Njb3JlLTEwLjMuMCIsfSxsaWJwY2lhY2Nlc3M9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC9saWJwY2lhY2Nlc3MvMC4xNi1HQ0Njb3JlLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0ibGlicGNpYWNjZXNzLzAuMTYtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09OCxwcm9wVD17fSxbInN0
+++ export _ModuleTable010_
+++ _ModuleTable011_=YWNrRGVwdGgiXT0zLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJsaWJwY2lhY2Nlc3MvMC4xNi1HQ0Njb3JlLTEwLjMuMCIsfSxsaWJ4bWwyPXtbImZuIl09Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwvbGlieG1sMi8yLjkuMTAtR0NDY29yZS0xMC4zLjAubHVhIixbImZ1bGxOYW1lIl09ImxpYnhtbDIvMi45LjEwLUdDQ2NvcmUtMTAuMy4wIixbImxvYWRPcmRlciJdPTcscHJvcFQ9e30sWyJzdGFja0RlcHRoIl09MyxbInN0YXR1cyJdPSJhY3RpdmUiLFsidXNlck5hbWUiXT0ibGlieG1sMi8yLjkuMTAtR0NDY29yZS0xMC4zLjAiLH0sbnVtYWN0bD17WyJmbiJdPSIvaG9tZS9tb2R1bGVzL21vZHVsZXMvYWxsL251bWFjdGwvMi4wLjE0LUdDQ2NvcmUtMTAu
+++ export _ModuleTable011_
+++ _ModuleTable012_=My4wLmx1YSIsWyJmdWxsTmFtZSJdPSJudW1hY3RsLzIuMC4xNC1HQ0Njb3JlLTEwLjMuMCIsWyJsb2FkT3JkZXIiXT01LHByb3BUPXt9LFsic3RhY2tEZXB0aCJdPTMsWyJzdGF0dXMiXT0iYWN0aXZlIixbInVzZXJOYW1lIl09Im51bWFjdGwvMi4wLjE0LUdDQ2NvcmUtMTAuMy4wIix9LHpsaWI9e1siZm4iXT0iL2hvbWUvbW9kdWxlcy9tb2R1bGVzL2FsbC96bGliLzEuMi4xMS1HQ0Njb3JlLTEwLjMuMC5sdWEiLFsiZnVsbE5hbWUiXT0iemxpYi8xLjIuMTEtR0NDY29yZS0xMC4zLjAiLFsibG9hZE9yZGVyIl09Mixwcm9wVD17fSxbInN0YWNrRGVwdGgiXT0yLFsic3RhdHVzIl09ImFjdGl2ZSIsWyJ1c2VyTmFtZSJdPSJ6bGliLzEuMi4xMS1HQ0Njb3JlLTEwLjMuMCIsfSx9
+++ export _ModuleTable012_
+++ _ModuleTable013_=LG1wYXRoQT17Ii9ob21lL21vZHVsZXMvbW9kdWxlcy9hbGwiLCIvZXRjL21vZHVsZWZpbGVzIiwiL3Vzci9zaGFyZS9tb2R1bGVmaWxlcyIsIi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMvTGludXgiLCIvdXNyL3NoYXJlL21vZHVsZWZpbGVzL0NvcmUiLCIvdXNyL3NoYXJlL2xtb2QvbG1vZC9tb2R1bGVmaWxlcy9Db3JlIix9LFsic3lzdGVtQmFzZU1QQVRIIl09Ii9ldGMvbW9kdWxlZmlsZXM6L3Vzci9zaGFyZS9tb2R1bGVmaWxlczovdXNyL3NoYXJlL21vZHVsZWZpbGVzL0xpbnV4Oi91c3Ivc2hhcmUvbW9kdWxlZmlsZXMvQ29yZTovdXNyL3NoYXJlL2xtb2QvbG1vZC9tb2R1bGVmaWxlcy9Db3JlIix9
+++ export _ModuleTable013_
+++ _ModuleTable_Sz_=13
+++ export _ModuleTable_Sz_
++ nvidia-smi
+Fri Oct 22 09:45:51 2021       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 465.24.02    Driver Version: 465.24.02    CUDA Version: 11.3     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA GeForce ...  On   | 00000000:1C:00.0 Off |                  N/A |
+| 30%   26C    P8    25W / 350W |      1MiB / 24268MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
++ nvcc --version
+/var/spool/slurmd/job4108461/slurm_script: line 11: nvcc: command not found

@@ -154,7 +154,14 @@ def get_system(system,
 
     PATH = os.path.abspath(os.path.dirname(__file__))
     systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
-    if system is None or system == 'HEG':
+    if not system in systems_data:
+        pass
+        sys.exit('system not in db')
+        #         bulk = bulk()                
+        #         systems_data = {system:{
+
+        #         }}
+    if system == 'HEG':
         systems_data = {'HEG':{
             **systems_data['HEG'],  # real_basis, periodic_boundaries
             'r_atoms': jnp.array([[0.0, 0.0, 0.0]]),  # enforces n_atoms = 1 in the molecule class HACKY
