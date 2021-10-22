@@ -16,8 +16,7 @@ def compute_ae_vectors_i(walkers: jnp.array, r_atoms: jnp.array) -> jnp.array:
 
 
 def compute_e_vectors_periodic_i(walkers: jnp.array,
-                                 r_atoms: jnp.array,
-                                 unit_cell_length: float) -> jnp.array:
+                                 r_atoms: jnp.array) -> jnp.array:
     return jnp.expand_dims(walkers, axis=1)
 
 
@@ -75,6 +74,7 @@ def input_activation(inputs, unit_cell_length, n_periodic_input):
     # return jnp.concatenate([jnp.sin(jnp.abs((i*jnp.pi / unit_cell_length) * inputs)) for i in range(1, n_periodic_input+1)], axis=-1)
     return inputs**2 / jnp.exp((4./unit_cell_length)*jnp.abs(inputs))
 
+
 def compute_inputs_periodic_i(walkers, ae_vectors_min_im, n_periodic_input, unit_cell_length=1.):
 
     n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
@@ -106,13 +106,6 @@ def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im):
     ee_vectors_min_im = apply_minimum_image_convention(ee_vectors)
     pairwise_inputs = jnp.linalg.norm(ee_vectors_min_im, axis=-1, keepdims=True)
     return single_inputs, pairwise_inputs
-
-
-def compute_ee_vectors_no_grad_i(walkers, walkers_no_grad):
-    re1 = jnp.expand_dims(walkers, axis=1)
-    re2 = jnp.transpose(walkers_no_grad[None, ...], [1, 0, 2])
-    ee_vectors = re1 - re2
-    return ee_vectors
 
 
 def apply_minimum_image_convention(displacement_vectors, unit_cell_length=1.):

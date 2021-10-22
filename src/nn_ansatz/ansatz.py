@@ -75,10 +75,6 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
     return _vwf
 
 
-def split_and_squeeze(tensor, axis=0):
-    return [x.squeeze(axis) for x in tensor.split(tensor.shape[axis], axis=axis)]
-
-
 def wf_orbitals(params, 
                 walkers, 
                 d0s, 
