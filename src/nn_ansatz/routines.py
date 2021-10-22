@@ -7,6 +7,8 @@ from jax import jit
 from jax.experimental.optimizers import adam
 from tqdm import trange
 
+from .python_helpers import save_pk
+
 from .sampling import create_sampler, initialise_walkers
 from .ansatz import create_wf
 from .parameters import initialise_params
@@ -16,6 +18,18 @@ from .vmc import create_energy_fn, create_grad_function
 from .optimisers import kfac
 from .utils import Logging, load_pk, key_gen, split_variables_for_pmap, write_summary_to_cfg
 
+
+def check_inf_nan(arg):
+    return jnp.isnan(arg).any() or jnp.isinf(arg).any()
+
+
+def check_and_save(*args):
+    for arg in args:
+        check = check_inf_nan(arg)
+        if check:
+            for i, arg in enumerate(args):
+                save_pk(arg, 'arr%i.pk' % i)
+            break
 
 def run_vmc(cfg, walkers=None):
 
@@ -66,6 +80,8 @@ def run_vmc(cfg, walkers=None):
 
         state = update(step, grads, state)
         params = get_params(state)
+        
+        check_and_save(walkers, e_locs)
 
         steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
         steps.refresh()
@@ -74,7 +90,7 @@ def run_vmc(cfg, walkers=None):
                    opt_state=state,
                    params=params,
                    e_locs=e_locs,
-                   acceptance=acceptance[0])
+                   acceptance=acceptance)
 
     write_summary_to_cfg(cfg["csv_cfg_path"], logger.summary)
     logger.walkers = walkers

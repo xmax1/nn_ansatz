@@ -15,17 +15,25 @@ import itertools
 
 from nn_ansatz import *
 
-cfg = config = setup(system='LiSolidBCC',
-               n_pre_it=0,
-               n_walkers=64,
-               n_layers=2,
-               n_sh=32,
-               n_ph=8,
-               opt='kfac',
-               n_det=2,
-               print_every=1,
-               save_every=5000,
-               n_it=1000)
+
+cfg = setup(system='LiSolidBCC',
+                    n_pre_it=0,
+                    n_walkers=512,
+                    n_layers=2,
+                    n_sh=64,
+                    step_size=0.05,
+                    n_ph=32,
+                    scalar_inputs=False,
+                    orbitals='anisotropic',
+                    n_periodic_input=1,
+                    opt='adam',
+                    n_det=4,
+                    print_every=50,
+                    save_every=2500,
+                    lr=1e-4,
+                    n_it=30000,
+                    debug=True, 
+                    distribute=False)
 
 logger = Logging(**cfg)
 
@@ -35,77 +43,27 @@ if bool(os.environ.get('DISTRIBUTE')) is True:
 
 mol = SystemAnsatz(**cfg)
 
-pwf = pmap(create_wf(mol), in_axes=(None, 0))
-vwf = create_wf(mol)
-swf = create_wf(mol, signed=True)
-
+vwf = create_wf(mol, orbitals=True)
 params = initialise_params(mol, keys)
 
 sampler = create_sampler(mol, vwf)
 
-ke = pmap(create_local_kinetic_energy(vwf), in_axes=(None, 0))
-pe = pmap(create_potential_energy(mol), in_axes=(0, None, None))
-grad_fn = create_grad_function(mol, vwf)
+walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=None)
 
-# walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=None)
-# save_pk(walkers, 'walkers_no_infs.pk')
-walkers = load_pk('walkers_no_infs.pk')
+x = vwf(params, walkers)
 
-# using routines
+def logabssumdet(orb_up: jnp.array, orb_down: jnp.array) -> jnp.array:
+    s_up, log_up = jnp.linalg.slogdet(orb_up)
+    s_down, log_down = jnp.linalg.slogdet(orb_down) if not orb_down is None else (jnp.ones_like(s_up), jnp.zeros_like(log_up))
 
-def asym_test(swf, mol, params, walkers):
-    up_idxs = range(0, mol.n_up)
-    down_idxs = range(mol.n_up, mol.n_el)
-    up_swaps = list(itertools.permutations(up_idxs, 2))
-    down_swaps = list(itertools.permutations(down_idxs, 2))
-    all_swaps = up_swaps + down_swaps
+    # logdet_sum = jnp.where(~jnp.isinf(log_up), log_up, -jnp.ones_like(log_up)*10.**10) + jnp.where(~jnp.isinf(log_down), log_down, -jnp.ones_like(log_down)*10.**10)
+    logdet_sum = log_up + log_down
+    logdet_max = jnp.max(logdet_sum)
 
-    awalkers = np.squeeze(np.array(walkers), axis=0)[0, ...][None, ...]
-    bwalkers = awalkers.copy()
-    for swap in all_swaps:
-        bwalkers[0, swap, :] = awalkers[0, swap[::-1], :].copy()
-        blog, bsign = swf(params, jnp.array(bwalkers))
-        alog, asign = swf(params, jnp.array(awalkers))
+    argument = s_up * s_down * jnp.exp(logdet_sum - logdet_max)
+    sum_argument = jnp.sum(argument, axis=0)
+    sign = jnp.sign(sum_argument)
 
-        awalkers = bwalkers.copy()
+    return jnp.log(jnp.abs(sum_argument)) + logdet_max, sign
 
-        print('sign 1 %i sign 2 %i difference %.2f' % (asign, bsign, jnp.sum(blog - alog)))
-
-# asym_test(swf, mol, params, walkers)
-
-
-# log_psi = pwf(params, walkers)
-
-# keys, subkeys = key_gen(keys)
-# sampler(params, walkers, subkeys, mol.step_size)
-
-
-# lr, damping, nc = 1e-4, 1e-4, 1e-4
-# n_pre_it = 500
-# n_walkers = 512
-# n_layers = 2
-# n_sh = 64
-# n_ph = 16
-# n_det = 8
-# n_it = 1000
-# seed = 1
-
-
-# config = setup(system='LiSolidBCC',
-#                n_pre_it=0,
-#                n_walkers=64,
-#                n_layers=2,
-#                n_sh=32,
-#                n_ph=8,
-#                opt='kfac',
-#                n_det=2,
-#                print_every=1,
-#                save_every=5000,
-#                lr=lr,
-#                n_it=1000,
-#                norm_constraint=nc,
-#                damping=damping)
-
-
-# run_vmc(config)
-
+print(x)

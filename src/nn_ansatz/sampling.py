@@ -13,17 +13,9 @@ from .vmc import create_energy_fn
 from .utils import key_gen, split_variables_for_pmap
 
 
-def create_step(mol):
-
-    if mol.pbc:
-        return partial(pbc_step, basis=mol.basis, inv_basis=mol.inv_basis)
-    
-    return step
-
-
 def create_sampler(mol, vwf):
 
-    _step = create_step(mol)
+    _step = step if not mol.pbc else partial(pbc_step, basis=mol.basis, inv_basis=mol.inv_basis)
 
     _sampler = partial(sample_metropolis_hastings, vwf=vwf, step_walkers=_step, correlation_length=mol.correlation_length)
     
@@ -38,9 +30,6 @@ def create_sampler(mol, vwf):
 def to_prob(amplitudes):
     ''' converts log amplitudes to probabilities '''
     ''' also catches nans (for the case the determinants are zero) '''
-    # is_nan = jnp.isnan(amplitudes).any()
-    # assert not is_nan
-    # amplitudes = jnp.nan_to_num(amplitudes, nan=-1.79769313**308)
     return jnp.exp(amplitudes)**2
 
 
@@ -57,11 +46,22 @@ def pbc_step(walkers, key, shape, step_size, basis, inv_basis):
     return walkers
 
 
+def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
+    '''
+    case 1 catches non-orthorhombic cells 
+    case 2 for orthorhombic and cubic cells
+    '''
+    if basis.shape == (3, 3):
+        return jnp.dot(vectors, basis)
+    else:
+        return vectors * basis
+
+
 def keep_in_boundary(walkers, basis, inv_basis):
-    talkers = walkers.dot(inv_basis)
+    talkers = transform_vector_space(walkers, inv_basis)
     talkers = jnp.fmod(talkers, 1.)
     talkers = jnp.where(talkers < 0., talkers + 1., talkers)
-    talkers = talkers.dot(basis)
+    talkers = transform_vector_space(talkers, basis)
     return talkers
 
 
@@ -211,13 +211,13 @@ def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
         walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
         log_psi = vwf(params, walkers)
         infs = jnp.isinf(log_psi).any() or jnp.isnan(log_psi).any()
-        n_infs = jnp.sum(jnp.isinf(log_psi))
-        n_nans = jnp.sum(jnp.isnan(log_psi))
+        n_infs = jnp.sum(jnp.isinf(log_psi)).astype(float)
+        n_nans = jnp.sum(jnp.isnan(log_psi)).astype(float)
         if not infs:
             equilibration += 1
         it += 1 
         if it % 10 == 0:
-            print('%.2f %% infs and %.2f %% nans' % (n_infs/n_walkers, n_nans/n_walkers))
+            print('%.2f %% infs and %.2f %% nans' % (n_infs/float(n_walkers), n_nans/float(n_walkers)))
 
     return walkers
 

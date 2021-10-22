@@ -75,17 +75,17 @@ def initialise_params(mol, key):
     # env_linear
     key, *subkeys = rnd.split(key, num=3)
     params['env_lin_up'] = init_linear(subkeys[0], (n_sh, n_det * n_up), bias=True)
-    if not mol.spin_polarized: params['env_lin_down'] = init_linear(subkeys[1], (n_sh, n_det * n_down), bias=True)
+    if not n_down == 0: params['env_lin_down'] = init_linear(subkeys[1], (n_sh, n_det * n_down), bias=True)
 
     # env_sigma
-    if not mol.system == 'HEG':
+    if not mol.orbitals == 'real_plane_waves':
         key, *subkeys = rnd.split(key, num=3)
         sigma_shape_up = (3, 3, n_det * n_up) if orbitals == 'anisotropic' else (1, n_det * n_up)
         sigma_shape_down = (3, 3, n_det * n_down) if orbitals == 'anisotropic' else (1, n_det * n_down)
         
         for m, (k1, k2) in enumerate(zip(rnd.split(subkeys[0], num=n_atoms), rnd.split(subkeys[1], num=n_atoms))):
             params['env_sigma_up_m%i' % m] = init_sigma(k1, sigma_shape_up, bias=False)  # (3, 3 * n_det*n_spin)
-            if not mol.spin_polarized:
+            if not n_down == 0:
                 params['env_sigma_down_m%i' % m] = init_sigma(k2, sigma_shape_down, bias=False)
 
         # env_pi
@@ -93,7 +93,7 @@ def initialise_params(mol, key):
         for i, k in enumerate(rnd.split(subkeys[0], num=n_up*n_det)):
             params['env_pi_up_%i' % i] = unit_plus_noise((n_atoms, 1), k)
         
-        if not mol.spin_polarized:
+        if not n_down == 0:
             for i, k in enumerate(rnd.split(subkeys[1], num=n_down*n_det)):
                 params['env_pi_down_%i' % i] = unit_plus_noise((n_atoms, 1), k)
 
@@ -120,7 +120,7 @@ def initialise_d0s(mol, expand=False):
         d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph))
 
     d0s['env_lin_up'] = jnp.zeros((n_up, n_det * n_up))
-    d0s['env_lin_down'] = jnp.zeros((n_down, n_det * n_down))
+    if not n_down == 0: d0s['env_lin_down'] = jnp.zeros((n_down, n_det * n_down))
 
     # SIGMA BROADCAST
     if not mol.system == 'HEG':
@@ -128,13 +128,14 @@ def initialise_d0s(mol, expand=False):
 
         for m in range(n_atoms):
             d0s['env_sigma_up_m%i' % m] = jnp.zeros((n_up, n_exponent_dim * n_det * n_up))
-            d0s['env_sigma_down_m%i' % m] = jnp.zeros((n_down, n_exponent_dim * n_det * n_down))
+            if not n_down == 0: d0s['env_sigma_down_m%i' % m] = jnp.zeros((n_down, n_exponent_dim * n_det * n_down))
         
         for i in range(n_det * n_up):
             d0s['env_pi_up_%i' % i] = jnp.zeros((1,))
         
-        for i in range(n_det * n_down):
-            d0s['env_pi_down_%i' % i] = jnp.zeros((1,))
+        if not n_down == 0:
+            for i in range(n_det * n_down):
+                d0s['env_pi_down_%i' % i] = jnp.zeros((1,))
 
     if expand: # distinguish between the cases 1- used to create a partial function (don't expand) 2- used to find the sensitivities (expand)
         d0s = expand_d0s(d0s, mol.n_devices, mol.n_walkers_per_device)

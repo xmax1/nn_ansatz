@@ -1,6 +1,7 @@
 
 from typing import Callable, Optional
 from functools import partial
+from .sampling import transform_vector_space
 
 import jax.numpy as jnp
 from jax import vmap, lax
@@ -29,16 +30,6 @@ def compute_ee_vectors_i(walkers):
     ee_vectors = re2 - re1
     return ee_vectors
 
-
-def transform_vector_space(vectors: jnp.array, basis: jnp.array):
-    '''
-    case 1 catches non-orthorhombic cells 
-    case 2 for orthorhombic and cubic cells
-    '''
-    if basis.shape == (3, 3):
-        return jnp.dot(vectors, basis)
-    else:
-        return vectors * basis
 
 
 def input_activation(inputs: jnp.array, inv_basis: jnp.array):
@@ -71,9 +62,9 @@ def compute_inputs_i(walkers: jnp.array,
     n_el = walkers.shape[0]
     n_el, n_features = single_stream_vectors.shape[:2]
 
-    if pbc: single_vectors = input_activation(single_stream_vectors, inv_basis)
-    single_distances = jnp.linalg.norm(single_vectors, axis=-1, keepdims=True)
-    single_inputs = jnp.concatenate([single_vectors, single_distances], axis=-1)
+    if pbc: single_stream_vectors = input_activation(single_stream_vectors, inv_basis)
+    single_distances = jnp.linalg.norm(single_stream_vectors, axis=-1, keepdims=True)
+    single_inputs = jnp.concatenate([single_stream_vectors, single_distances], axis=-1)
     single_inputs = single_inputs.reshape(n_el, 4 * n_features)
 
     ee_vectors = compute_ee_vectors_i(walkers)

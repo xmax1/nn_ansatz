@@ -66,7 +66,7 @@ class SystemAnsatz():
                  orbital_basis='sto3g',
                  device='cpu',
                  dtype=jnp.float32,
-                 atoms_from_unit_cube=True,
+                 atoms_from_unit_cell=True,
                  scale_cell=1.,
                  **kwargs):
 
@@ -131,31 +131,34 @@ class SystemAnsatz():
             v_per_electron = 4. * jnp.pi * density_parameter**3 / 3. 
             volume = n_el * v_per_electron
             scale_cell = volume**(1./3.)
-            basis = jnp.eye((3, 3))
+            basis = jnp.eye(3, 3)
             self.density_parameter = density_parameter
 
-        self.basis = basis * scale_cell if pbc else None # each basis vector is (1, 3)
-        self.inv_basis = jnp.linalg.inv(self.basis) if pbc else None
+        self.basis = None
+        self.inv_basis = None
 
         if pbc:
+            basis = basis * scale_cell
+            inv_basis = jnp.linalg.inv(basis)
+
             self.n_in = 1 if scalar_inputs else (3 * n_periodic_input) + 1
             self.n_periodic_input = n_periodic_input
             
-            self.volume = compute_volume(self.basis)
+            self.volume = compute_volume(basis)
             if volume is not None:
                 assert volume == self.volume
-            self.reciprocal_basis = compute_reciprocal_basis(self.basis, self.volume)
-            self.l0 = float(jnp.min(jnp.linalg.norm(self.basis, axis=-1)))
-            self.min_cell_width = compute_min_width_of_cell(self.basis)
+            self.reciprocal_basis = compute_reciprocal_basis(basis, self.volume)
+            self.l0 = float(jnp.min(jnp.linalg.norm(basis, axis=-1)))
+            self.min_cell_width = compute_min_width_of_cell(basis)
             
             self.real_cut = real_cut
             self.reciprocal_cut = reciprocal_cut
             self.kappa = kappa
 
-            if atoms_from_unit_cube: self.r_atoms = jnp.dot(r_atoms, basis)
+            if atoms_from_unit_cell: self.r_atoms = jnp.dot(r_atoms, basis)
 
             print('Cell: \n',
-              'basis:', '\n', self.basis, '\n',
+              'basis:', '\n', basis, '\n',
               'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
               'real_cut         = %.2f \n' % self.real_cut,
               'reciprocal_cut   = %i \n' % self.reciprocal_cut,
@@ -163,6 +166,9 @@ class SystemAnsatz():
               'volume           = %.2f \n' % self.volume,
               'min_cell_width   = %.2f \n' % self.min_cell_width,
               'n_periodic_input = %i \n' % n_periodic_input)
+
+            self.inv_basis = jnp.diag(inv_basis)[None, :] if jnp.all(inv_basis.sum(0) == jnp.diag(inv_basis)) else inv_basis
+            self.basis = jnp.diag(basis)[None, :] if jnp.all(basis.sum(0) == jnp.diag(basis)) else basis
 
         if not system == 'HEG':
             self.atom = create_atom(r_atoms, z_atoms)

@@ -24,7 +24,6 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
     _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis)
     _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis)
 
-
     _wf_orbitals = partial(wf_orbitals, 
                            masks=masks,
                            n_el=mol.n_el,
@@ -58,8 +57,10 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False):
         return _vwf
 
     if orbitals:
-        _wf_orbitals_remove_activations = remove_aux(_wf_orbitals, axis=1)
-        return partial(_wf_orbitals_remove_activations, d0s=d0s)
+        def _orbs(params, walkers):
+            orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
+            return orb_up, orb_down
+        return vmap(_orbs, in_axes=(None, 0))
 
     if kfac:
         return vmap(_kfac_wf, in_axes=(None, 0, 0))
@@ -78,7 +79,7 @@ def wf_orbitals(params: dict,
                 n_down: int,
                 n_el: int,
                 _compute_single_stream_vectors: Callable,
-                _compute_inputs_i: Callable,
+                _compute_inputs: Callable,
                 _compute_orbitals: Callable,
                 _sum_orbitals: Callable):
 
@@ -89,7 +90,7 @@ def wf_orbitals(params: dict,
 
     single_stream_vectors = _compute_single_stream_vectors(walkers) ## 
 
-    single, pairwise = _compute_inputs_i(walkers, single_stream_vectors) ##
+    single, pairwise = _compute_inputs(walkers, single_stream_vectors) ##
 
     single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *masks[0])
 
@@ -115,11 +116,11 @@ def wf_orbitals(params: dict,
     exp_down = []
     for m, single_stream_vector in enumerate(single_stream_vectors):
         ss_up_m, ss_down_m = jnp.split(single_stream_vector, [n_up], axis=0)
-        exp_up_m = _compute_orbitals(params.get('env_sigma_up_m%i' % m), ss_up_m, activations, d0s.get('env_sigma_up_m%i' % m)) ##
+        exp_up_m = _compute_orbitals(params.get('env_sigma_up_m%i' % m), ss_up_m, d0s.get('env_sigma_up_m%i' % m), activations) ##
         exp_up.append(exp_up_m)
         
         if not n_up == n_el:
-            exp_down_m = _compute_orbitals(params.get('env_sigma_down_m%i' % m), ss_down_m, activations, d0s.get('env_sigma_down_m%i' % m)) ##
+            exp_down_m = _compute_orbitals(params.get('env_sigma_down_m%i' % m), ss_down_m, d0s.get('env_sigma_down_m%i' % m), activations) ##
             exp_down.append(exp_down_m)
     
     exp_up = jnp.stack(exp_up, axis=-1)
@@ -180,8 +181,9 @@ def anisotropic_orbitals(sigma,
     if pbc:
         # ae_vector = jnp.where(jnp.abs(ae_vector) == 0.5 * unit_cell_length, ae_vector + 0.000001, ae_vector)
         orb_vector = transform_vector_space(orb_vector, inv_basis)
-        orb_vector = jnp.where(orb_vector <= -0.25, -1.**2/(8.*(1. + 2.*orb_vector)+eps), orb_vector)
-        orb_vector = jnp.where(orb_vector >= 0.25 * 1., 1.**2/(8.*(1. - 2.*orb_vector)-eps), orb_vector)
+        orb_vector_shifted = orb_vector + eps
+        orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*orb_vector_shifted)), orb_vector)
+        orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*orb_vector_shifted)), orb_vector)
         orb_vector = transform_vector_space(orb_vector, basis)
         ''' this line can be used to enforce the boundary condition at 1/2 if necessary as a test. However, if the minimum image convention
         holds then it is never applied. '''
@@ -287,7 +289,7 @@ def real_plane_wave_orbitals(sigma,
 
 def env_pi_i(params: jnp.array,
              factor: jnp.array,
-             exponential: jnp.array,
+             orbitals: jnp.array,
              activations: list,
              spin: str,
              d0s) -> jnp.array:
@@ -299,21 +301,24 @@ def env_pi_i(params: jnp.array,
     n_det, n_spins = factor.shape[:2]
 
     # n_det * n_spin of (n_spin, n_atom)
-    exponential = [jnp.squeeze(x, axis=1) for x in jnp.split(exponential, n_spins*n_det, axis=1)]  
+    exponential = [jnp.squeeze(x, axis=1) for x in jnp.split(orbitals, n_spins*n_det, axis=1)]  
 
-    [activations.append(x) for x in exponential]
+    [activations.append(x) for x in orbitals]
 
-    orbitals = jnp.stack([(e @ params['env_pi_%s_%i' % (spin, i)]) + d0s['env_pi_%s_%i' % (spin, i)] 
-                           for i, e in enumerate(exponential)], axis=-1)
+    orbitals_sum = []
+    for i, e in enumerate(orbitals):
+        orbitals = (e @ params['env_pi_%s_%i' % (spin, i)]) + d0s['env_pi_%s_%i' % (spin, i)]
+        orbitals_sum.append(orbitals)
+    orbitals_sum = jnp.stack(orbitals_sum, axis=-1)
 
-    return factor * jnp.transpose(orbitals.reshape(n_spins, n_det, n_spins), (1, 2, 0))
+    return factor * jnp.transpose(orbitals_sum.reshape(n_spins, n_det, n_spins), (1, 2, 0))
 
 
-def logabssumdet(orb_up: jnp.array,
-                 orb_down: jnp.array) -> jnp.array:
+def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp.array:
     s_up, log_up = jnp.linalg.slogdet(orb_up)
-    s_down, log_down = jnp.linalg.slogdet(orb_down) if not orb_down is None else jnp.ones_like(s_up), jnp.zeros_like(log_up)
+    s_down, log_down = jnp.linalg.slogdet(orb_down) if not orb_down is None else (jnp.ones_like(s_up), jnp.zeros_like(log_up))
 
+    # logdet_sum = jnp.where(~jnp.isinf(log_up), log_up, -jnp.ones_like(log_up)*10.**10) + jnp.where(~jnp.isinf(log_down), log_down, -jnp.ones_like(log_down)*10.**10)
     logdet_sum = log_up + log_down
     logdet_max = jnp.max(logdet_sum)
 
@@ -326,9 +331,9 @@ def logabssumdet(orb_up: jnp.array,
 
 def mixer_i(single: jnp.array,
             pairwise: jnp.array,
-            n_el,
-            n_up,
-            n_down,
+            n_el: int,
+            n_up: int,
+            n_down: int,
             single_up_mask,
             single_down_mask,
             pairwise_up_mask,
