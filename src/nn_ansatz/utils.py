@@ -148,8 +148,7 @@ def dict_entries_to_array(dictionary):
 
 
 def get_system(system, 
-               n_el, 
-               unit_cell_length,
+               n_el,
                density_parameter):
 
     PATH = os.path.abspath(os.path.dirname(__file__))
@@ -163,16 +162,13 @@ def get_system(system,
         #         }}
     if system == 'HEG':
         systems_data = {'HEG':{
-            **systems_data['HEG'],  # real_basis, periodic_boundaries
-            'r_atoms': jnp.array([[0.0, 0.0, 0.0]]),  # enforces n_atoms = 1 in the molecule class HACKY
-            'z_atoms': jnp.array([0.0]),
+            **systems_data['HEG'],  # real_basis, pbc
+            'r_atoms': None,  # enforces n_atoms = 1 in the molecule class HACKY
+            'z_atoms': None,
             'n_el': n_el,
             'n_el_atoms': [n_el],
-            'unit_cell_length': unit_cell_length,
             'density_parameter': density_parameter}              
         }
-        # if unit_cell_length is None: sys.exit('unit cell length needed')
-    # else: sys.exit('Need number of electrons as minimum input or system in toml file')
 
     return dict_entries_to_array(systems_data[system])
 
@@ -203,9 +199,8 @@ def setup(system: str = 'Be',
           n_el=None,
           n_el_atoms=None,
           ignore_toml=False,
-          periodic_boundaries=False,
+          pbc=False,
           real_basis=None,
-          unit_cell_length=None,
           density_parameter=None,
           real_cut=6,
           reciprocal_cut=6,
@@ -269,9 +264,8 @@ def setup(system: str = 'Be',
     models_dir = join_and_create(exp_dir, 'models')
     opt_state_dir = join_and_create(models_dir, 'opt_state')
 
-    system_config = get_system(system, 
+    system_config = get_system(system,
                                n_el, 
-                               unit_cell_length,
                                density_parameter)
 
     csv_cfg_path, pk_cfg_path = create_config_paths(exp_dir)

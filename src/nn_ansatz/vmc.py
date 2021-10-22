@@ -105,7 +105,6 @@ def create_potential_energy(mol):
         reciprocal_basis = mol.reciprocal_basis
         kappa = mol.kappa
         volume = mol.volume
-        system = mol.system
 
         real_lattice = generate_lattice(real_basis, mol.real_cut)  # (n_lattice, 3)
         reciprocal_lattice = generate_lattice(reciprocal_basis, mol.reciprocal_cut)
@@ -113,7 +112,7 @@ def create_potential_energy(mol):
         rl_factor = (4.*jnp.pi / volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product  
 
         e_charges = jnp.array([-1. for i in range(mol.n_el)])
-        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.system == 'HEG' else e_charges # (n_particle, )
+        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
         _compute_potential_energy_solid_i = partial(compute_potential_energy_solid_i, 
@@ -157,7 +156,7 @@ def compute_potential_energy_solid_i(walkers,
     """
 
     # put the walkers and r_atoms together
-    walkers = jnp.concatenate([r_atoms, walkers], axis=0) if not system == 'HEG' else walkers  # (n_particle, 3)
+    walkers = jnp.concatenate([r_atoms, walkers], axis=0) if not r_atoms is None else walkers  # (n_particle, 3)
 
     # compute the Rs0 term
     p_p_vectors = vector_sub(walkers, walkers) # (n_particle, n_particle, 3)

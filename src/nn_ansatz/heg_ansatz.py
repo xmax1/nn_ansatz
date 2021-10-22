@@ -72,10 +72,6 @@ def create_heg_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=Fals
     return _vwf
 
 
-def split_and_squeeze(tensor, axis=0):
-    return [x.squeeze(axis) for x in tensor.split(1, axis=axis)]
-
-
 def wf_orbitals(params, 
                 walkers, 
                 d0s, 
@@ -122,17 +118,8 @@ def wf_orbitals(params,
     return orb_up, orb_down, activations
 
 
-def compute_e_vectors_periodic_i(walkers: jnp.array, unit_cell_length: float) -> jnp.array:
-    return apply_minimum_image_convention(jnp.expand_dims(walkers, axis=1), unit_cell_length)
 
 
-def create_compute_inputs_i(mol):
-
-    _compute_inputs_periodic_i = partial(compute_inputs_periodic_i,
-                                            n_periodic_input=mol.n_periodic_input, 
-                                            unit_cell_length=mol.unit_cell_length)
-    
-    return _compute_inputs_periodic_i
 
 
 def compute_inputs_periodic_i(walkers: jnp.array, n_periodic_input: int, unit_cell_length: float=1.):
@@ -261,48 +248,6 @@ def logabssumdet(orb_up: jnp.array,
     return jnp.log(jnp.abs(sum_argument)) + logdet_max, sign
 
 
-def mixer_i(single: jnp.array,
-            pairwise: jnp.array,
-            n_el,
-            n_up,
-            n_down,
-            single_up_mask,
-            single_down_mask,
-            pairwise_up_mask,
-            pairwise_down_mask):
-    # single (n_samples, n_el, n_single_features)
-    # pairwise (n_samples, n_pairwise, n_pairwise_features)
 
-    # --- Single summations
-    # up
-    sum_spin_up = single_up_mask * single
-    sum_spin_up = jnp.sum(sum_spin_up, axis=0, keepdims=True) / float(n_up)
-    #     sum_spin_up = jnp.repeat(sum_spin_up, n_el, axis=1)  # not needed in split
-
-    # --- Pairwise summations
-    sum_pairwise = jnp.repeat(jnp.expand_dims(pairwise, axis=0), n_el, axis=0)
-
-    # up
-    sum_pairwise_up = pairwise_up_mask * sum_pairwise
-    sum_pairwise_up = jnp.sum(sum_pairwise_up, axis=1) / float(n_up)
-
-    # down
-    if n_down > 0:
-        sum_spin_down = single_down_mask * single
-        sum_spin_down = jnp.sum(sum_spin_down, axis=0, keepdims=True) / float(n_down)
-
-        # down
-        sum_pairwise_down = pairwise_down_mask * sum_pairwise
-        sum_pairwise_down = jnp.sum(sum_pairwise_down, axis=1) / float(n_down)
-    #     sum_spin_down = jnp.repeat(sum_spin_down, n_el, axis=1) # not needed in split
-
-    
-        single = jnp.concatenate((single, sum_pairwise_up, sum_pairwise_down), axis=1)
-        split = jnp.concatenate((sum_spin_up, sum_spin_down), axis=1)
-        return single, split
-
-    single = jnp.concatenate((single, sum_pairwise_up), axis=1)
-    split = sum_spin_up
-    return single, split
     
 

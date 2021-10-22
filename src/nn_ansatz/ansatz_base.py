@@ -1,5 +1,5 @@
 
-from typing import Callable
+from typing import Callable, Optional
 from functools import partial
 
 import jax.numpy as jnp
@@ -7,41 +7,19 @@ from jax import vmap, lax
 import numpy as np
 
 
-def compute_ae_vectors_i(walkers: jnp.array, r_atoms: jnp.array) -> jnp.array:
+def compute_single_stream_vectors_i(walkers: jnp.array, 
+                                    r_atoms: Optional[jnp.array]=None,
+                                    basis: Optional[jnp.array]=None,
+                                    inv_basis: Optional[jnp.array]=None,
+                                    pbc: bool=False) -> jnp.array:
     ''' computes the nuclei-electron displacement vectors '''
-    r_atoms = jnp.expand_dims(r_atoms, axis=0)
-    walkers = jnp.expand_dims(walkers, axis=1)
-    ae_vectors = r_atoms - walkers
-    return ae_vectors
-
-
-def compute_e_vectors_periodic_i(walkers: jnp.array,
-                                 r_atoms: jnp.array) -> jnp.array:
-    return jnp.expand_dims(walkers, axis=1)
-
-
-def compute_ae_vectors_periodic_i(walkers: jnp.array, 
-                                  r_atoms: jnp.array, 
-                                  unit_cell_length: float=1.) -> jnp.array:
-    ''' computes the nuclei-electron displacement vectors under the minimum image convention '''
-    r_atoms = jnp.expand_dims(r_atoms, axis=0)
-    walkers = jnp.expand_dims(walkers, axis=1)
-    ae_vectors = r_atoms - walkers
-    ae_vectors = apply_minimum_image_convention(ae_vectors, unit_cell_length)
-    return ae_vectors
-
-
-def create_compute_inputs_i(mol):
-
-    if mol.scalar_inputs:
-        return compute_inputs_scalar_inputs_i
-
-    if mol.periodic_boundaries:
-        _compute_inputs_periodic_i = partial(compute_inputs_periodic_i, n_periodic_input=mol.n_periodic_input, unit_cell_length=mol.unit_cell_length)
-        
-        return _compute_inputs_periodic_i
-    
-    return compute_inputs_i
+    single_stream_vectors = jnp.expand_dims(walkers, axis=1)
+    if not r_atoms is None:
+        r_atoms = jnp.expand_dims(r_atoms, axis=0)
+        single_stream_vectors = r_atoms - single_stream_vectors
+        if pbc: 
+            single_stream_vectors = apply_minimum_image_convention(single_stream_vectors, basis, inv_basis)
+    return single_stream_vectors
 
 
 def compute_ee_vectors_i(walkers):
@@ -52,27 +30,59 @@ def compute_ee_vectors_i(walkers):
     return ee_vectors
 
 
-def compute_inputs_i(walkers: jnp.array, ae_vectors: jnp.array):
-    
-    n_electrons, n_atoms = ae_vectors.shape[:2]
+def transform_vector_space(vectors: jnp.array, basis: jnp.array):
+    '''
+    case 1 catches non-orthorhombic cells 
+    case 2 for orthorhombic and cubic cells
+    '''
+    if basis.shape == (3, 3):
+        return jnp.dot(vectors, basis)
+    else:
+        return vectors * basis
 
-    ae_distances = jnp.linalg.norm(ae_vectors, axis=-1, keepdims=True)
-    single_inputs = jnp.concatenate([ae_vectors, ae_distances], axis=-1)
-    single_inputs = single_inputs.reshape(n_electrons, 4 * n_atoms)
+
+def input_activation(inputs: jnp.array, inv_basis: jnp.array):
+    inputs = transform_vector_space(inputs, inv_basis)
+    # return jnp.concatenate([jnp.sin((2.*i*jnp.pi / unit_cell_length) * inputs) for i in range(1, n_periodic_input+1)], axis=-1)
+    return inputs**2 / jnp.exp(4.*jnp.abs(inputs))
+
+
+def apply_minimum_image_convention(displacement_vectors, basis, inv_basis):
+    '''
+    pseudocode:
+        - translate to the unit cell 
+        - compute the distances
+        - 2 * element distances will be maximum 0.999 (as always in the same cell)
+        - int(2 * element distances) will either be 0, 1 or -1
+        # displacement_vectors = displacement_vectors - lax.stop_gradient(displace)  #
+    '''
+    displace = (2. * transform_vector_space(displacement_vectors, inv_basis)).astype(int).astype(displacement_vectors.dtype)
+    displace = transform_vector_space(displace, basis)
+    displacement_vectors = displacement_vectors - displace 
+    return displacement_vectors
+
+
+def compute_inputs_i(walkers: jnp.array, 
+                     single_stream_vectors: jnp.array, 
+                     basis: Optional[jnp.array]=None,
+                     inv_basis: Optional[jnp.array]=None,
+                     pbc: bool=False):
+
+    n_el = walkers.shape[0]
+    n_el, n_features = single_stream_vectors.shape[:2]
+
+    if pbc: single_vectors = input_activation(single_stream_vectors, inv_basis)
+    single_distances = jnp.linalg.norm(single_vectors, axis=-1, keepdims=True)
+    single_inputs = jnp.concatenate([single_vectors, single_distances], axis=-1)
+    single_inputs = single_inputs.reshape(n_el, 4 * n_features)
 
     ee_vectors = compute_ee_vectors_i(walkers)
     ee_vectors = drop_diagonal_i(ee_vectors)
+    if pbc: ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
     ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
     pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
 
     return single_inputs, pairwise_inputs
-
-
-def input_activation(inputs, unit_cell_length, n_periodic_input):
-    # return jnp.concatenate([jnp.sin((2.*i*jnp.pi / unit_cell_length) * inputs) for i in range(1, n_periodic_input+1)], axis=-1)
-    assert n_periodic_input == 1
-    # return jnp.concatenate([jnp.sin(jnp.abs((i*jnp.pi / unit_cell_length) * inputs)) for i in range(1, n_periodic_input+1)], axis=-1)
-    return inputs**2 / jnp.exp((4./unit_cell_length)*jnp.abs(inputs))
 
 
 def compute_inputs_periodic_i(walkers, ae_vectors_min_im, n_periodic_input, unit_cell_length=1.):
@@ -108,18 +118,6 @@ def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im):
     return single_inputs, pairwise_inputs
 
 
-def apply_minimum_image_convention(displacement_vectors, unit_cell_length=1.):
-    '''
-    pseudocode:
-        - translate to the unit cell 
-        - compute the distances
-        - 2 * element distances will be maximum 0.999 (as always in the same cell)
-        - int(2 * element distances) will either be 0, 1 or -1
-    '''
-    displace = (2. * displacement_vectors / unit_cell_length).astype(int).astype(displacement_vectors.dtype) * unit_cell_length
-    # displacement_vectors = displacement_vectors - lax.stop_gradient(displace)  #
-    displacement_vectors = displacement_vectors - displace #
-    return displacement_vectors
 
 
 def create_masks(n_atom, n_electrons, n_up, n_layers, n_sh, n_ph, n_in):

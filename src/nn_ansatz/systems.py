@@ -8,14 +8,15 @@ import jax.random as rnd
 import itertools
 from .utils import key_gen, split_variables_for_pmap
 from jax import pmap
+from .ansatz_base import transform_vector_space
 
 
 def create_atom(r_atoms, z_atom):
     return [[int(charge), tuple(coord)] for charge, coord in zip(z_atom, r_atoms)]
 
 
-def compute_reciprocal_basis(real_basis, volume):
-    cv1, cv2, cv3 = real_basis.split(3, axis=0)
+def compute_reciprocal_basis(basis, volume):
+    cv1, cv2, cv3 = basis.split(3, axis=0)
     rv1 = np.cross(cv2.squeeze(), cv3.squeeze()) / volume
     rv2 = np.cross(cv3.squeeze(), cv1.squeeze()) / volume
     rv3 = np.cross(cv1.squeeze(), cv2.squeeze()) / volume
@@ -42,8 +43,8 @@ class SystemAnsatz():
                  r_atoms=None,
                  z_atoms=None,
                  n_el=None,
-                 real_basis=None,
-                 periodic_boundaries=False,
+                 basis=None,
+                 pbc=False,
                  spin_polarized=None,
                  density_parameter=None,
                  unit_cell_length=None,
@@ -62,9 +63,11 @@ class SystemAnsatz():
                  n_walkers=256,
                  n_el_atoms=None,
                  n_up=None,
-                 basis='sto3g',
+                 orbital_basis='sto3g',
                  device='cpu',
                  dtype=jnp.float32,
+                 atoms_from_unit_cube=True,
+                 scale_cell=1.,
                  **kwargs):
 
         self.system = system
@@ -110,7 +113,7 @@ class SystemAnsatz():
         self.n_det = n_det
         self.scalar_inputs = scalar_inputs
         self.n_in = 1 if scalar_inputs else 4
-        self.orbitals=orbitals
+        self.orbitals = orbitals
 
         # throwaway
         self.min_cell_width = 1.
@@ -119,7 +122,7 @@ class SystemAnsatz():
         self.step_size = split_variables_for_pmap(self.n_devices, step_size)
         self.correlation_length = correlation_length
         self.n_walkers = n_walkers
-        self.periodic_boundaries = periodic_boundaries
+        self.pbc = pbc
 
         self.density_parameter = density_parameter
 
@@ -127,42 +130,39 @@ class SystemAnsatz():
         if not density_parameter is None:
             v_per_electron = 4. * jnp.pi * density_parameter**3 / 3. 
             volume = n_el * v_per_electron
-            unit_cell_length = volume**(1./3.)
+            scale_cell = volume**(1./3.)
+            basis = jnp.eye((3, 3))
             self.density_parameter = density_parameter
 
-        self.unit_cell_length = unit_cell_length  # has to be here for in the ansatz
-        self.real_basis = unit_cell_length * real_basis if periodic_boundaries else None # each basis vector is (1, 3)
-        self.inv_real_basis = jnp.linalg.inv(self.real_basis) if periodic_boundaries else None
+        self.basis = basis * scale_cell if pbc else None # each basis vector is (1, 3)
+        self.inv_basis = jnp.linalg.inv(self.basis) if pbc else None
 
-        if periodic_boundaries:
-
+        if pbc:
             self.n_in = 1 if scalar_inputs else (3 * n_periodic_input) + 1
             self.n_periodic_input = n_periodic_input
             
-            self.r_atoms = self.r_atoms * unit_cell_length
-            self.volume = compute_volume(self.real_basis)
+            self.volume = compute_volume(self.basis)
             if volume is not None:
                 assert volume == self.volume
-            self.reciprocal_basis = compute_reciprocal_basis(self.real_basis, self.volume)
-            self.l0 = float(jnp.min(jnp.linalg.norm(self.real_basis, axis=-1)))
-            self.min_cell_width = compute_min_width_of_cell(self.real_basis)
+            self.reciprocal_basis = compute_reciprocal_basis(self.basis, self.volume)
+            self.l0 = float(jnp.min(jnp.linalg.norm(self.basis, axis=-1)))
+            self.min_cell_width = compute_min_width_of_cell(self.basis)
             
             self.real_cut = real_cut
             self.reciprocal_cut = reciprocal_cut
             self.kappa = kappa
-            
-            self.spin_polarized = spin_polarized  # heg
+
+            if atoms_from_unit_cube: self.r_atoms = jnp.dot(r_atoms, basis)
 
             print('Cell: \n',
-              'real_basis:', '\n', self.real_basis, '\n',
+              'basis:', '\n', self.basis, '\n',
               'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
               'real_cut         = %.2f \n' % self.real_cut,
               'reciprocal_cut   = %i \n' % self.reciprocal_cut,
               'kappa            = %.2f \n' % kappa,
               'volume           = %.2f \n' % self.volume,
               'min_cell_width   = %.2f \n' % self.min_cell_width,
-              'n_periodic_input = %i \n' % n_periodic_input,
-              'unit_cell_length = %.2f \n' % self.unit_cell_length)
+              'n_periodic_input = %i \n' % n_periodic_input)
 
         if not system == 'HEG':
             self.atom = create_atom(r_atoms, z_atoms)
@@ -170,7 +170,7 @@ class SystemAnsatz():
             mol = gto.Mole(
                 atom=self.atom,
                 unit='Bohr',
-                basis=basis,
+                basis=orbital_basis,
                 charge=self.charge,
                 spin=self.spin
             )
