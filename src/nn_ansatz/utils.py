@@ -153,7 +153,6 @@ def get_system(system,
 
     PATH = os.path.abspath(os.path.dirname(__file__))
     systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
-    print(systems_data)
     if not system in systems_data:
         pass
         sys.exit('system not in db')

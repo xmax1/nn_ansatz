@@ -168,6 +168,7 @@ class SystemAnsatz():
 
             self.inv_basis = jnp.diag(inv_basis)[None, :] if jnp.all(inv_basis.sum(0) == jnp.diag(inv_basis)) else inv_basis
             self.basis = jnp.diag(basis)[None, :] if jnp.all(basis.sum(0) == jnp.diag(basis)) else basis
+            self.scale_cell = scale_cell
 
         if not system == 'HEG':
             self.atom = create_atom(r_atoms, z_atoms)

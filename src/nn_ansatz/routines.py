@@ -6,6 +6,7 @@ import jax.numpy as jnp
 from jax import jit
 from jax.experimental.optimizers import adam
 from tqdm import trange
+import sys
 
 from .python_helpers import save_pk
 
@@ -23,13 +24,13 @@ def check_inf_nan(arg):
     return jnp.isnan(arg).any() or jnp.isinf(arg).any()
 
 
-def check_and_save(*args):
+def check_and_save(args, names):
     for arg in args:
         check = check_inf_nan(arg)
         if check:
-            for i, arg in enumerate(args):
-                save_pk(arg, 'arr%i.pk' % i)
-            break
+            for arg, name in zip(args, names):
+                save_pk(arg, '%s.pk' % name)
+            sys.exit('found nans')
 
 def run_vmc(cfg, walkers=None):
 
@@ -81,7 +82,7 @@ def run_vmc(cfg, walkers=None):
         state = update(step, grads, state)
         params = get_params(state)
         
-        check_and_save(walkers, e_locs)
+        check_and_save([walkers, e_locs], ['walkers', 'e_locs'])
 
         steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
         steps.refresh()

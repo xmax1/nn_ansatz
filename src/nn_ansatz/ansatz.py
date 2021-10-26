@@ -181,9 +181,9 @@ def anisotropic_orbitals(sigma,
     if pbc:
         # ae_vector = jnp.where(jnp.abs(ae_vector) == 0.5 * unit_cell_length, ae_vector + 0.000001, ae_vector)
         orb_vector = transform_vector_space(orb_vector, inv_basis)
-        orb_vector_shifted = orb_vector + eps
-        orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*orb_vector_shifted)), orb_vector)
-        orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*orb_vector_shifted)), orb_vector)
+        # orb_vector_shift = orb_vector - eps
+        orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*(orb_vector + eps))), orb_vector)
+        orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*(orb_vector - eps))), orb_vector)
         orb_vector = transform_vector_space(orb_vector, basis)
         ''' this line can be used to enforce the boundary condition at 1/2 if necessary as a test. However, if the minimum image convention
         holds then it is never applied. '''
