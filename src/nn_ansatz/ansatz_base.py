@@ -18,9 +18,8 @@ def compute_single_stream_vectors_i(walkers: jnp.array,
     if not r_atoms is None:
         r_atoms = jnp.expand_dims(r_atoms, axis=0)
         single_stream_vectors = r_atoms - single_stream_vectors
-        if pbc: 
-            single_stream_vectors = apply_minimum_image_convention(single_stream_vectors, basis, inv_basis)
-    return single_stream_vectors
+        if pbc: single_stream_vectors = apply_minimum_image_convention(single_stream_vectors, basis, inv_basis)
+    return single_stream_vectors  # (n_el, n_atoms, 3)
 
 
 def compute_ee_vectors_i(walkers):
@@ -34,8 +33,9 @@ def compute_ee_vectors_i(walkers):
 
 def input_activation(inputs: jnp.array, inv_basis: jnp.array):
     inputs = transform_vector_space(inputs, inv_basis)
+    return jnp.sin(2.*jnp.pi*inputs)
     # return jnp.concatenate([jnp.sin((2.*i*jnp.pi / unit_cell_length) * inputs) for i in range(1, n_periodic_input+1)], axis=-1)
-    return inputs**2 / jnp.exp(4.*jnp.abs(inputs))
+    # return inputs**2 / jnp.exp(4.*jnp.abs(inputs))
 
 
 def apply_minimum_image_convention(displacement_vectors, basis, inv_basis):
@@ -49,7 +49,7 @@ def apply_minimum_image_convention(displacement_vectors, basis, inv_basis):
     '''
     displace = (2. * transform_vector_space(displacement_vectors, inv_basis)).astype(int).astype(displacement_vectors.dtype)
     displace = transform_vector_space(displace, basis)
-    displacement_vectors = displacement_vectors - displace 
+    displacement_vectors = displacement_vectors - lax.stop_gradient(displace) 
     return displacement_vectors
 
 
@@ -59,40 +59,42 @@ def compute_inputs_i(walkers: jnp.array,
                      inv_basis: Optional[jnp.array]=None,
                      pbc: bool=False):
 
-    n_el = walkers.shape[0]
     n_el, n_features = single_stream_vectors.shape[:2]
 
-    if pbc: single_stream_vectors = input_activation(single_stream_vectors, inv_basis)
+    if pbc: 
+        single_stream_vectors = input_activation(single_stream_vectors, inv_basis)
     single_distances = jnp.linalg.norm(single_stream_vectors, axis=-1, keepdims=True)
     single_inputs = jnp.concatenate([single_stream_vectors, single_distances], axis=-1)
     single_inputs = single_inputs.reshape(n_el, 4 * n_features)
 
     ee_vectors = compute_ee_vectors_i(walkers)
     ee_vectors = drop_diagonal_i(ee_vectors)
-    if pbc: ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
+    if pbc: 
+        ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
+        ee_vectors = input_activation(ee_vectors, inv_basis)
     ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
     pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
 
     return single_inputs, pairwise_inputs
 
 
-def compute_inputs_periodic_i(walkers, ae_vectors_min_im, n_periodic_input, unit_cell_length=1.):
+# def compute_inputs_periodic_i(walkers, ae_vectors_min_im, n_periodic_input, unit_cell_length=1.):
 
-    n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
+#     n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
 
-    ae_distances = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
-    ae_vectors_periodic = input_activation(ae_vectors_min_im, unit_cell_length, n_periodic_input)
-    single_inputs = jnp.concatenate([ae_vectors_periodic, ae_distances], axis=-1)
-    single_inputs = single_inputs.reshape(n_electrons, ((n_periodic_input * 3) + 1) * n_atoms)
+#     ae_distances = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
+#     ae_vectors_periodic = input_activation(ae_vectors_min_im, unit_cell_length, n_periodic_input)
+#     single_inputs = jnp.concatenate([ae_vectors_periodic, ae_distances], axis=-1)
+#     single_inputs = single_inputs.reshape(n_electrons, ((n_periodic_input * 3) + 1) * n_atoms)
 
-    ee_vectors = compute_ee_vectors_i(walkers)
-    ee_vectors = drop_diagonal_i(ee_vectors)
-    ee_vectors = apply_minimum_image_convention(ee_vectors, unit_cell_length)
-    ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
-    ee_vectors_periodic = input_activation(ee_vectors, unit_cell_length, n_periodic_input)
-    pairwise_inputs = jnp.concatenate([ee_vectors_periodic, ee_distances], axis=-1)
+#     ee_vectors = compute_ee_vectors_i(walkers)
+#     ee_vectors = drop_diagonal_i(ee_vectors)
+#     ee_vectors = apply_minimum_image_convention(ee_vectors, unit_cell_length)
+#     ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
+#     ee_vectors_periodic = input_activation(ee_vectors, unit_cell_length, n_periodic_input)
+#     pairwise_inputs = jnp.concatenate([ee_vectors_periodic, ee_distances], axis=-1)
 
-    return single_inputs, pairwise_inputs
+#     return single_inputs, pairwise_inputs
 
 
 def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im):
@@ -244,7 +246,8 @@ def env_linear_i(params: jnp.array,
     activation = jnp.concatenate((data, bias), axis=1)
     activations.append(activation)
     pre_activations = jnp.matmul(activation, params) + d0  # (j, k * i)
-    pre_activations = jnp.transpose(pre_activations).reshape(-1, n_spins, n_spins)  # (k, i, j)
+    pre_activations = pre_activations.reshape(n_spins, -1, n_spins)  # (j, k, i), env_pi reshapes the same way so k -> k
+    pre_activations = jnp.transpose(pre_activations, (1, 2, 0)) # (k i j)
     return pre_activations
 
 

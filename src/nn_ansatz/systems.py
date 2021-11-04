@@ -52,6 +52,7 @@ class SystemAnsatz():
                  kappa=None,
                  scalar_inputs=False,
                  orbitals='anisotropic',
+                 einsum:bool = False,
                  n_periodic_input=1,
                  n_layers=2,
                  n_sh=64,
@@ -113,6 +114,7 @@ class SystemAnsatz():
         self.scalar_inputs = scalar_inputs
         self.n_in = 1 if scalar_inputs else 4
         self.orbitals = orbitals
+        self.einsum = einsum
 
         # throwaway
         self.min_cell_width = 1.
@@ -154,10 +156,15 @@ class SystemAnsatz():
             self.reciprocal_cut = reciprocal_cut
             self.kappa = kappa
 
-            if atoms_from_unit_cell: self.r_atoms = jnp.dot(r_atoms, basis)
+            self.inv_basis = jnp.diag(inv_basis)[None, :] if jnp.all(inv_basis.sum(0) == jnp.diag(inv_basis)) else inv_basis
+            self.basis = jnp.diag(basis)[None, :] if jnp.all(basis.sum(0) == jnp.diag(basis)) else basis
+            self.scale_cell = scale_cell
+
+            if atoms_from_unit_cell: self.r_atoms = transform_vector_space(self.r_atoms, self.basis)
 
             print('Cell: \n',
-              'basis:', '\n', basis, '\n',
+              'basis:', '\n', self.basis, '\n',
+              'inv_basis:', '\n', self.inv_basis, '\n',
               'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
               'real_cut         = %.2f \n' % self.real_cut,
               'reciprocal_cut   = %i \n' % self.reciprocal_cut,
@@ -166,9 +173,7 @@ class SystemAnsatz():
               'min_cell_width   = %.2f \n' % self.min_cell_width,
               'n_periodic_input = %i \n' % n_periodic_input)
 
-            self.inv_basis = jnp.diag(inv_basis)[None, :] if jnp.all(inv_basis.sum(0) == jnp.diag(inv_basis)) else inv_basis
-            self.basis = jnp.diag(basis)[None, :] if jnp.all(basis.sum(0) == jnp.diag(basis)) else basis
-            self.scale_cell = scale_cell
+            
 
         if not system == 'HEG':
             self.atom = create_atom(r_atoms, z_atoms)
@@ -191,7 +196,7 @@ class SystemAnsatz():
 
     @property
     def atom_positions(self):
-        return [x for x in self.r_atoms.split(self.n_atoms, axis=0)]
+        return self.r_atoms.split(self.n_atoms, axis=0)
 
     
 def generate_plane_vectors(primitives, origin, contra, center):

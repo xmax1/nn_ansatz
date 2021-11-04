@@ -1,12 +1,15 @@
 import os
 
 import jax
+from jax._src.tree_util import tree_flatten
 import jax.random as rnd
 import jax.numpy as jnp
-from jax import jit
+from jax import jit, pmap
 from jax.experimental.optimizers import adam
 from tqdm import trange
 import sys
+
+from .ansatz_base import split_and_squeeze
 
 from .python_helpers import save_pk
 
@@ -17,7 +20,7 @@ from .systems import SystemAnsatz
 from .pretraining import pretrain_wf
 from .vmc import create_energy_fn, create_grad_function
 from .optimisers import kfac
-from .utils import Logging, load_pk, key_gen, split_variables_for_pmap, write_summary_to_cfg
+from .utils import Logging, compare, load_pk, key_gen, split_variables_for_pmap, write_summary_to_cfg
 
 
 def check_inf_nan(arg):
@@ -99,6 +102,39 @@ def run_vmc(cfg, walkers=None):
     return logger
 
 
+def compare_einsum(cfg, walkers=None):
+    logger = Logging(**cfg)
+
+    keys = rnd.PRNGKey(cfg['seed'])
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        keys = rnd.split(keys, cfg['n_devices']).reshape(cfg['n_devices'], 2)
+
+    mol = SystemAnsatz(**cfg)
+    mol_einsum = SystemAnsatz(**cfg)
+
+    vwf = create_wf(mol, distribute=True)
+    params = initialise_params(mol, keys)
+
+    sampler = create_sampler(mol, vwf)
+    
+    mol_einsum.einsum = True
+    vwf_einsum = create_wf(mol_einsum, distribute=True)
+    params_einsum = initialise_params(mol_einsum, keys)
+    
+    compare_params(params, params_einsum)
+        
+    if walkers is None:
+        walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
+
+    vwf = pmap(vwf, in_axes=(None, 0))
+    vwf_einsum = pmap(vwf_einsum, in_axes=(None, 0))
+    log_psi = vwf(params, walkers)
+    log_psi_einsum = vwf_einsum(params_einsum, walkers)
+
+    difference = jnp.mean(log_psi - log_psi_einsum)
+    print('difference = %.2f' % difference)
+
+
 def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute_energy=None, n_it=1000, step_size=0.02):
     
     if sampler is None:
@@ -121,3 +157,51 @@ def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute
         print('step %i energy %.4f acceptance %.2f' % (i, jnp.mean(e_locs), acc[0]))
 
     return walkers
+
+
+def compare_params(params, params_einsum):
+    pi_ups = [split_and_squeeze(p, axis=2) for p in split_and_squeeze(params_einsum['env_pi_up'], axis=2)]
+    pi_ups = [x for y in pi_ups for x in y]
+
+    pi_downs = [split_and_squeeze(p, axis=2) for p in split_and_squeeze(params_einsum['env_pi_down'], axis=2)]
+    pi_downs = [x for y in pi_downs for x in y]
+
+    for dictionary, name in zip([pi_ups, pi_downs], ['env_pi_up', 'env_pi_down']):
+        for i, v in enumerate(dictionary):
+            params_einsum[name + '_%i' %i] = v
+    
+    params_einsum = {k:v for k, v in params_einsum.items() if not 'env_pi_up' == k}
+    params_einsum = {k:v for k, v in params_einsum.items() if not 'env_pi_down' == k}
+
+    for (k1, v1), (k2, v2) in zip(params.items(), params_einsum.items()):
+        if not v1.shape == v2.shape:
+            print(v1.shape, v2.shape)
+            v2 = v2.reshape(v1.shape)
+        print(jnp.mean(v1 - v2))
+
+
+if __name__ == '__main__':
+    import sys
+    sys.path.append('.')
+
+    from utils import setup
+    cfg = setup(system='LiSolidBCC',
+                    n_pre_it=0,
+                    n_walkers=512,
+                    n_layers=2,
+                    n_sh=64,
+                    step_size=0.05,
+                    n_ph=32,
+                    scalar_inputs=False,
+                    orbitals='anisotropic',
+                    einsum=True,
+                    n_periodic_input=1,
+                    opt='adam',
+                    n_det=4,
+                    print_every=50,
+                    save_every=2500,
+                    lr=1e-4,
+                    n_it=30000)
+
+    compare_einsum(cfg)
+

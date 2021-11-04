@@ -101,7 +101,7 @@ def create_potential_energy(mol):
 
     if mol.pbc:
 
-        basis = jnp.diag(mol.basis[0]) #if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
+        basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
         reciprocal_basis = mol.reciprocal_basis
         kappa = mol.kappa
         volume = mol.volume

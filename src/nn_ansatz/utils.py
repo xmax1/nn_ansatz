@@ -219,6 +219,7 @@ def setup(system: str = 'Be',
           scalar_inputs: bool = False,
           n_periodic_input: int = 3,
           orbitals: str = 'anisotropic',
+          einsum: bool = False, 
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 1000,
@@ -297,6 +298,7 @@ def setup(system: str = 'Be',
               'scalar_inputs': scalar_inputs, 
               'n_periodic_input': n_periodic_input,
               'orbitals': orbitals, 
+              'einsum': einsum,
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,

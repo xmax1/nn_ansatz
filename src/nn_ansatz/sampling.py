@@ -174,16 +174,19 @@ def generate_walkers_around_nuclei(ne_atoms, atom_positions, n_walkers):
     key = rnd.PRNGKey(1)
     ups = []
     downs = []
+    idx = 0
     for ne_atom, atom_position in zip(ne_atoms, atom_positions):
         for e in range(ne_atom):
-            key, subkey = rnd.split(key)
+            key, *subkeys = rnd.split(key, num=3)
 
-            if e % 2 == 0:  # fill up the orbitals alternating up down
-                curr_sample_up = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
+            if idx % 2 == 0:  # fill up the orbitals alternating up down
+                curr_sample_up = rnd.normal(subkeys[0], (n_walkers, 1, 3)) + atom_position
                 ups.append(curr_sample_up)
             else:
-                curr_sample_down = rnd.normal(subkey, (n_walkers, 1, 3)) + atom_position
+                curr_sample_down = rnd.normal(subkeys[1], (n_walkers, 1, 3)) + atom_position
                 downs.append(curr_sample_down)
+
+            idx += 1
 
     ups = jnp.concatenate(ups, axis=1)
     downs = jnp.concatenate(downs, axis=1)
