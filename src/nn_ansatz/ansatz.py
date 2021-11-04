@@ -100,7 +100,7 @@ def wf_orbitals(params: dict,
     single = linear(params['s0'], single_mixed, split, activations, d0s['s0'])
     pairwise = linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
 
-    for i, mask in enumerate(masks[1:], 1):
+    for i, mask in enumerate(masks[2:], 1):
         single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *mask)
 
         split = linear_split(params['split%i'%i], split, activations, d0s['split%i'%i])
@@ -187,6 +187,7 @@ def anisotropic_orbitals(sigma,
         # orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*(orb_vector + eps))), orb_vector)
         # orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*(orb_vector - eps))), orb_vector)
         # orb_vector = transform_vector_space(orb_vector, basis)
+        
         norm = basis.mean()
         orb_vector = jnp.where(orb_vector <= -0.25 * norm , -1.*norm**2/(8.*(1.*norm + 2.*(orb_vector + eps))), orb_vector)
         orb_vector = jnp.where(orb_vector >= 0.25 * norm, 1.*norm**2/(8.*(1.*norm - 2.*(orb_vector - eps))), orb_vector)

@@ -12,12 +12,13 @@ cfg = setup(system='LiSolidBCC',
                     orbitals='anisotropic',
                     n_periodic_input=1,
                     opt='adam',
-                    n_det=4,
-                    lr = 1e-5,
+                    n_det = 4,
+                    lr = 1e-4,
                     print_every=50,
                     save_every=2500,
                     n_it=30000,
-                    name='xeinsum_oldtransform')
+                    einsum=True,
+                    name='ein_compare_ein')
 log = run_vmc(cfg)
 
 # cfg = setup(system='LiSolidBCC',

@@ -127,10 +127,10 @@ def initialise_params(mol, key):
             sigma_shape_down = (3, 3, n_det, n_down) if orbitals == 'anisotropic' else (1, n_det, n_down)
             
             for m, (k1, k2) in enumerate(zip(rnd.split(subkeys[0], num=n_atoms), rnd.split(subkeys[1], num=n_atoms))):
-                params['env_sigma_up_m%i' % m] = params['env_sigma_up_m%i' % m].reshape(sigma_shape_up, order='F')
+                params['env_sigma_up_m%i' % m] = params['env_sigma_up_m%i' % m].reshape(sigma_shape_up, order='F')  # so the 3 is in the right place
             #     params['env_sigma_up_m%i' % m] = init_einsum(k1, sigma_shape_up, bias=False)  # (3, 3 * n_det*n_spin)
                 if not n_down == 0:
-                    params['env_sigma_down_m%i' % m] = params['env_sigma_down_m%i' % m].reshape(sigma_shape_down, order='F')
+                    params['env_sigma_down_m%i' % m] = params['env_sigma_down_m%i' % m].reshape(sigma_shape_down, order='F') # so the 3 is in the right place
                     # params['env_sigma_down_m%i' % m] = init_einsum(k2, sigma_shape_down, bias=False)
 
             key, *subkeys = rnd.split(key, num=3)
