@@ -19,6 +19,8 @@ from jax.tree_util import tree_flatten
 import numpy as np
 import csv
 import sys
+import re
+
 
 from .python_helpers import *
 
@@ -101,14 +103,14 @@ def create_config_paths(exp_dir):
     return csv_path, pk_path
 
 
-def save_config_csv_and_pickle(config, csv_path, pk_path):
+def save_config_csv_and_pickle(config):
     
-    with open(csv_path, 'w') as f:
+    with open(config['csv_cfg_path'], 'w') as f:
         for key, val in config.items():
             if not 'dir' in key:
                 f.write("%s,%s\n" % (key, val))
 
-    with open(pk_path, 'wb') as f:
+    with open(config['pk_cfg_path'], 'wb') as f:
         pk.dump(config, f)
 
 
@@ -162,16 +164,16 @@ def get_system(system,
             'r_atoms': None,  # enforces n_atoms = 1 in the molecule class HACKY
             'z_atoms': None,
             'n_el': n_el,
-            'n_el_atoms': [n_el],
             'density_parameter': density_parameter}              
         }
 
-    return dict_entries_to_array(systems_data[system])
+    systems_data = dict_entries_to_array(systems_data[system])
+    return systems_data
 
 
 def get_run(exp_dir):
     exps = os.listdir(exp_dir)
-    nums = [int(e[-1]) for e in exps if 'run' in e]
+    nums = [int(e[3:]) for e in exps if 'run' in e]
     trial = 0
     while True:
         if trial not in nums:
@@ -187,8 +189,8 @@ def get_n_devices():
 
 def setup(system: str = 'Be',
           name = None,
-          save_every: int = 1000,
-          print_every: int = 100,
+          save_every: int = 5000,
+          print_every: int = 1000,
 
           r_atoms=None,
           z_atoms=None,
@@ -197,6 +199,7 @@ def setup(system: str = 'Be',
           ignore_toml=False,
           pbc=False,
           real_basis=None,
+          simulation_cell: tuple = (1, 1, 1),
           density_parameter=None,
           real_cut=6,
           reciprocal_cut=6,
@@ -209,7 +212,7 @@ def setup(system: str = 'Be',
           n_it: int = 1000,
           n_walkers: int = 512,
 
-          step_size: float = 0.02,
+          step_size: float = 0.05,
           correlation_length: int = 10,
 
           n_layers: int = 2,
@@ -217,17 +220,18 @@ def setup(system: str = 'Be',
           n_ph: int = 8,
           n_det: int = 2,
           scalar_inputs: bool = False,
-          n_periodic_input: int = 3,
+          n_periodic_input: int = 1,
           orbitals: str = 'anisotropic',
           einsum: bool = False, 
+          nonlinearity: str = 'tanh',
+          input_activation_nonlinearity: str = 'sin',
 
           pre_lr: float = 1e-4,
-          n_pre_it: int = 1000,
+          n_pre_it: int = 0,
           pretrain: bool = False,
           load_pretrain: bool = False,
 
           load_it: int = 0,
-          load_dir: str = '',
 
           distribute: bool = True, 
           debug: bool = False,
@@ -241,16 +245,14 @@ def setup(system: str = 'Be',
     version = today # version = subprocess.check_output(["git", "describe"]).strip()
     root = os.path.join(os.getcwd(), 'experiments')
 
-    if name is None: name = 'junk'
+    if name is None: name = os.path.join(today, 'junk')
 
-    loading = are_we_loading(load_it, load_dir)
     ansatz_hyperparameter_name = '%s_%s_%s_%s' % (n2n(n_sh, 's'), n2n(n_ph, 'p'), n2n(n_layers, 'l'), n2n(n_det, 'det'))
-    if loading: exp_dir = load_dir
-    else:
-        hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
-        exp_dir = join_and_create(root, system, today, name, hyperparameter_name + ansatz_hyperparameter_name)
-        run = 'run%i' % get_run(exp_dir)
-        exp_dir = os.path.join(exp_dir, run)
+
+    hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
+    exp_dir = join_and_create(root, system, name, hyperparameter_name + ansatz_hyperparameter_name)
+    run = 'run%i' % get_run(exp_dir)
+    exp_dir = os.path.join(exp_dir, run)
 
     pretrain_dir = join_and_create(root, system, 'pretrained')
     hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
@@ -280,7 +282,7 @@ def setup(system: str = 'Be',
               'opt_state_dir': opt_state_dir,
               'pre_path': pre_path,
               'timing_dir': timing_dir,
-              'csv_cfg_path':csv_cfg_path,
+              'csv_cfg_path': csv_cfg_path,
               'pk_cfg_path': pk_cfg_path,
 
               # SYSTEM
@@ -289,6 +291,7 @@ def setup(system: str = 'Be',
               'real_cut': real_cut,
               'reciprocal_cut': reciprocal_cut,
               'kappa': kappa,
+              'simulation_cell': simulation_cell,
 
               # ANSATZ
               'n_layers': n_layers,
@@ -299,6 +302,8 @@ def setup(system: str = 'Be',
               'n_periodic_input': n_periodic_input,
               'orbitals': orbitals, 
               'einsum': einsum,
+              'nonlinearity': nonlinearity,
+              'input_activation_nonlinearity': input_activation_nonlinearity,
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,
@@ -317,10 +322,9 @@ def setup(system: str = 'Be',
               'n_pre_it': n_pre_it,
               'load_pretrain': load_pretrain,
               'pretrain': pretrain
-
     }
 
-    save_config_csv_and_pickle(config, csv_cfg_path, pk_cfg_path)
+    save_config_csv_and_pickle(config)
 
     for k, v in config.items():
         print(k, '\t\t', v)
@@ -331,11 +335,10 @@ def setup(system: str = 'Be',
     return config
 
 
-def write_summary_to_cfg(path, summary):
-    with open(path, 'a') as f:
-        f.write("# Final summary \n")
-        for key, val in summary.items():
-            f.write("%s,%s\n" % (key, val))
+def write_summary_to_cfg(cfg, summary):
+    for key, val in summary.items():
+        cfg[key] = val
+    save_config_csv_and_pickle(cfg)
 
 
 def load_config_pk(path):
@@ -429,7 +432,9 @@ class Logging():
             e_locs=None,
             acceptance=None,
             walkers=None,
-            **kwargs):
+            **kwargs): 
+        
+        acceptance = float(jnp.mean(jnp.array([acceptance])))
 
         self.timer(step, 'iteration')
 
@@ -453,7 +458,7 @@ class Logging():
             self.printer['e_mean_mean'] = e_mean_mean
 
         if acceptance is not None:
-            self.writer('acceptance', float(acceptance), step)
+            self.writer('acceptance', acceptance, step)
             self.printer['acceptance'] = acceptance
 
         if self.times.get('iteration') is not None:

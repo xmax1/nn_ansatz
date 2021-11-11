@@ -41,10 +41,9 @@ def count_mixed_features(n_sh, n_ph, n_down):
     return n_sh + n_ph * (2 - int(n_down==0))
 
 
-def initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_layers):
+def initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers):
     # count the number of input features
-    n_sh_in = n_in * n_atoms
-    n_ph_in = n_in
+    
 
     # count the features in the intermediate layers
     n_sh_mix = count_mixed_features(n_sh, n_ph, n_down)
@@ -62,7 +61,8 @@ def initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_l
     for i, (sk1, sk2, sk3) in enumerate(zip(*([iter(subkeys)] * 3)), 1):  # idiom for iterating in sets of 2/3/...
         params['split%i' % i] = init_linear(sk1, (n_sh_split, n_sh), bias=False)
         params['s%i' % i] = init_linear(sk2, (n_sh_mix, n_sh), bias=True)
-        params['p%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)
+        
+        if not i == n_layers: params['p%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
 
     return params, key
 
@@ -85,13 +85,13 @@ def init_einsum(key, shape, bias=False):
 def initialise_params(mol, key):
     if len(key.shape) > 1:
         key = key[0]
-    n_layers, n_sh, n_ph, n_det, n_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in
+    n_layers, n_sh, n_ph, n_det, n_in, n_sh_in, n_ph_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in, mol.n_sh_in, mol.n_ph_in
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
     orbitals = mol.orbitals
     
     params = OrderedDict()
 
-    params, key = initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_layers)
+    params, key = initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers)
 
     # env_linear
     key, *subkeys = rnd.split(key, num=3)
@@ -164,7 +164,7 @@ def initialise_linear_layers_d0s(d0s, n_el, n_pairwise, n_sh, n_ph, n_layers):
     for i in range(1, n_layers+1):
         d0s['split%i' % i] = jnp.zeros((1, n_sh))
         d0s['s%i' % i] = jnp.zeros((n_el, n_sh))
-        d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph))
+        if not (i == n_layers): d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph))  # final network layer doesn't have pairwise layer
 
     return d0s
 

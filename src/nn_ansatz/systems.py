@@ -36,6 +36,42 @@ def compute_volume(basis):
     box = jnp.sum(v1 * cross)
     return jnp.abs(jnp.squeeze(box))
 
+def create_system_ansatz(cfg):
+    if cfg['pbc']:
+        return PBCAnsatz(**cfg)
+    else:
+        return IsolatedAnsatz(**cfg)
+
+
+class PBCAnsatz():
+    def __init__(self, ):
+        return
+
+class IsolatedAnsatz():
+    def __init__(self, ):
+        return 
+
+
+def add_nfuncs(func_split, n_funcs):
+    for f in func_split:
+        if any(char.isdigit() for char in f):
+            n_funcs += (int(f[:-3]) - 1)
+    return n_funcs
+
+
+def get_nfunc_in(func):
+    func_split = func.split('+')
+    if len(func_split) == 1:
+        return 1
+    elif len(func_split) == 2:  # sin+cos
+        n_funcs = 2
+        return add_nfuncs(func_split, n_funcs)
+    elif len(func_split) == 3:  # sin+cos+bowl
+        n_funcs = 3
+        return add_nfuncs(func_split, n_funcs)
+
+            
+
 
 class SystemAnsatz():
     def __init__(self,
@@ -44,15 +80,19 @@ class SystemAnsatz():
                  z_atoms=None,
                  n_el=None,
                  basis=None,
+                 inv_basis=None,
                  pbc=False,
                  spin_polarized=False,
                  density_parameter=None,
                  real_cut=None,
                  reciprocal_cut=None,
                  kappa=None,
+                 simulation_cell: tuple = (1, 1, 1),
                  scalar_inputs=False,
                  orbitals='anisotropic',
                  einsum:bool = False,
+                 nonlinearity: str = 'tanh',
+                 input_activation_nonlinearity: str = 'sin',
                  n_periodic_input=1,
                  n_layers=2,
                  n_sh=64,
@@ -76,22 +116,71 @@ class SystemAnsatz():
         self.n_walkers_per_device = kwargs['n_walkers_per_device']
         self.n_devices = kwargs['n_devices']
 
-        if n_up is None:
-            n_up = math.ceil(n_el / 2.) if not spin_polarized else n_el
-        n_down = n_el - n_up
+        # ELECTRONS
+        if simulation_cell is not None: n_el = int(n_el * jnp.prod(jnp.array(simulation_cell)))
+        if n_up is None: n_up = math.ceil(n_el / 2.) if not spin_polarized else n_el
 
         self.n_el = n_el
         self.n_pairwise = n_el**2 - n_el
         self.n_up = n_up
-        self.n_down = n_down
-        self.spin = n_up - n_down  # will this be different for molecules?
+        self.n_down = n_el - n_up
+        self.spin = n_up - self.n_down  # will this be different for molecules?
 
-        self.n_atoms = r_atoms.shape[0]
-        self.charge = int(jnp.sum(z_atoms)) - n_el
+        # SYSTEM SIZE
+        if system == 'HEG' and density_parameter is not None:
+            self.density_parameter = density_parameter
+            v_per_electron = 4. * jnp.pi * density_parameter**3 / 3. 
+            volume = n_el * v_per_electron
+            scale_cell = volume**(1./3.)
+
+        if pbc:
+            self.real_cut = real_cut
+            self.reciprocal_cut = reciprocal_cut
+            self.kappa = kappa
+
+            single_cell_basis = basis * scale_cell
+            simulation_cell_transforms = [jnp.array([x, y, z])[:, None] for z in range(simulation_cell[2]) for y in range(simulation_cell[1]) for x in range(simulation_cell[0])]
+            simulation_cell = jnp.array(simulation_cell)[:, None]
+            basis = single_cell_basis * simulation_cell
+
+            inv_basis = jnp.linalg.inv(basis)
+            volume = compute_volume(basis)
+
+            self.inv_basis = jnp.diag(inv_basis)[None, :] if jnp.all(inv_basis.sum(0) == jnp.diag(inv_basis)) else inv_basis
+            self.basis = jnp.diag(basis)[None, :] if jnp.all(basis.sum(0) == jnp.diag(basis)) else basis
+            self.reciprocal_basis = compute_reciprocal_basis(basis, volume)
+            self.scale_cell = scale_cell
+            self.volume = volume
+
+            if r_atoms is not None:
+                if atoms_from_unit_cell: 
+                    r_atoms = transform_vector_space(r_atoms, single_cell_basis)
+                r_atoms = jnp.concatenate([r_atoms + (single_cell_basis * sct).sum(0) for sct in simulation_cell_transforms], axis=0)
+                n_cells = len(simulation_cell_transforms)
+                z_atoms = z_atoms[None, :].repeat(n_cells, axis=0).reshape(-1)
+                n_el_atoms = [item for sublist in [n_el_atoms for _ in range(n_cells)] for item in sublist]
+                assert sum(n_el_atoms) == n_el
+
+            print('Cell: \n',
+              'basis:', '\n', self.basis, '\n',
+              'inv_basis:', '\n', self.inv_basis, '\n',
+              'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
+              'real_cut         = %.2f \n' % self.real_cut,
+              'reciprocal_cut   = %i \n' % self.reciprocal_cut,
+              'kappa            = %.2f \n' % self.kappa,
+              'volume           = %.2f \n' % self.volume,
+              'n_periodic_input = %i \n' % n_periodic_input)
+
+        self.pbc = pbc
+        self.basis = basis
+        self.inv_basis = inv_basis 
+
+        # ATOMS
+        self.n_atoms = r_atoms.shape[0] if r_atoms is not None else 0
+        self.charge = int(jnp.sum(z_atoms)) - n_el if r_atoms is not None else - n_el
         self.z_atoms = z_atoms
         self.r_atoms = r_atoms
 
-        if n_el_atoms is None: n_el_atoms = jnp.array([int(x) for x in z_atoms])
         self.n_el_atoms = n_el_atoms
 
         print('System: \n',
@@ -112,70 +201,22 @@ class SystemAnsatz():
         self.n_ph = n_ph
         self.n_det = n_det
         self.scalar_inputs = scalar_inputs
-        self.n_in = 1 if scalar_inputs else 4
+
+        nfunc_in = get_nfunc_in(input_activation_nonlinearity)
+        self.n_in = 4 if not pbc else 3 * nfunc_in + 1
+        self.n_sh_in = self.n_in * self.n_atoms if not self.n_atoms == 0 else self.n_in
+        self.n_ph_in = self.n_in
         self.orbitals = orbitals
         self.einsum = einsum
-
-        # throwaway
-        self.min_cell_width = 1.
+        self.nonlinearity = nonlinearity
+        self.input_activation_nonlinearity = input_activation_nonlinearity
 
         # sampling
         self.step_size = split_variables_for_pmap(self.n_devices, step_size)
         self.correlation_length = correlation_length
         self.n_walkers = n_walkers
-        self.pbc = pbc
 
-        self.density_parameter = density_parameter
-
-        volume = None
-        if not density_parameter is None:
-            v_per_electron = 4. * jnp.pi * density_parameter**3 / 3. 
-            volume = n_el * v_per_electron
-            scale_cell = volume**(1./3.)
-            basis = jnp.eye(3, 3)
-            self.density_parameter = density_parameter
-
-        self.basis = None
-        self.inv_basis = None
-
-        if pbc:
-            basis = basis * scale_cell
-            inv_basis = jnp.linalg.inv(basis)
-
-            self.n_in = 1 if scalar_inputs else (3 * n_periodic_input) + 1
-            self.n_periodic_input = n_periodic_input
-            
-            self.volume = compute_volume(basis)
-            if volume is not None:
-                assert volume == self.volume
-            self.reciprocal_basis = compute_reciprocal_basis(basis, self.volume)
-            self.l0 = float(jnp.min(jnp.linalg.norm(basis, axis=-1)))
-            self.min_cell_width = compute_min_width_of_cell(basis)
-            
-            self.real_cut = real_cut
-            self.reciprocal_cut = reciprocal_cut
-            self.kappa = kappa
-
-            self.inv_basis = jnp.diag(inv_basis)[None, :] if jnp.all(inv_basis.sum(0) == jnp.diag(inv_basis)) else inv_basis
-            self.basis = jnp.diag(basis)[None, :] if jnp.all(basis.sum(0) == jnp.diag(basis)) else basis
-            self.scale_cell = scale_cell
-
-            if atoms_from_unit_cell: self.r_atoms = transform_vector_space(self.r_atoms, self.basis)
-
-            print('Cell: \n',
-              'basis:', '\n', self.basis, '\n',
-              'inv_basis:', '\n', self.inv_basis, '\n',
-              'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
-              'real_cut         = %.2f \n' % self.real_cut,
-              'reciprocal_cut   = %i \n' % self.reciprocal_cut,
-              'kappa            = %.2f \n' % kappa,
-              'volume           = %.2f \n' % self.volume,
-              'min_cell_width   = %.2f \n' % self.min_cell_width,
-              'n_periodic_input = %i \n' % n_periodic_input)
-
-            
-
-        if not system == 'HEG':
+        if not pbc:
             self.atom = create_atom(r_atoms, z_atoms)
 
             mol = gto.Mole(
@@ -196,7 +237,7 @@ class SystemAnsatz():
 
     @property
     def atom_positions(self):
-        return self.r_atoms.split(self.n_atoms, axis=0)
+        return self.r_atoms.split(self.n_atoms, axis=0) if self.r_atoms is not None else None
 
     
 def generate_plane_vectors(primitives, origin, contra, center):

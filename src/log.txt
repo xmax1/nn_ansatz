@@ -1,80 +1,3041 @@
-version 		 190821
+version 		 111121
 seed 		 369
 n_devices 		 1
 save_every 		 5000
-print_every 		 1
-exp_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6
-events_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/events
-models_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/models
-opt_state_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/models/opt_state
-pre_path 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/pretrained/s32_p8_l2_det2_1lr-4_i0.pk
-timing_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/LiSolidBCC/190821/junk/kfac_1lr-4_1d-4_1nc-4_m64_s32_p8_l2_det2/run6/events/timing
-system 		 LiSolidBCC
-r_atoms 		 [[0.25 0.25 0.25]
- [0.75 0.75 0.75]]
-z_atoms 		 [3. 3.]
-n_el 		 6
-n_el_atoms 		 [3 3]
-periodic_boundaries 		 True
-real_basis 		 [[1. 0. 0.]
+print_every 		 1000
+exp_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/111121/pre_test/kfac_1lr-4_1d-3_1nc-4_m512_s64_p32_l2_det1/run25
+events_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/111121/pre_test/kfac_1lr-4_1d-3_1nc-4_m512_s64_p32_l2_det1/run25/events
+models_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/111121/pre_test/kfac_1lr-4_1d-3_1nc-4_m512_s64_p32_l2_det1/run25/models
+opt_state_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/111121/pre_test/kfac_1lr-4_1d-3_1nc-4_m512_s64_p32_l2_det1/run25/models/opt_state
+pre_path 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/pretrained/s64_p32_l2_det1_1lr-4_i0.pk
+timing_dir 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/111121/pre_test/kfac_1lr-4_1d-3_1nc-4_m512_s64_p32_l2_det1/run25/events/timing
+csv_cfg_path 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/111121/pre_test/kfac_1lr-4_1d-3_1nc-4_m512_s64_p32_l2_det1/run25/config1.csv
+pk_cfg_path 		 /home/amawi/projects/nn_ansatz/src/experiments/HEG/111121/pre_test/kfac_1lr-4_1d-3_1nc-4_m512_s64_p32_l2_det1/run25/config1.pk
+pbc 		 True
+basis 		 [[1. 0. 0.]
  [0. 1. 0.]
  [0. 0. 1.]]
-unit_cell_length 		 6.63
+scale_cell 		 1.0
+spin_polarized 		 True
+r_atoms 		 None
+z_atoms 		 None
+n_el 		 7
+density_parameter 		 1.0
+system 		 HEG
 real_cut 		 6
 reciprocal_cut 		 6
 kappa 		 0.5
+simulation_cell 		 (1, 1, 1)
 n_layers 		 2
-n_sh 		 32
-n_ph 		 8
-n_det 		 2
+n_sh 		 64
+n_ph 		 32
+n_det 		 1
 scalar_inputs 		 False
-n_periodic_input 		 3
-orbitals 		 anisotropic
+n_periodic_input 		 1
+orbitals 		 real_plane_waves
+einsum 		 False
+nonlinearity 		 tanh
+input_activation_nonlinearity 		 sin+cos+bowl
 opt 		 kfac
 lr 		 0.0001
-damping 		 0.0001
+damping 		 0.001
 norm_constraint 		 0.0001
 n_it 		 1000
 load_it 		 0
-n_walkers 		 64
-n_walkers_per_device 		 64
-step_size 		 0.02
+n_walkers 		 512
+n_walkers_per_device 		 512
+step_size 		 0.05
 correlation_length 		 10
 pre_lr 		 0.0001
 n_pre_it 		 0
 load_pretrain 		 False
 pretrain 		 False
-System: 
- n_atoms = 2 
- n_up    = 3 
- n_down  = 3 
- n_el    = 6 
-
-Ansatz: 
- n_layers = 2 
- n_det    = 2 
- n_sh     = 32 
- n_ph     = 8 
-
 Cell: 
- real_basis: 
- [[6.63 0.   0.  ]
- [0.   6.63 0.  ]
- [0.   0.   6.63]] 
+ basis: 
+ [[3.0836296 3.0836296 3.0836296]] 
+ inv_basis: 
+ [[0.32429317 0.32429317 0.32429317]] 
  reciprocal_basis: 
- [[0.94769007 0.         0.        ]
- [0.         0.94769007 0.        ]
- [0.         0.         0.94769007]] 
+ [[2.0375938 0.        0.       ]
+ [0.        2.0375938 0.       ]
+ [0.        0.        2.0375938]] 
  real_cut         = 6.00 
  reciprocal_cut   = 6 
  kappa            = 0.50 
- volume           = 291.43 
- min_cell_width   = 6.63 
- n_periodic_input = 3 
+ volume           = 29.32 
+ n_periodic_input = 1 
 
-converged SCF energy = -12.1628037018806
+System: 
+ n_atoms = 0 
+ n_up    = 7 
+ n_down  = 0 
+ n_el    = 7 
+
+Ansatz: 
+ n_layers = 2 
+ n_det    = 1 
+ n_sh     = 64 
+ n_ph     = 32 
+
 creating wf
 sampling no infs, this could take a while
 end sampling no infs
 creating wf
-training:   0%|          | 1/1001 [00:00<?, ?it/s]
+creating wf
+step 0 energy 25.4621
+[0.02]
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 0 | e_mean 9.81 | e_mixed 9.89 | loss 67.34 | wf_acc 0.93 | mix_acc 0.83 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 1 | e_mean 9.89 | e_mixed 9.56 | loss 64.40 | wf_acc 0.92 | mix_acc 0.84 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 2 | e_mean 9.97 | e_mixed 9.43 | loss 61.47 | wf_acc 0.92 | mix_acc 0.84 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 3 | e_mean 10.02 | e_mixed 8.64 | loss 58.63 | wf_acc 0.91 | mix_acc 0.84 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 4 | e_mean 10.12 | e_mixed 10.98 | loss 55.92 | wf_acc 0.91 | mix_acc 0.86 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 5 | e_mean 10.28 | e_mixed 10.45 | loss 53.31 | wf_acc 0.90 | mix_acc 0.85 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 6 | e_mean 10.26 | e_mixed 9.95 | loss 50.80 | wf_acc 0.90 | mix_acc 0.85 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 7 | e_mean 10.30 | e_mixed 10.31 | loss 48.34 | wf_acc 0.89 | mix_acc 0.85 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 8 | e_mean 10.49 | e_mixed 8.89 | loss 45.99 | wf_acc 0.88 | mix_acc 0.86 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 9 | e_mean 10.72 | e_mixed 11.09 | loss 43.72 | wf_acc 0.88 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 10 | e_mean 11.39 | e_mixed 12.37 | loss 41.52 | wf_acc 0.86 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 11 | e_mean 12.09 | e_mixed 11.40 | loss 39.37 | wf_acc 0.84 | mix_acc 0.86 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 12 | e_mean 12.71 | e_mixed 12.34 | loss 37.34 | wf_acc 0.82 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 13 | e_mean 13.54 | e_mixed -22.85 | loss 35.37 | wf_acc 0.81 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 14 | e_mean 14.02 | e_mixed 11.55 | loss 33.50 | wf_acc 0.81 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 15 | e_mean 14.08 | e_mixed 11.27 | loss 31.65 | wf_acc 0.81 | mix_acc 0.86 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 16 | e_mean 13.36 | e_mixed 8.88 | loss 29.89 | wf_acc 0.80 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 17 | e_mean 13.72 | e_mixed 15.19 | loss 28.23 | wf_acc 0.79 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 18 | e_mean 12.93 | e_mixed 13.48 | loss 26.61 | wf_acc 0.79 | mix_acc 0.84 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 19 | e_mean 12.78 | e_mixed 8.25 | loss 25.07 | wf_acc 0.79 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 20 | e_mean 13.00 | e_mixed 10.19 | loss 23.59 | wf_acc 0.78 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 21 | e_mean 12.46 | e_mixed 11.32 | loss 22.18 | wf_acc 0.80 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 22 | e_mean 12.46 | e_mixed 16.43 | loss 20.82 | wf_acc 0.80 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 23 | e_mean 11.92 | e_mixed 16.66 | loss 19.53 | wf_acc 0.79 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 24 | e_mean 12.14 | e_mixed 11.38 | loss 18.32 | wf_acc 0.78 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 25 | e_mean 12.17 | e_mixed 11.68 | loss 17.14 | wf_acc 0.77 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 26 | e_mean 11.75 | e_mixed 11.66 | loss 16.02 | wf_acc 0.77 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 27 | e_mean 11.57 | e_mixed 8.84 | loss 14.97 | wf_acc 0.77 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 28 | e_mean 11.11 | e_mixed 11.31 | loss 13.98 | wf_acc 0.76 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 29 | e_mean 10.88 | e_mixed 5.61 | loss 13.05 | wf_acc 0.76 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 30 | e_mean 10.56 | e_mixed 11.64 | loss 12.14 | wf_acc 0.77 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 31 | e_mean 10.02 | e_mixed 5.86 | loss 11.29 | wf_acc 0.77 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 32 | e_mean 9.68 | e_mixed 11.98 | loss 10.50 | wf_acc 0.77 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 33 | e_mean 9.44 | e_mixed 7.58 | loss 9.76 | wf_acc 0.78 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 34 | e_mean 9.27 | e_mixed 9.69 | loss 9.06 | wf_acc 0.76 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 35 | e_mean 9.12 | e_mixed 7.24 | loss 8.41 | wf_acc 0.77 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 36 | e_mean 8.87 | e_mixed 8.95 | loss 7.80 | wf_acc 0.76 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 37 | e_mean 8.77 | e_mixed 5.83 | loss 7.25 | wf_acc 0.77 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 38 | e_mean 8.41 | e_mixed 5.06 | loss 6.72 | wf_acc 0.77 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 39 | e_mean 8.51 | e_mixed 8.78 | loss 6.22 | wf_acc 0.77 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 40 | e_mean 8.51 | e_mixed 9.51 | loss 5.75 | wf_acc 0.76 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 41 | e_mean 8.43 | e_mixed 10.93 | loss 5.32 | wf_acc 0.76 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 42 | e_mean 8.52 | e_mixed 8.50 | loss 4.92 | wf_acc 0.76 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 43 | e_mean 8.40 | e_mixed 9.42 | loss 4.55 | wf_acc 0.76 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 44 | e_mean 8.18 | e_mixed 8.29 | loss 4.20 | wf_acc 0.74 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 45 | e_mean 8.41 | e_mixed 8.91 | loss 3.89 | wf_acc 0.76 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 46 | e_mean 8.18 | e_mixed 8.19 | loss 3.61 | wf_acc 0.75 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 47 | e_mean 8.30 | e_mixed 8.49 | loss 3.36 | wf_acc 0.75 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 48 | e_mean 8.27 | e_mixed 7.53 | loss 3.12 | wf_acc 0.75 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 49 | e_mean 8.24 | e_mixed 7.67 | loss 2.91 | wf_acc 0.76 | mix_acc 0.86 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 50 | e_mean 8.16 | e_mixed 8.48 | loss 2.70 | wf_acc 0.75 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 51 | e_mean 8.18 | e_mixed 8.02 | loss 2.53 | wf_acc 0.75 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 52 | e_mean 8.25 | e_mixed 8.69 | loss 2.36 | wf_acc 0.75 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 53 | e_mean 8.22 | e_mixed 5.99 | loss 2.20 | wf_acc 0.73 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 54 | e_mean 8.27 | e_mixed 8.23 | loss 2.07 | wf_acc 0.74 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 55 | e_mean 8.26 | e_mixed 9.03 | loss 1.96 | wf_acc 0.74 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 56 | e_mean 8.42 | e_mixed 8.27 | loss 1.85 | wf_acc 0.74 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 57 | e_mean 8.48 | e_mixed -41.14 | loss 1.76 | wf_acc 0.74 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 58 | e_mean 8.52 | e_mixed 8.73 | loss 1.68 | wf_acc 0.72 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 59 | e_mean 8.49 | e_mixed 8.39 | loss 1.61 | wf_acc 0.72 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 60 | e_mean 8.22 | e_mixed 8.67 | loss 1.54 | wf_acc 0.72 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 61 | e_mean 8.53 | e_mixed 8.52 | loss 1.48 | wf_acc 0.72 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 62 | e_mean 8.46 | e_mixed 16.70 | loss 1.44 | wf_acc 0.71 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 63 | e_mean 8.37 | e_mixed 8.52 | loss 1.39 | wf_acc 0.71 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 64 | e_mean 8.53 | e_mixed 9.23 | loss 1.36 | wf_acc 0.72 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 65 | e_mean 8.41 | e_mixed 9.18 | loss 1.32 | wf_acc 0.70 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 66 | e_mean 8.48 | e_mixed 6.37 | loss 1.30 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 67 | e_mean 8.40 | e_mixed -465.32 | loss 1.28 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 68 | e_mean 8.43 | e_mixed 9.71 | loss 1.26 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 69 | e_mean 8.44 | e_mixed 9.06 | loss 1.24 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 70 | e_mean 8.35 | e_mixed 0.13 | loss 1.23 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 71 | e_mean 8.47 | e_mixed 9.15 | loss 1.22 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 72 | e_mean 8.38 | e_mixed 7.40 | loss 1.21 | wf_acc 0.69 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 73 | e_mean 8.32 | e_mixed 8.71 | loss 1.21 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 74 | e_mean 8.46 | e_mixed 9.08 | loss 1.20 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 75 | e_mean 8.40 | e_mixed 10.00 | loss 1.20 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 76 | e_mean 8.32 | e_mixed 20.86 | loss 1.20 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 77 | e_mean 8.37 | e_mixed 8.65 | loss 1.20 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 78 | e_mean 8.44 | e_mixed 8.79 | loss 1.19 | wf_acc 0.66 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 79 | e_mean 8.40 | e_mixed 9.38 | loss 1.19 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 80 | e_mean 8.38 | e_mixed 8.53 | loss 1.20 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 81 | e_mean 8.41 | e_mixed 8.37 | loss 1.20 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 82 | e_mean 8.42 | e_mixed 8.68 | loss 1.19 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 83 | e_mean 8.40 | e_mixed 8.52 | loss 1.19 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 84 | e_mean 8.38 | e_mixed 9.52 | loss 1.19 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 85 | e_mean 8.30 | e_mixed 8.40 | loss 1.19 | wf_acc 0.66 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 86 | e_mean 8.40 | e_mixed 8.37 | loss 1.18 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 87 | e_mean 8.55 | e_mixed 9.14 | loss 1.18 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 88 | e_mean 8.66 | e_mixed 11.81 | loss 1.17 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 89 | e_mean 8.49 | e_mixed 7.65 | loss 1.17 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 90 | e_mean 8.47 | e_mixed 9.08 | loss 1.17 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 91 | e_mean 8.42 | e_mixed 9.41 | loss 1.16 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 92 | e_mean 8.31 | e_mixed 8.35 | loss 1.16 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 93 | e_mean 8.41 | e_mixed 8.75 | loss 1.16 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 94 | e_mean 8.34 | e_mixed 8.86 | loss 1.15 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 95 | e_mean 8.30 | e_mixed 8.48 | loss 1.15 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 96 | e_mean 8.38 | e_mixed 8.71 | loss 1.14 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 97 | e_mean 8.34 | e_mixed 7.97 | loss 1.14 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 98 | e_mean 8.18 | e_mixed 8.73 | loss 1.13 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 99 | e_mean 8.36 | e_mixed 10.75 | loss 1.12 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 100 | e_mean 8.14 | e_mixed 749.20 | loss 1.11 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 101 | e_mean 8.29 | e_mixed 8.14 | loss 1.10 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 102 | e_mean 8.35 | e_mixed 6.11 | loss 1.10 | wf_acc 0.67 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 103 | e_mean 8.37 | e_mixed 4.19 | loss 1.09 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 104 | e_mean 8.38 | e_mixed 7.82 | loss 1.09 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 105 | e_mean 8.55 | e_mixed 8.56 | loss 1.09 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 106 | e_mean 8.41 | e_mixed 9.08 | loss 1.08 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 107 | e_mean 8.33 | e_mixed 8.02 | loss 1.07 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 108 | e_mean 8.42 | e_mixed 9.15 | loss 1.07 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 109 | e_mean 8.29 | e_mixed 9.02 | loss 1.07 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 110 | e_mean 8.35 | e_mixed 9.53 | loss 1.06 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 111 | e_mean 8.48 | e_mixed 8.55 | loss 1.06 | wf_acc 0.66 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 112 | e_mean 8.31 | e_mixed 8.54 | loss 1.06 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 113 | e_mean 8.31 | e_mixed 3.72 | loss 1.05 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 114 | e_mean 8.34 | e_mixed 8.63 | loss 1.04 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 115 | e_mean 8.17 | e_mixed 10.62 | loss 1.04 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 116 | e_mean 8.34 | e_mixed 8.69 | loss 1.04 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 117 | e_mean 8.32 | e_mixed 9.21 | loss 1.03 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 118 | e_mean 8.36 | e_mixed 8.30 | loss 1.03 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 119 | e_mean 8.16 | e_mixed 8.57 | loss 1.02 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 120 | e_mean 8.20 | e_mixed 8.45 | loss 1.01 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 121 | e_mean 8.26 | e_mixed 8.92 | loss 1.01 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 122 | e_mean 8.29 | e_mixed 7.81 | loss 1.01 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 123 | e_mean 8.23 | e_mixed 6.82 | loss 1.00 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 124 | e_mean 8.26 | e_mixed 8.77 | loss 1.00 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 125 | e_mean 8.36 | e_mixed 8.10 | loss 1.00 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 126 | e_mean 8.30 | e_mixed 13.26 | loss 0.99 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 127 | e_mean 8.22 | e_mixed 8.91 | loss 0.99 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 128 | e_mean 8.28 | e_mixed 7.45 | loss 0.99 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 129 | e_mean 8.22 | e_mixed 8.78 | loss 0.98 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 130 | e_mean 8.29 | e_mixed 8.85 | loss 0.98 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 131 | e_mean 8.29 | e_mixed 9.26 | loss 0.97 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 132 | e_mean 8.24 | e_mixed 9.02 | loss 0.96 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 133 | e_mean 8.21 | e_mixed 10.60 | loss 0.96 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 134 | e_mean 8.23 | e_mixed 14.67 | loss 0.96 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 135 | e_mean 8.19 | e_mixed 8.41 | loss 0.96 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 136 | e_mean 8.35 | e_mixed 9.38 | loss 0.95 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 137 | e_mean 8.32 | e_mixed 7.63 | loss 0.95 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 138 | e_mean 8.34 | e_mixed 9.06 | loss 0.95 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 139 | e_mean 8.27 | e_mixed 8.50 | loss 0.94 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 140 | e_mean 8.24 | e_mixed 9.05 | loss 0.94 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 141 | e_mean 8.16 | e_mixed 9.32 | loss 0.94 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 142 | e_mean 8.21 | e_mixed 9.17 | loss 0.93 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 143 | e_mean 8.31 | e_mixed 8.90 | loss 0.93 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 144 | e_mean 8.27 | e_mixed 8.84 | loss 0.92 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 145 | e_mean 8.34 | e_mixed 9.12 | loss 0.92 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 146 | e_mean 8.14 | e_mixed 8.96 | loss 0.92 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 147 | e_mean 8.15 | e_mixed 8.51 | loss 0.91 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 148 | e_mean 8.21 | e_mixed 9.22 | loss 0.91 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 149 | e_mean 8.30 | e_mixed 4.02 | loss 0.90 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 150 | e_mean 8.22 | e_mixed 8.44 | loss 0.90 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 151 | e_mean 8.19 | e_mixed 8.75 | loss 0.89 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 152 | e_mean 8.05 | e_mixed 8.71 | loss 0.89 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 153 | e_mean 8.08 | e_mixed 8.83 | loss 0.89 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 154 | e_mean 8.17 | e_mixed 4.66 | loss 0.88 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 155 | e_mean 8.12 | e_mixed 8.53 | loss 0.88 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 156 | e_mean 8.18 | e_mixed 8.75 | loss 0.88 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 157 | e_mean 8.15 | e_mixed 9.74 | loss 0.88 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 158 | e_mean 8.17 | e_mixed 9.34 | loss 0.88 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 159 | e_mean 8.21 | e_mixed 9.20 | loss 0.87 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 160 | e_mean 8.17 | e_mixed 8.74 | loss 0.87 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 161 | e_mean 8.29 | e_mixed 8.96 | loss 0.87 | wf_acc 0.67 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 162 | e_mean 8.14 | e_mixed 9.84 | loss 0.86 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 163 | e_mean 8.25 | e_mixed 9.23 | loss 0.86 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 164 | e_mean 8.19 | e_mixed 8.91 | loss 0.85 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 165 | e_mean 8.13 | e_mixed 9.19 | loss 0.85 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 166 | e_mean 8.14 | e_mixed 9.33 | loss 0.84 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 167 | e_mean 8.19 | e_mixed 9.20 | loss 0.84 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 168 | e_mean 8.12 | e_mixed 10.01 | loss 0.83 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 169 | e_mean 8.30 | e_mixed 9.26 | loss 0.83 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 170 | e_mean 8.29 | e_mixed 13.72 | loss 0.83 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 171 | e_mean 8.26 | e_mixed 8.39 | loss 0.83 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 172 | e_mean 8.32 | e_mixed 8.29 | loss 0.83 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 173 | e_mean 8.35 | e_mixed 6.89 | loss 0.83 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 174 | e_mean 8.22 | e_mixed 8.17 | loss 0.82 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 175 | e_mean 8.15 | e_mixed 9.67 | loss 0.82 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 176 | e_mean 8.18 | e_mixed 8.62 | loss 0.82 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 177 | e_mean 8.14 | e_mixed 54.65 | loss 0.81 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 178 | e_mean 8.15 | e_mixed 10.57 | loss 0.81 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 179 | e_mean 8.12 | e_mixed 8.86 | loss 0.80 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 180 | e_mean 8.16 | e_mixed 8.78 | loss 0.80 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 181 | e_mean 8.12 | e_mixed 9.82 | loss 0.80 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 182 | e_mean 8.16 | e_mixed 7.99 | loss 0.80 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 183 | e_mean 8.15 | e_mixed 8.42 | loss 0.79 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 184 | e_mean 8.14 | e_mixed 9.20 | loss 0.79 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 185 | e_mean 8.05 | e_mixed 8.72 | loss 0.79 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 186 | e_mean 8.08 | e_mixed 9.00 | loss 0.78 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 187 | e_mean 8.12 | e_mixed 8.80 | loss 0.78 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 188 | e_mean 8.13 | e_mixed 7.07 | loss 0.78 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 189 | e_mean 8.17 | e_mixed 5.38 | loss 0.78 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 190 | e_mean 8.15 | e_mixed 7.91 | loss 0.77 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 191 | e_mean 8.28 | e_mixed 7.68 | loss 0.77 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 192 | e_mean 8.30 | e_mixed 8.54 | loss 0.76 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 193 | e_mean 8.22 | e_mixed 8.72 | loss 0.76 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 194 | e_mean 8.19 | e_mixed 8.44 | loss 0.76 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 195 | e_mean 8.16 | e_mixed 9.07 | loss 0.75 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 196 | e_mean 8.18 | e_mixed 7.84 | loss 0.74 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 197 | e_mean 8.12 | e_mixed 8.33 | loss 0.74 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 198 | e_mean 8.28 | e_mixed 8.75 | loss 0.74 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 199 | e_mean 8.29 | e_mixed 7.82 | loss 0.73 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 200 | e_mean 8.17 | e_mixed 8.87 | loss 0.73 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 201 | e_mean 8.25 | e_mixed 6.29 | loss 0.73 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 202 | e_mean 8.29 | e_mixed 8.87 | loss 0.73 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 203 | e_mean 8.22 | e_mixed 8.21 | loss 0.72 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 204 | e_mean 8.24 | e_mixed 9.20 | loss 0.72 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 205 | e_mean 8.44 | e_mixed 10.97 | loss 0.72 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 206 | e_mean 8.31 | e_mixed 8.33 | loss 0.71 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 207 | e_mean 8.16 | e_mixed 8.41 | loss 0.71 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 208 | e_mean 8.26 | e_mixed 8.47 | loss 0.71 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 209 | e_mean 8.23 | e_mixed 8.04 | loss 0.70 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 210 | e_mean 8.25 | e_mixed 8.74 | loss 0.69 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 211 | e_mean 8.19 | e_mixed 8.47 | loss 0.69 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 212 | e_mean 8.17 | e_mixed 8.67 | loss 0.69 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 213 | e_mean 8.16 | e_mixed 8.90 | loss 0.69 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 214 | e_mean 8.12 | e_mixed 8.84 | loss 0.68 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 215 | e_mean 8.19 | e_mixed 8.55 | loss 0.68 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 216 | e_mean 8.17 | e_mixed 7.66 | loss 0.68 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 217 | e_mean 8.17 | e_mixed 7.62 | loss 0.68 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 218 | e_mean 8.11 | e_mixed 8.92 | loss 0.67 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 219 | e_mean 8.21 | e_mixed 8.70 | loss 0.67 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 220 | e_mean 8.14 | e_mixed 8.50 | loss 0.67 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 221 | e_mean 8.08 | e_mixed 8.75 | loss 0.66 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 222 | e_mean 8.26 | e_mixed 8.48 | loss 0.66 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 223 | e_mean 8.16 | e_mixed 8.31 | loss 0.66 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 224 | e_mean 8.33 | e_mixed 8.47 | loss 0.66 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 225 | e_mean 8.20 | e_mixed 8.32 | loss 0.65 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 226 | e_mean 8.20 | e_mixed 8.28 | loss 0.65 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 227 | e_mean 8.08 | e_mixed 7.86 | loss 0.65 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 228 | e_mean 8.13 | e_mixed 5.19 | loss 0.65 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 229 | e_mean 8.12 | e_mixed 8.15 | loss 0.64 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 230 | e_mean 8.16 | e_mixed 8.38 | loss 0.64 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 231 | e_mean 8.15 | e_mixed 8.35 | loss 0.64 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 232 | e_mean 8.20 | e_mixed 8.04 | loss 0.64 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 233 | e_mean 8.18 | e_mixed 8.25 | loss 0.63 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 234 | e_mean 8.07 | e_mixed 8.07 | loss 0.63 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 235 | e_mean 8.13 | e_mixed 8.78 | loss 0.63 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 236 | e_mean 8.14 | e_mixed 14.86 | loss 0.63 | wf_acc 0.66 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 237 | e_mean 8.05 | e_mixed 8.73 | loss 0.63 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 238 | e_mean 8.20 | e_mixed 8.49 | loss 0.62 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 239 | e_mean 8.15 | e_mixed 8.70 | loss 0.62 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 240 | e_mean 8.23 | e_mixed 8.41 | loss 0.62 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 241 | e_mean 8.18 | e_mixed 9.85 | loss 0.62 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 242 | e_mean 8.15 | e_mixed 8.40 | loss 0.62 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 243 | e_mean 8.20 | e_mixed 8.14 | loss 0.61 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 244 | e_mean 8.19 | e_mixed 9.08 | loss 0.61 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 245 | e_mean 8.23 | e_mixed 8.60 | loss 0.61 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 246 | e_mean 8.14 | e_mixed 8.36 | loss 0.61 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 247 | e_mean 8.20 | e_mixed 8.34 | loss 0.61 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 248 | e_mean 8.22 | e_mixed 9.11 | loss 0.60 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 249 | e_mean 8.07 | e_mixed 8.84 | loss 0.60 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 250 | e_mean 8.00 | e_mixed 8.78 | loss 0.60 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 251 | e_mean 8.05 | e_mixed 8.19 | loss 0.60 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 252 | e_mean 8.17 | e_mixed 10.00 | loss 0.59 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 253 | e_mean 8.07 | e_mixed 9.03 | loss 0.59 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 254 | e_mean 8.07 | e_mixed 10.01 | loss 0.58 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 255 | e_mean 8.08 | e_mixed 8.92 | loss 0.58 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 256 | e_mean 8.07 | e_mixed 9.17 | loss 0.58 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 257 | e_mean 8.06 | e_mixed 8.93 | loss 0.58 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 258 | e_mean 8.16 | e_mixed 8.54 | loss 0.57 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 259 | e_mean 8.13 | e_mixed 8.28 | loss 0.57 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 260 | e_mean 8.10 | e_mixed 8.25 | loss 0.57 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 261 | e_mean 7.93 | e_mixed 8.54 | loss 0.57 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 262 | e_mean 8.07 | e_mixed 8.91 | loss 0.56 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 263 | e_mean 8.04 | e_mixed 7.87 | loss 0.56 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 264 | e_mean 8.18 | e_mixed 8.53 | loss 0.56 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 265 | e_mean 8.12 | e_mixed 8.86 | loss 0.55 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 266 | e_mean 8.16 | e_mixed 8.71 | loss 0.55 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 267 | e_mean 8.18 | e_mixed 7.40 | loss 0.55 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 268 | e_mean 8.18 | e_mixed 8.38 | loss 0.55 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 269 | e_mean 8.15 | e_mixed 8.35 | loss 0.55 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 270 | e_mean 8.13 | e_mixed 8.96 | loss 0.54 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 271 | e_mean 8.15 | e_mixed 8.44 | loss 0.54 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 272 | e_mean 8.09 | e_mixed 10.26 | loss 0.54 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 273 | e_mean 8.25 | e_mixed 10.14 | loss 0.53 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 274 | e_mean 8.22 | e_mixed 8.65 | loss 0.53 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 275 | e_mean 8.16 | e_mixed 8.56 | loss 0.53 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 276 | e_mean 8.13 | e_mixed -4.61 | loss 0.52 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 277 | e_mean 8.17 | e_mixed 8.29 | loss 0.52 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 278 | e_mean 8.02 | e_mixed 8.31 | loss 0.52 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 279 | e_mean 8.03 | e_mixed 8.44 | loss 0.52 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 280 | e_mean 8.18 | e_mixed 8.21 | loss 0.52 | wf_acc 0.66 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 281 | e_mean 8.09 | e_mixed 8.62 | loss 0.52 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 282 | e_mean 8.16 | e_mixed 8.67 | loss 0.51 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 283 | e_mean 8.07 | e_mixed 7.68 | loss 0.51 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 284 | e_mean 8.13 | e_mixed 9.14 | loss 0.51 | wf_acc 0.68 | mix_acc 0.87 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 285 | e_mean 8.14 | e_mixed 8.02 | loss 0.51 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 286 | e_mean 8.24 | e_mixed 9.45 | loss 0.50 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 287 | e_mean 8.24 | e_mixed 8.94 | loss 0.50 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 288 | e_mean 8.17 | e_mixed 8.44 | loss 0.50 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 289 | e_mean 8.09 | e_mixed 8.95 | loss 0.49 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 290 | e_mean 8.11 | e_mixed 8.93 | loss 0.50 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 291 | e_mean 8.13 | e_mixed 8.51 | loss 0.49 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 292 | e_mean 8.07 | e_mixed 8.56 | loss 0.49 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 293 | e_mean 8.15 | e_mixed 8.71 | loss 0.49 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 294 | e_mean 8.07 | e_mixed 7.83 | loss 0.49 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 295 | e_mean 8.03 | e_mixed 8.72 | loss 0.48 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 296 | e_mean 8.16 | e_mixed 8.62 | loss 0.48 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 297 | e_mean 8.14 | e_mixed 8.61 | loss 0.48 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 298 | e_mean 8.06 | e_mixed 9.27 | loss 0.48 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 299 | e_mean 8.02 | e_mixed 9.45 | loss 0.48 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 300 | e_mean 8.08 | e_mixed 8.60 | loss 0.47 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 301 | e_mean 8.10 | e_mixed 8.70 | loss 0.47 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 302 | e_mean 8.16 | e_mixed 8.52 | loss 0.47 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 303 | e_mean 8.20 | e_mixed 8.87 | loss 0.47 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 304 | e_mean 8.20 | e_mixed 8.71 | loss 0.47 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 305 | e_mean 8.15 | e_mixed 8.15 | loss 0.47 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 306 | e_mean 8.10 | e_mixed 8.40 | loss 0.46 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 307 | e_mean 8.06 | e_mixed 9.53 | loss 0.46 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 308 | e_mean 8.02 | e_mixed 8.98 | loss 0.46 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 309 | e_mean 8.08 | e_mixed 8.93 | loss 0.46 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 310 | e_mean 8.09 | e_mixed 8.75 | loss 0.45 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 311 | e_mean 7.97 | e_mixed 8.57 | loss 0.45 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 312 | e_mean 8.08 | e_mixed 8.87 | loss 0.45 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 313 | e_mean 8.11 | e_mixed 11.98 | loss 0.44 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 314 | e_mean 8.19 | e_mixed 9.63 | loss 0.44 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 315 | e_mean 8.17 | e_mixed 8.72 | loss 0.44 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 316 | e_mean 8.11 | e_mixed 8.58 | loss 0.44 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 317 | e_mean 8.12 | e_mixed 8.81 | loss 0.44 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 318 | e_mean 8.09 | e_mixed 7.89 | loss 0.43 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 319 | e_mean 8.09 | e_mixed 51.35 | loss 0.43 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 320 | e_mean 8.18 | e_mixed 8.38 | loss 0.43 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 321 | e_mean 8.15 | e_mixed 8.85 | loss 0.42 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 322 | e_mean 8.10 | e_mixed 8.71 | loss 0.42 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 323 | e_mean 8.21 | e_mixed 8.67 | loss 0.42 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 324 | e_mean 8.27 | e_mixed 8.98 | loss 0.42 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 325 | e_mean 8.21 | e_mixed 8.79 | loss 0.41 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 326 | e_mean 8.06 | e_mixed 8.75 | loss 0.41 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 327 | e_mean 8.13 | e_mixed 8.80 | loss 0.41 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 328 | e_mean 8.04 | e_mixed 8.83 | loss 0.41 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 329 | e_mean 8.12 | e_mixed 8.63 | loss 0.40 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 330 | e_mean 8.08 | e_mixed 8.64 | loss 0.40 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 331 | e_mean 8.14 | e_mixed 9.25 | loss 0.40 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 332 | e_mean 8.12 | e_mixed 10.61 | loss 0.40 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 333 | e_mean 8.09 | e_mixed 8.11 | loss 0.39 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 334 | e_mean 8.10 | e_mixed 8.45 | loss 0.39 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 335 | e_mean 8.20 | e_mixed 8.47 | loss 0.39 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 336 | e_mean 8.19 | e_mixed 8.62 | loss 0.39 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 337 | e_mean 8.20 | e_mixed 8.70 | loss 0.39 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 338 | e_mean 8.27 | e_mixed 8.68 | loss 0.38 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 339 | e_mean 8.25 | e_mixed 8.13 | loss 0.38 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 340 | e_mean 8.16 | e_mixed 8.66 | loss 0.38 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 341 | e_mean 8.22 | e_mixed 8.89 | loss 0.38 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 342 | e_mean 8.15 | e_mixed 8.76 | loss 0.38 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 343 | e_mean 8.09 | e_mixed 8.33 | loss 0.38 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 344 | e_mean 8.21 | e_mixed 12.37 | loss 0.37 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 345 | e_mean 8.19 | e_mixed 6.87 | loss 0.37 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 346 | e_mean 8.08 | e_mixed 8.53 | loss 0.37 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 347 | e_mean 8.14 | e_mixed 9.14 | loss 0.37 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 348 | e_mean 8.09 | e_mixed 8.52 | loss 0.36 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 349 | e_mean 8.12 | e_mixed 8.55 | loss 0.36 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 350 | e_mean 8.16 | e_mixed 8.69 | loss 0.36 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 351 | e_mean 8.17 | e_mixed 9.01 | loss 0.36 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 352 | e_mean 8.14 | e_mixed 8.64 | loss 0.36 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 353 | e_mean 8.18 | e_mixed 9.26 | loss 0.35 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 354 | e_mean 8.19 | e_mixed 8.75 | loss 0.35 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 355 | e_mean 8.17 | e_mixed 8.75 | loss 0.35 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 356 | e_mean 8.09 | e_mixed 8.76 | loss 0.35 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 357 | e_mean 8.05 | e_mixed 8.98 | loss 0.35 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 358 | e_mean 8.11 | e_mixed 8.75 | loss 0.34 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 359 | e_mean 8.16 | e_mixed 8.70 | loss 0.34 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 360 | e_mean 8.21 | e_mixed 9.63 | loss 0.34 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 361 | e_mean 8.18 | e_mixed 8.25 | loss 0.34 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 362 | e_mean 8.13 | e_mixed 8.50 | loss 0.34 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 363 | e_mean 8.16 | e_mixed 8.75 | loss 0.33 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 364 | e_mean 8.20 | e_mixed 0.78 | loss 0.33 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 365 | e_mean 8.15 | e_mixed 8.84 | loss 0.33 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 366 | e_mean 8.12 | e_mixed 8.62 | loss 0.33 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 367 | e_mean 8.10 | e_mixed 8.66 | loss 0.32 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 368 | e_mean 8.12 | e_mixed 8.73 | loss 0.32 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 369 | e_mean 8.06 | e_mixed 8.52 | loss 0.32 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 370 | e_mean 8.01 | e_mixed 8.53 | loss 0.32 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 371 | e_mean 7.96 | e_mixed 8.31 | loss 0.32 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 372 | e_mean 8.00 | e_mixed 8.44 | loss 0.32 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 373 | e_mean 8.13 | e_mixed 8.69 | loss 0.31 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 374 | e_mean 8.14 | e_mixed 7.19 | loss 0.31 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 375 | e_mean 8.23 | e_mixed 7.85 | loss 0.31 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 376 | e_mean 8.17 | e_mixed 8.26 | loss 0.31 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 377 | e_mean 8.19 | e_mixed 8.58 | loss 0.31 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 378 | e_mean 8.15 | e_mixed 8.65 | loss 0.31 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 379 | e_mean 8.10 | e_mixed 9.32 | loss 0.30 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 380 | e_mean 8.09 | e_mixed 9.10 | loss 0.30 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 381 | e_mean 8.08 | e_mixed 8.86 | loss 0.30 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 382 | e_mean 8.18 | e_mixed 7.19 | loss 0.30 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 383 | e_mean 8.10 | e_mixed 8.57 | loss 0.30 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 384 | e_mean 8.11 | e_mixed 8.63 | loss 0.30 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 385 | e_mean 8.13 | e_mixed 8.75 | loss 0.30 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 386 | e_mean 8.13 | e_mixed 8.60 | loss 0.29 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 387 | e_mean 8.12 | e_mixed 8.61 | loss 0.29 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 388 | e_mean 8.13 | e_mixed 8.51 | loss 0.29 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 389 | e_mean 8.14 | e_mixed 8.59 | loss 0.29 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 390 | e_mean 8.17 | e_mixed 8.28 | loss 0.29 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 391 | e_mean 8.10 | e_mixed 8.35 | loss 0.28 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 392 | e_mean 8.31 | e_mixed 8.63 | loss 0.28 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 393 | e_mean 8.11 | e_mixed 8.73 | loss 0.28 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 394 | e_mean 8.16 | e_mixed 9.86 | loss 0.28 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 395 | e_mean 8.19 | e_mixed 8.14 | loss 0.28 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 396 | e_mean 8.24 | e_mixed 8.58 | loss 0.28 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 397 | e_mean 8.16 | e_mixed 10.11 | loss 0.28 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 398 | e_mean 8.09 | e_mixed 8.65 | loss 0.28 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 399 | e_mean 8.16 | e_mixed 6.14 | loss 0.27 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 400 | e_mean 8.18 | e_mixed 8.45 | loss 0.27 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 401 | e_mean 8.13 | e_mixed 8.90 | loss 0.27 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 402 | e_mean 8.12 | e_mixed 8.49 | loss 0.27 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 403 | e_mean 8.15 | e_mixed 8.73 | loss 0.27 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 404 | e_mean 8.14 | e_mixed 8.42 | loss 0.27 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 405 | e_mean 8.08 | e_mixed 8.56 | loss 0.27 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 406 | e_mean 8.06 | e_mixed 8.50 | loss 0.26 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 407 | e_mean 8.18 | e_mixed 7.75 | loss 0.26 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 408 | e_mean 8.14 | e_mixed 8.25 | loss 0.26 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 409 | e_mean 8.17 | e_mixed 8.52 | loss 0.26 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 410 | e_mean 8.23 | e_mixed 8.38 | loss 0.26 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 411 | e_mean 8.13 | e_mixed 8.24 | loss 0.26 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 412 | e_mean 8.26 | e_mixed 8.35 | loss 0.26 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 413 | e_mean 8.17 | e_mixed 8.98 | loss 0.26 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 414 | e_mean 8.07 | e_mixed 8.71 | loss 0.25 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 415 | e_mean 8.09 | e_mixed 8.70 | loss 0.25 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 416 | e_mean 8.16 | e_mixed 8.30 | loss 0.25 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 417 | e_mean 8.02 | e_mixed 9.10 | loss 0.25 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 418 | e_mean 8.18 | e_mixed 8.56 | loss 0.25 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 419 | e_mean 8.11 | e_mixed 8.43 | loss 0.25 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 420 | e_mean 8.12 | e_mixed 8.50 | loss 0.24 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 421 | e_mean 8.19 | e_mixed 8.39 | loss 0.24 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 422 | e_mean 8.19 | e_mixed 8.56 | loss 0.24 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 423 | e_mean 8.11 | e_mixed 8.70 | loss 0.24 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 424 | e_mean 8.08 | e_mixed 8.63 | loss 0.24 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 425 | e_mean 8.13 | e_mixed 8.41 | loss 0.24 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 426 | e_mean 8.16 | e_mixed 8.25 | loss 0.24 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 427 | e_mean 8.08 | e_mixed 8.45 | loss 0.24 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 428 | e_mean 8.14 | e_mixed 8.68 | loss 0.23 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 429 | e_mean 8.19 | e_mixed 8.61 | loss 0.23 | wf_acc 0.70 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 430 | e_mean 8.21 | e_mixed 9.71 | loss 0.23 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 431 | e_mean 8.28 | e_mixed 8.75 | loss 0.23 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 432 | e_mean 8.22 | e_mixed 8.49 | loss 0.23 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 433 | e_mean 8.21 | e_mixed 8.65 | loss 0.23 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 434 | e_mean 8.22 | e_mixed 8.86 | loss 0.23 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 435 | e_mean 8.24 | e_mixed 8.48 | loss 0.22 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 436 | e_mean 8.08 | e_mixed 8.83 | loss 0.22 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 437 | e_mean 8.09 | e_mixed 8.63 | loss 0.22 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 438 | e_mean 8.10 | e_mixed 8.45 | loss 0.22 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 439 | e_mean 8.19 | e_mixed 8.51 | loss 0.22 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 440 | e_mean 8.20 | e_mixed 8.07 | loss 0.22 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 441 | e_mean 8.15 | e_mixed 9.44 | loss 0.22 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 442 | e_mean 8.02 | e_mixed 8.57 | loss 0.22 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 443 | e_mean 8.18 | e_mixed 8.84 | loss 0.22 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 444 | e_mean 8.23 | e_mixed 8.33 | loss 0.21 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 445 | e_mean 8.19 | e_mixed 9.04 | loss 0.21 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 446 | e_mean 8.18 | e_mixed 7.11 | loss 0.21 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 447 | e_mean 8.03 | e_mixed 8.55 | loss 0.21 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 448 | e_mean 8.06 | e_mixed 8.71 | loss 0.21 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 449 | e_mean 8.12 | e_mixed 8.53 | loss 0.21 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 450 | e_mean 8.07 | e_mixed 8.64 | loss 0.21 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 451 | e_mean 8.09 | e_mixed 8.49 | loss 0.21 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 452 | e_mean 8.13 | e_mixed 8.62 | loss 0.21 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 453 | e_mean 8.08 | e_mixed 8.59 | loss 0.21 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 454 | e_mean 8.11 | e_mixed 8.42 | loss 0.21 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 455 | e_mean 8.11 | e_mixed 8.67 | loss 0.21 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 456 | e_mean 8.09 | e_mixed 8.62 | loss 0.20 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 457 | e_mean 8.14 | e_mixed 8.62 | loss 0.20 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 458 | e_mean 8.15 | e_mixed 8.20 | loss 0.20 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 459 | e_mean 8.04 | e_mixed 8.82 | loss 0.20 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 460 | e_mean 8.04 | e_mixed 8.81 | loss 0.20 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 461 | e_mean 8.14 | e_mixed 8.33 | loss 0.20 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 462 | e_mean 8.06 | e_mixed 8.95 | loss 0.20 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 463 | e_mean 8.14 | e_mixed 8.67 | loss 0.20 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 464 | e_mean 8.07 | e_mixed 8.76 | loss 0.19 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 465 | e_mean 8.06 | e_mixed 8.48 | loss 0.20 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 466 | e_mean 8.10 | e_mixed 8.43 | loss 0.19 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 467 | e_mean 8.12 | e_mixed 8.55 | loss 0.19 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 468 | e_mean 8.10 | e_mixed 49.96 | loss 0.19 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 469 | e_mean 8.10 | e_mixed 8.45 | loss 0.19 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 470 | e_mean 8.16 | e_mixed 8.54 | loss 0.19 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 471 | e_mean 8.09 | e_mixed 8.88 | loss 0.19 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 472 | e_mean 8.09 | e_mixed 8.15 | loss 0.19 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 473 | e_mean 8.12 | e_mixed 8.32 | loss 0.19 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 474 | e_mean 8.10 | e_mixed 8.41 | loss 0.19 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 475 | e_mean 8.16 | e_mixed 8.39 | loss 0.19 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 476 | e_mean 8.31 | e_mixed 8.37 | loss 0.19 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 477 | e_mean 8.10 | e_mixed 8.46 | loss 0.19 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 478 | e_mean 8.17 | e_mixed 8.57 | loss 0.19 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 479 | e_mean 8.12 | e_mixed 8.38 | loss 0.18 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 480 | e_mean 8.09 | e_mixed 8.75 | loss 0.18 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 481 | e_mean 8.16 | e_mixed 7.96 | loss 0.18 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 482 | e_mean 8.14 | e_mixed 8.22 | loss 0.18 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 483 | e_mean 8.07 | e_mixed 8.55 | loss 0.18 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 484 | e_mean 8.15 | e_mixed 8.45 | loss 0.18 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 485 | e_mean 8.06 | e_mixed 8.12 | loss 0.18 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 486 | e_mean 8.15 | e_mixed 8.46 | loss 0.18 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 487 | e_mean 8.14 | e_mixed 9.01 | loss 0.18 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 488 | e_mean 8.15 | e_mixed 8.05 | loss 0.18 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 489 | e_mean 8.26 | e_mixed 9.07 | loss 0.18 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 490 | e_mean 8.13 | e_mixed 8.54 | loss 0.18 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 491 | e_mean 8.13 | e_mixed 8.45 | loss 0.18 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 492 | e_mean 8.15 | e_mixed 8.46 | loss 0.17 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 493 | e_mean 8.21 | e_mixed 8.59 | loss 0.17 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 494 | e_mean 8.15 | e_mixed 8.08 | loss 0.17 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 495 | e_mean 8.15 | e_mixed 8.22 | loss 0.17 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 496 | e_mean 8.13 | e_mixed 8.86 | loss 0.17 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 497 | e_mean 8.16 | e_mixed 8.51 | loss 0.17 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 498 | e_mean 8.14 | e_mixed 9.62 | loss 0.17 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 499 | e_mean 8.15 | e_mixed 8.16 | loss 0.17 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 500 | e_mean 8.19 | e_mixed 9.92 | loss 0.17 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 501 | e_mean 8.05 | e_mixed 17.17 | loss 0.17 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 502 | e_mean 8.11 | e_mixed 8.50 | loss 0.17 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 503 | e_mean 8.07 | e_mixed 8.85 | loss 0.17 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 504 | e_mean 8.14 | e_mixed 8.32 | loss 0.17 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 505 | e_mean 8.12 | e_mixed 8.56 | loss 0.16 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 506 | e_mean 8.15 | e_mixed 8.27 | loss 0.16 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 507 | e_mean 8.14 | e_mixed 8.42 | loss 0.16 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 508 | e_mean 8.15 | e_mixed 8.43 | loss 0.16 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 509 | e_mean 8.13 | e_mixed 8.33 | loss 0.16 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 510 | e_mean 8.13 | e_mixed 8.59 | loss 0.16 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 511 | e_mean 8.02 | e_mixed 8.47 | loss 0.16 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 512 | e_mean 8.07 | e_mixed 8.56 | loss 0.16 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 513 | e_mean 8.13 | e_mixed 8.49 | loss 0.16 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 514 | e_mean 8.14 | e_mixed 8.42 | loss 0.16 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 515 | e_mean 8.11 | e_mixed 5.65 | loss 0.16 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 516 | e_mean 8.21 | e_mixed 8.56 | loss 0.16 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 517 | e_mean 8.15 | e_mixed 8.49 | loss 0.16 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 518 | e_mean 8.23 | e_mixed 7.93 | loss 0.16 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 519 | e_mean 8.17 | e_mixed 7.39 | loss 0.15 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 520 | e_mean 8.09 | e_mixed 8.51 | loss 0.15 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 521 | e_mean 8.12 | e_mixed 8.39 | loss 0.15 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 522 | e_mean 8.04 | e_mixed 9.37 | loss 0.15 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 523 | e_mean 8.11 | e_mixed 8.17 | loss 0.15 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 524 | e_mean 8.20 | e_mixed 8.51 | loss 0.15 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 525 | e_mean 8.20 | e_mixed 8.36 | loss 0.15 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 526 | e_mean 8.17 | e_mixed 8.62 | loss 0.15 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 527 | e_mean 8.21 | e_mixed 8.54 | loss 0.15 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 528 | e_mean 8.18 | e_mixed 8.52 | loss 0.15 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 529 | e_mean 8.09 | e_mixed 8.80 | loss 0.15 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 530 | e_mean 8.14 | e_mixed 8.62 | loss 0.15 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 531 | e_mean 8.12 | e_mixed 8.71 | loss 0.15 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 532 | e_mean 8.01 | e_mixed 8.75 | loss 0.15 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 533 | e_mean 8.11 | e_mixed 4.70 | loss 0.15 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 534 | e_mean 8.05 | e_mixed 8.54 | loss 0.14 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 535 | e_mean 8.07 | e_mixed 8.63 | loss 0.14 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 536 | e_mean 8.01 | e_mixed 8.53 | loss 0.14 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 537 | e_mean 8.09 | e_mixed 9.06 | loss 0.14 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 538 | e_mean 8.12 | e_mixed 8.48 | loss 0.14 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 539 | e_mean 8.19 | e_mixed 8.59 | loss 0.14 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 540 | e_mean 8.09 | e_mixed 8.32 | loss 0.14 | wf_acc 0.67 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 541 | e_mean 8.15 | e_mixed 8.53 | loss 0.14 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 542 | e_mean 8.13 | e_mixed 8.49 | loss 0.14 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 543 | e_mean 8.15 | e_mixed 8.59 | loss 0.14 | wf_acc 0.69 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 544 | e_mean 8.14 | e_mixed 9.04 | loss 0.14 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 545 | e_mean 8.08 | e_mixed -2.21 | loss 0.14 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 546 | e_mean 8.15 | e_mixed 3.23 | loss 0.14 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 547 | e_mean 8.15 | e_mixed 8.59 | loss 0.14 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 548 | e_mean 8.42 | e_mixed 8.38 | loss 0.14 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 549 | e_mean 8.15 | e_mixed 8.20 | loss 0.14 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 550 | e_mean 8.14 | e_mixed 8.47 | loss 0.14 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 551 | e_mean 8.08 | e_mixed 8.40 | loss 0.13 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 552 | e_mean 8.12 | e_mixed 8.41 | loss 0.13 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 553 | e_mean 8.14 | e_mixed 12.71 | loss 0.13 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 554 | e_mean 8.11 | e_mixed 8.43 | loss 0.13 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 555 | e_mean 8.16 | e_mixed 8.40 | loss 0.13 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 556 | e_mean 8.16 | e_mixed 8.60 | loss 0.13 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 557 | e_mean 8.27 | e_mixed 18.63 | loss 0.13 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 558 | e_mean 8.11 | e_mixed 8.45 | loss 0.13 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 559 | e_mean 8.09 | e_mixed 8.02 | loss 0.13 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 560 | e_mean 8.09 | e_mixed 8.25 | loss 0.13 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 561 | e_mean 8.14 | e_mixed 7.54 | loss 0.13 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 562 | e_mean 8.17 | e_mixed 8.48 | loss 0.13 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 563 | e_mean 8.18 | e_mixed 8.68 | loss 0.13 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 564 | e_mean 8.20 | e_mixed 8.35 | loss 0.13 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 565 | e_mean 8.18 | e_mixed 8.61 | loss 0.13 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 566 | e_mean 8.11 | e_mixed 8.24 | loss 0.13 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 567 | e_mean 8.09 | e_mixed 7.96 | loss 0.13 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 568 | e_mean 8.06 | e_mixed 8.27 | loss 0.13 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 569 | e_mean 8.14 | e_mixed 8.48 | loss 0.13 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 570 | e_mean 8.22 | e_mixed 9.25 | loss 0.13 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 571 | e_mean 8.05 | e_mixed 8.69 | loss 0.13 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 572 | e_mean 8.15 | e_mixed 8.23 | loss 0.13 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 573 | e_mean 8.20 | e_mixed 7.68 | loss 0.12 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 574 | e_mean 8.25 | e_mixed 9.01 | loss 0.12 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 575 | e_mean 8.19 | e_mixed 8.36 | loss 0.12 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 576 | e_mean 8.02 | e_mixed 8.44 | loss 0.12 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 577 | e_mean 8.07 | e_mixed 8.42 | loss 0.12 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 578 | e_mean 8.12 | e_mixed 8.15 | loss 0.12 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 579 | e_mean 8.15 | e_mixed 8.71 | loss 0.12 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 580 | e_mean 8.15 | e_mixed 8.38 | loss 0.12 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 581 | e_mean 8.13 | e_mixed 8.34 | loss 0.12 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 582 | e_mean 8.11 | e_mixed 8.88 | loss 0.12 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 583 | e_mean 8.11 | e_mixed 8.27 | loss 0.12 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 584 | e_mean 8.17 | e_mixed 8.43 | loss 0.12 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 585 | e_mean 8.10 | e_mixed 8.81 | loss 0.12 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 586 | e_mean 8.05 | e_mixed 8.41 | loss 0.12 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 587 | e_mean 8.14 | e_mixed 8.98 | loss 0.12 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 588 | e_mean 8.10 | e_mixed 8.26 | loss 0.12 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 589 | e_mean 8.04 | e_mixed 8.90 | loss 0.12 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 590 | e_mean 8.11 | e_mixed 8.76 | loss 0.12 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 591 | e_mean 8.04 | e_mixed 8.23 | loss 0.12 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 592 | e_mean 8.11 | e_mixed 8.15 | loss 0.11 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 593 | e_mean 8.10 | e_mixed 8.55 | loss 0.11 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 594 | e_mean 8.14 | e_mixed 8.22 | loss 0.11 | wf_acc 0.67 | mix_acc 0.92 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 595 | e_mean 8.21 | e_mixed 9.35 | loss 0.11 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 596 | e_mean 8.19 | e_mixed 8.39 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 597 | e_mean 8.11 | e_mixed 8.31 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 598 | e_mean 8.19 | e_mixed 10.33 | loss 0.11 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 599 | e_mean 8.18 | e_mixed 8.40 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 600 | e_mean 8.15 | e_mixed 10.49 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 601 | e_mean 8.14 | e_mixed 8.42 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 602 | e_mean 8.11 | e_mixed 8.09 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 603 | e_mean 8.13 | e_mixed 8.87 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 604 | e_mean 8.17 | e_mixed 8.12 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 605 | e_mean 8.20 | e_mixed 8.41 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 606 | e_mean 8.16 | e_mixed 8.49 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 607 | e_mean 8.17 | e_mixed 8.40 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 608 | e_mean 8.10 | e_mixed 7.73 | loss 0.11 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 609 | e_mean 8.12 | e_mixed 9.70 | loss 0.11 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 610 | e_mean 8.06 | e_mixed 8.88 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 611 | e_mean 8.15 | e_mixed 8.69 | loss 0.11 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 612 | e_mean 8.17 | e_mixed 9.08 | loss 0.11 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 613 | e_mean 8.08 | e_mixed 8.81 | loss 0.11 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 614 | e_mean 8.06 | e_mixed 8.77 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 615 | e_mean 8.11 | e_mixed 10.61 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 616 | e_mean 8.19 | e_mixed 8.15 | loss 0.11 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 617 | e_mean 8.16 | e_mixed 9.65 | loss 0.11 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 618 | e_mean 8.21 | e_mixed 8.68 | loss 0.11 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 619 | e_mean 8.18 | e_mixed 8.61 | loss 0.11 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 620 | e_mean 8.14 | e_mixed 13.11 | loss 0.11 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 621 | e_mean 8.14 | e_mixed 8.13 | loss 0.11 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 622 | e_mean 8.11 | e_mixed 8.43 | loss 0.11 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 623 | e_mean 8.20 | e_mixed 8.44 | loss 0.11 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 624 | e_mean 8.15 | e_mixed 8.44 | loss 0.11 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 625 | e_mean 8.16 | e_mixed 8.49 | loss 0.11 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 626 | e_mean 8.18 | e_mixed 8.44 | loss 0.11 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 627 | e_mean 8.15 | e_mixed 8.49 | loss 0.11 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 628 | e_mean 8.23 | e_mixed 10.07 | loss 0.11 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 629 | e_mean 8.16 | e_mixed 8.73 | loss 0.11 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 630 | e_mean 8.18 | e_mixed 296.76 | loss 0.11 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 631 | e_mean 8.15 | e_mixed 8.57 | loss 0.10 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 632 | e_mean 8.14 | e_mixed 8.56 | loss 0.10 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 633 | e_mean 8.22 | e_mixed 8.50 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 634 | e_mean 8.17 | e_mixed 8.53 | loss 0.11 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 635 | e_mean 8.11 | e_mixed 8.80 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 636 | e_mean 8.11 | e_mixed 8.77 | loss 0.10 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 637 | e_mean 8.11 | e_mixed 8.63 | loss 0.10 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 638 | e_mean 8.15 | e_mixed 8.39 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 639 | e_mean 8.11 | e_mixed 8.54 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 640 | e_mean 8.15 | e_mixed 8.50 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 641 | e_mean 8.12 | e_mixed 8.63 | loss 0.10 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 642 | e_mean 8.12 | e_mixed 9.46 | loss 0.10 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 643 | e_mean 8.11 | e_mixed 8.67 | loss 0.10 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 644 | e_mean 8.11 | e_mixed 8.51 | loss 0.10 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 645 | e_mean 8.21 | e_mixed 8.53 | loss 0.10 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 646 | e_mean 8.12 | e_mixed 8.56 | loss 0.10 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 647 | e_mean 8.10 | e_mixed 9.16 | loss 0.10 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 648 | e_mean 8.10 | e_mixed 8.74 | loss 0.10 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 649 | e_mean 8.16 | e_mixed 8.41 | loss 0.10 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 650 | e_mean 8.09 | e_mixed 9.15 | loss 0.10 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 651 | e_mean 8.05 | e_mixed 8.83 | loss 0.10 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 652 | e_mean 8.15 | e_mixed 8.53 | loss 0.10 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 653 | e_mean 8.13 | e_mixed 8.61 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 654 | e_mean 8.11 | e_mixed 8.72 | loss 0.10 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 655 | e_mean 8.11 | e_mixed 8.53 | loss 0.10 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 656 | e_mean 8.18 | e_mixed 7.62 | loss 0.10 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 657 | e_mean 8.07 | e_mixed 8.11 | loss 0.10 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 658 | e_mean 8.13 | e_mixed 8.15 | loss 0.10 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 659 | e_mean 8.16 | e_mixed 8.51 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 660 | e_mean 8.19 | e_mixed 8.52 | loss 0.10 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 661 | e_mean 8.14 | e_mixed 8.52 | loss 0.10 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 662 | e_mean 8.19 | e_mixed 8.05 | loss 0.10 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 663 | e_mean 8.17 | e_mixed 7.64 | loss 0.10 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 664 | e_mean 8.14 | e_mixed 8.40 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 665 | e_mean 8.11 | e_mixed 8.39 | loss 0.10 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 666 | e_mean 8.13 | e_mixed 9.36 | loss 0.10 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 667 | e_mean 8.15 | e_mixed 8.38 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 668 | e_mean 8.13 | e_mixed 7.43 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 669 | e_mean 8.09 | e_mixed 8.80 | loss 0.09 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 670 | e_mean 8.18 | e_mixed 8.42 | loss 0.09 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 671 | e_mean 8.09 | e_mixed 7.68 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 672 | e_mean 8.08 | e_mixed 8.53 | loss 0.09 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 673 | e_mean 8.15 | e_mixed 8.58 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 674 | e_mean 8.03 | e_mixed 8.66 | loss 0.09 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 675 | e_mean 8.09 | e_mixed 8.02 | loss 0.09 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 676 | e_mean 8.12 | e_mixed 8.57 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 677 | e_mean 8.13 | e_mixed 8.22 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 678 | e_mean 8.19 | e_mixed 8.48 | loss 0.09 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 679 | e_mean 8.21 | e_mixed 8.56 | loss 0.09 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 680 | e_mean 8.18 | e_mixed 8.40 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 681 | e_mean 8.17 | e_mixed 7.95 | loss 0.09 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 682 | e_mean 8.15 | e_mixed 8.55 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 683 | e_mean 8.09 | e_mixed 8.46 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 684 | e_mean 8.25 | e_mixed 8.36 | loss 0.09 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 685 | e_mean 8.20 | e_mixed 8.44 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 686 | e_mean 8.19 | e_mixed 8.06 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 687 | e_mean 8.05 | e_mixed 7.97 | loss 0.09 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 688 | e_mean 8.18 | e_mixed 8.64 | loss 0.09 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 689 | e_mean 8.13 | e_mixed 8.62 | loss 0.09 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 690 | e_mean 8.07 | e_mixed 8.38 | loss 0.09 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 691 | e_mean 8.09 | e_mixed 8.08 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 692 | e_mean 8.20 | e_mixed 8.46 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 693 | e_mean 8.17 | e_mixed 8.57 | loss 0.09 | wf_acc 0.69 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 694 | e_mean 8.20 | e_mixed 8.38 | loss 0.09 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 695 | e_mean 8.18 | e_mixed 8.40 | loss 0.09 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 696 | e_mean 8.20 | e_mixed 8.49 | loss 0.09 | wf_acc 0.68 | mix_acc 0.92 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 697 | e_mean 8.14 | e_mixed 8.35 | loss 0.09 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 698 | e_mean 8.03 | e_mixed 9.56 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 699 | e_mean 7.99 | e_mixed 8.12 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 700 | e_mean 8.08 | e_mixed 8.40 | loss 0.09 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 701 | e_mean 8.06 | e_mixed 8.45 | loss 0.09 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 702 | e_mean 8.10 | e_mixed 8.54 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 703 | e_mean 8.16 | e_mixed 8.62 | loss 0.09 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 704 | e_mean 8.11 | e_mixed 8.47 | loss 0.09 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 705 | e_mean 8.13 | e_mixed 8.30 | loss 0.09 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 706 | e_mean 8.16 | e_mixed 8.17 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 707 | e_mean 8.14 | e_mixed 8.80 | loss 0.09 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 708 | e_mean 8.17 | e_mixed 7.99 | loss 0.09 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 709 | e_mean 8.12 | e_mixed 8.33 | loss 0.09 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 710 | e_mean 8.08 | e_mixed 8.43 | loss 0.09 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 711 | e_mean 8.07 | e_mixed 8.42 | loss 0.09 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 712 | e_mean 8.15 | e_mixed 8.04 | loss 0.09 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 713 | e_mean 8.13 | e_mixed 8.49 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 714 | e_mean 8.10 | e_mixed 8.24 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 715 | e_mean 8.10 | e_mixed 8.49 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 716 | e_mean 8.11 | e_mixed 8.31 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 717 | e_mean 8.12 | e_mixed 8.89 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 718 | e_mean 8.08 | e_mixed 8.47 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 719 | e_mean 8.02 | e_mixed 8.53 | loss 0.08 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 720 | e_mean 8.08 | e_mixed 12.05 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 721 | e_mean 8.13 | e_mixed 8.57 | loss 0.08 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 722 | e_mean 8.23 | e_mixed 8.60 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 723 | e_mean 8.19 | e_mixed 8.41 | loss 0.08 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 724 | e_mean 8.19 | e_mixed 8.66 | loss 0.08 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 725 | e_mean 8.14 | e_mixed 8.26 | loss 0.08 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 726 | e_mean 8.23 | e_mixed 8.52 | loss 0.08 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 727 | e_mean 8.21 | e_mixed 9.93 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 728 | e_mean 8.10 | e_mixed 9.20 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 729 | e_mean 8.08 | e_mixed 8.32 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 730 | e_mean 8.13 | e_mixed 8.41 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 731 | e_mean 8.15 | e_mixed 8.49 | loss 0.08 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 732 | e_mean 8.19 | e_mixed 8.51 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 733 | e_mean 8.17 | e_mixed 8.40 | loss 0.08 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 734 | e_mean 8.17 | e_mixed 8.11 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 735 | e_mean 8.12 | e_mixed 8.92 | loss 0.08 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 736 | e_mean 8.15 | e_mixed 8.14 | loss 0.08 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 737 | e_mean 8.21 | e_mixed 8.58 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 738 | e_mean 8.18 | e_mixed 8.54 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 739 | e_mean 8.06 | e_mixed 6.75 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 740 | e_mean 8.04 | e_mixed 8.57 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 741 | e_mean 8.12 | e_mixed 8.38 | loss 0.08 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 742 | e_mean 8.13 | e_mixed 8.59 | loss 0.08 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 743 | e_mean 8.13 | e_mixed 8.59 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 744 | e_mean 8.11 | e_mixed 8.42 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 745 | e_mean 8.07 | e_mixed 8.59 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 746 | e_mean 8.14 | e_mixed 8.16 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 747 | e_mean 8.12 | e_mixed 8.41 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 748 | e_mean 8.11 | e_mixed 8.30 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 749 | e_mean 8.20 | e_mixed 8.59 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 750 | e_mean 8.17 | e_mixed 9.13 | loss 0.08 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 751 | e_mean 8.13 | e_mixed 8.42 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 752 | e_mean 8.12 | e_mixed 8.46 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 753 | e_mean 8.16 | e_mixed 8.51 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 754 | e_mean 8.16 | e_mixed 8.49 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 755 | e_mean 8.20 | e_mixed 8.58 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 756 | e_mean 8.15 | e_mixed 9.25 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 757 | e_mean 8.14 | e_mixed 11.70 | loss 0.08 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 758 | e_mean 8.11 | e_mixed 8.52 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 759 | e_mean 8.18 | e_mixed 8.40 | loss 0.08 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 760 | e_mean 8.02 | e_mixed 8.67 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 761 | e_mean 8.09 | e_mixed 8.57 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 762 | e_mean 8.14 | e_mixed 8.48 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 763 | e_mean 8.12 | e_mixed 8.17 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 764 | e_mean 8.20 | e_mixed 8.37 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 765 | e_mean 8.14 | e_mixed 8.33 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 766 | e_mean 8.14 | e_mixed 8.13 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 767 | e_mean 8.19 | e_mixed 8.33 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 768 | e_mean 8.19 | e_mixed 8.39 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 769 | e_mean 8.17 | e_mixed 8.47 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 770 | e_mean 8.14 | e_mixed 8.22 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 771 | e_mean 8.21 | e_mixed 8.40 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 772 | e_mean 8.21 | e_mixed 8.33 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 773 | e_mean 8.23 | e_mixed 8.37 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 774 | e_mean 8.22 | e_mixed 8.36 | loss 0.08 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 775 | e_mean 8.20 | e_mixed 8.31 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 776 | e_mean 8.17 | e_mixed 8.32 | loss 0.08 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 777 | e_mean 8.13 | e_mixed 8.13 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 778 | e_mean 8.17 | e_mixed 8.47 | loss 0.08 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 779 | e_mean 8.17 | e_mixed 7.96 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 780 | e_mean 8.16 | e_mixed 8.56 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 781 | e_mean 8.19 | e_mixed 8.15 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 782 | e_mean 8.17 | e_mixed 8.49 | loss 0.08 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 783 | e_mean 8.20 | e_mixed 8.85 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 784 | e_mean 8.18 | e_mixed 8.44 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 785 | e_mean 8.17 | e_mixed 8.58 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 786 | e_mean 8.08 | e_mixed 8.55 | loss 0.08 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 787 | e_mean 8.17 | e_mixed 8.31 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 788 | e_mean 8.18 | e_mixed 9.13 | loss 0.08 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 789 | e_mean 8.18 | e_mixed 8.62 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 790 | e_mean 8.22 | e_mixed 8.69 | loss 0.08 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 791 | e_mean 8.24 | e_mixed 7.99 | loss 0.08 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 792 | e_mean 8.33 | e_mixed 8.53 | loss 0.08 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 793 | e_mean 8.29 | e_mixed 8.44 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 794 | e_mean 8.21 | e_mixed 7.68 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 795 | e_mean 8.18 | e_mixed 7.79 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 796 | e_mean 8.14 | e_mixed 8.24 | loss 0.07 | wf_acc 0.67 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 797 | e_mean 8.11 | e_mixed 8.20 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 798 | e_mean 8.12 | e_mixed 8.53 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 799 | e_mean 8.18 | e_mixed 9.03 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 800 | e_mean 8.18 | e_mixed 6.81 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 801 | e_mean 8.13 | e_mixed 8.48 | loss 0.07 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 802 | e_mean 8.12 | e_mixed 9.23 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 803 | e_mean 8.18 | e_mixed 8.31 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 804 | e_mean 8.08 | e_mixed 8.23 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 805 | e_mean 8.09 | e_mixed 8.36 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 806 | e_mean 8.05 | e_mixed 8.04 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 807 | e_mean 8.06 | e_mixed 8.37 | loss 0.07 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 808 | e_mean 8.14 | e_mixed 8.22 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 809 | e_mean 8.11 | e_mixed 8.54 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 810 | e_mean 8.07 | e_mixed 8.50 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 811 | e_mean 8.12 | e_mixed 11.46 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 812 | e_mean 8.06 | e_mixed 10.04 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 813 | e_mean 8.13 | e_mixed 8.25 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 814 | e_mean 8.13 | e_mixed 8.09 | loss 0.07 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 815 | e_mean 8.14 | e_mixed 8.45 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 816 | e_mean 8.13 | e_mixed 8.39 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 817 | e_mean 8.13 | e_mixed 8.40 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 818 | e_mean 8.11 | e_mixed 8.44 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 819 | e_mean 8.11 | e_mixed 8.51 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 820 | e_mean 8.21 | e_mixed 8.30 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 821 | e_mean 8.12 | e_mixed 10.77 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 822 | e_mean 8.14 | e_mixed 8.67 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 823 | e_mean 8.10 | e_mixed 8.48 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 824 | e_mean 8.18 | e_mixed 8.35 | loss 0.07 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 825 | e_mean 8.19 | e_mixed 8.35 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 826 | e_mean 8.12 | e_mixed 8.41 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 827 | e_mean 8.18 | e_mixed 8.44 | loss 0.07 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 828 | e_mean 8.15 | e_mixed 8.43 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 829 | e_mean 8.20 | e_mixed 8.78 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 830 | e_mean 8.08 | e_mixed 8.33 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 831 | e_mean 8.14 | e_mixed 7.82 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 832 | e_mean 8.15 | e_mixed 7.93 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 833 | e_mean 8.16 | e_mixed 8.43 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 834 | e_mean 8.14 | e_mixed 45.69 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 835 | e_mean 8.14 | e_mixed 8.33 | loss 0.07 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 836 | e_mean 8.20 | e_mixed 8.39 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 837 | e_mean 8.18 | e_mixed 8.17 | loss 0.07 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 838 | e_mean 8.11 | e_mixed 8.45 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 839 | e_mean 8.10 | e_mixed 7.42 | loss 0.07 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 840 | e_mean 8.09 | e_mixed 8.98 | loss 0.07 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 841 | e_mean 8.16 | e_mixed 8.61 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 842 | e_mean 8.20 | e_mixed 8.44 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 843 | e_mean 8.17 | e_mixed 8.49 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 844 | e_mean 8.12 | e_mixed 8.42 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 845 | e_mean 8.15 | e_mixed 8.31 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 846 | e_mean 8.16 | e_mixed 8.19 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 847 | e_mean 8.09 | e_mixed 8.39 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 848 | e_mean 8.12 | e_mixed 8.35 | loss 0.07 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 849 | e_mean 8.12 | e_mixed 8.32 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 850 | e_mean 8.09 | e_mixed 648.44 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 851 | e_mean 8.07 | e_mixed 8.47 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 852 | e_mean 8.15 | e_mixed 8.25 | loss 0.07 | wf_acc 0.69 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 853 | e_mean 8.14 | e_mixed 8.51 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 854 | e_mean 8.22 | e_mixed 8.57 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 855 | e_mean 8.21 | e_mixed 8.32 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 856 | e_mean 8.19 | e_mixed 8.56 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 857 | e_mean 8.17 | e_mixed 8.75 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 858 | e_mean 8.18 | e_mixed 7.99 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 859 | e_mean 8.21 | e_mixed 8.69 | loss 0.07 | wf_acc 0.68 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 860 | e_mean 8.21 | e_mixed 8.16 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 861 | e_mean 8.15 | e_mixed 8.45 | loss 0.07 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 862 | e_mean 8.21 | e_mixed 8.47 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 863 | e_mean 8.27 | e_mixed 8.71 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 864 | e_mean 8.18 | e_mixed 8.39 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 865 | e_mean 8.16 | e_mixed 8.74 | loss 0.07 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 866 | e_mean 8.16 | e_mixed 8.35 | loss 0.07 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 867 | e_mean 8.12 | e_mixed 8.51 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 868 | e_mean 8.12 | e_mixed 8.32 | loss 0.07 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 869 | e_mean 8.14 | e_mixed 8.45 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 870 | e_mean 8.13 | e_mixed 8.47 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 871 | e_mean 8.15 | e_mixed 8.36 | loss 0.07 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 872 | e_mean 8.09 | e_mixed 4.96 | loss 0.07 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 873 | e_mean 8.12 | e_mixed 8.38 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 874 | e_mean 8.11 | e_mixed 7.89 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 875 | e_mean 8.08 | e_mixed 8.45 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 876 | e_mean 8.03 | e_mixed 9.04 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 877 | e_mean 8.08 | e_mixed 8.51 | loss 0.07 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 878 | e_mean 8.15 | e_mixed 8.41 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 879 | e_mean 8.18 | e_mixed 10.94 | loss 0.07 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 880 | e_mean 8.22 | e_mixed 7.23 | loss 0.07 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 881 | e_mean 8.27 | e_mixed 8.23 | loss 0.07 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 882 | e_mean 8.16 | e_mixed 8.91 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 883 | e_mean 8.02 | e_mixed 7.68 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 884 | e_mean 8.03 | e_mixed -5.49 | loss 0.07 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 885 | e_mean 8.10 | e_mixed 4.55 | loss 0.07 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 886 | e_mean 8.13 | e_mixed 8.43 | loss 0.07 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 887 | e_mean 8.16 | e_mixed 8.50 | loss 0.07 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 888 | e_mean 8.21 | e_mixed 8.29 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 889 | e_mean 8.20 | e_mixed 8.83 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 890 | e_mean 8.16 | e_mixed 8.95 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 891 | e_mean 8.15 | e_mixed 8.47 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 892 | e_mean 8.08 | e_mixed 8.33 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 893 | e_mean 8.11 | e_mixed 8.58 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 894 | e_mean 8.10 | e_mixed 8.50 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 895 | e_mean 8.06 | e_mixed 8.28 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 896 | e_mean 8.16 | e_mixed 8.49 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 897 | e_mean 8.11 | e_mixed 8.16 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 898 | e_mean 8.08 | e_mixed 8.34 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 899 | e_mean 8.12 | e_mixed 8.58 | loss 0.06 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 900 | e_mean 8.15 | e_mixed 8.38 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 901 | e_mean 8.19 | e_mixed 8.43 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 902 | e_mean 8.27 | e_mixed 8.45 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 903 | e_mean 8.17 | e_mixed 8.48 | loss 0.06 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 904 | e_mean 8.23 | e_mixed 8.66 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 905 | e_mean 8.26 | e_mixed 8.58 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 906 | e_mean 8.20 | e_mixed 8.64 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 907 | e_mean 8.23 | e_mixed 8.55 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 908 | e_mean 8.19 | e_mixed 8.72 | loss 0.06 | wf_acc 0.70 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 909 | e_mean 8.19 | e_mixed 8.10 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 910 | e_mean 8.14 | e_mixed 8.29 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 911 | e_mean 8.13 | e_mixed 8.50 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 912 | e_mean 8.05 | e_mixed 8.33 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 913 | e_mean 8.07 | e_mixed 8.51 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 914 | e_mean 8.12 | e_mixed 8.59 | loss 0.06 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 915 | e_mean 8.13 | e_mixed 8.48 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 916 | e_mean 8.10 | e_mixed 8.43 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 917 | e_mean 8.10 | e_mixed 8.50 | loss 0.06 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 918 | e_mean 8.15 | e_mixed 8.42 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 919 | e_mean 8.15 | e_mixed 8.04 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 920 | e_mean 8.16 | e_mixed 8.41 | loss 0.06 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 921 | e_mean 8.17 | e_mixed 9.55 | loss 0.06 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 922 | e_mean 8.24 | e_mixed 8.53 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 923 | e_mean 8.12 | e_mixed 8.34 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 924 | e_mean 8.12 | e_mixed 8.30 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 925 | e_mean 8.09 | e_mixed 8.42 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 926 | e_mean 8.12 | e_mixed 8.55 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 927 | e_mean 8.08 | e_mixed 8.21 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 928 | e_mean 8.19 | e_mixed 8.72 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 929 | e_mean 8.14 | e_mixed 7.74 | loss 0.06 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 930 | e_mean 8.12 | e_mixed 8.23 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 931 | e_mean 8.09 | e_mixed 8.21 | loss 0.06 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 932 | e_mean 8.11 | e_mixed 8.50 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 933 | e_mean 8.17 | e_mixed 8.21 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 934 | e_mean 8.16 | e_mixed 8.50 | loss 0.06 | wf_acc 0.67 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 935 | e_mean 8.16 | e_mixed 8.86 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 936 | e_mean 8.15 | e_mixed 8.49 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 937 | e_mean 8.07 | e_mixed 8.39 | loss 0.06 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 938 | e_mean 8.13 | e_mixed 8.47 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 939 | e_mean 8.09 | e_mixed 8.42 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 940 | e_mean 8.15 | e_mixed 8.08 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 941 | e_mean 8.17 | e_mixed 8.51 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 942 | e_mean 8.16 | e_mixed 8.51 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 943 | e_mean 8.19 | e_mixed 8.63 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 944 | e_mean 8.12 | e_mixed 8.71 | loss 0.06 | wf_acc 0.70 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 945 | e_mean 8.15 | e_mixed 7.09 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 946 | e_mean 8.18 | e_mixed 8.37 | loss 0.06 | wf_acc 0.67 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 947 | e_mean 8.18 | e_mixed 8.39 | loss 0.06 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 948 | e_mean 8.17 | e_mixed 8.40 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 949 | e_mean 8.13 | e_mixed 10.57 | loss 0.06 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 950 | e_mean 8.19 | e_mixed 8.60 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 951 | e_mean 8.19 | e_mixed 8.56 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 952 | e_mean 8.11 | e_mixed 8.31 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 953 | e_mean 8.13 | e_mixed 8.10 | loss 0.06 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 954 | e_mean 8.14 | e_mixed 8.41 | loss 0.06 | wf_acc 0.68 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 955 | e_mean 8.14 | e_mixed 8.50 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 956 | e_mean 8.17 | e_mixed 8.69 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 957 | e_mean 8.11 | e_mixed 8.79 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 958 | e_mean 8.24 | e_mixed 8.53 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 959 | e_mean 8.20 | e_mixed 8.38 | loss 0.06 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 960 | e_mean 8.19 | e_mixed 8.45 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 961 | e_mean 8.13 | e_mixed 8.53 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 962 | e_mean 8.09 | e_mixed 8.59 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 963 | e_mean 8.09 | e_mixed 8.45 | loss 0.06 | wf_acc 0.69 | mix_acc 0.88 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 964 | e_mean 8.19 | e_mixed 13.55 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 965 | e_mean 8.17 | e_mixed 8.38 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 966 | e_mean 8.12 | e_mixed 8.32 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 967 | e_mean 8.08 | e_mixed 8.08 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 968 | e_mean 8.12 | e_mixed 8.53 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 969 | e_mean 8.16 | e_mixed 8.42 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 970 | e_mean 8.14 | e_mixed 8.52 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 971 | e_mean 8.21 | e_mixed 8.37 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 972 | e_mean 8.07 | e_mixed 8.53 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 973 | e_mean 8.09 | e_mixed 8.25 | loss 0.06 | wf_acc 0.68 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 974 | e_mean 8.09 | e_mixed 9.48 | loss 0.06 | wf_acc 0.69 | mix_acc 0.91 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 975 | e_mean 8.10 | e_mixed 8.38 | loss 0.06 | wf_acc 0.69 | mix_acc 0.89 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 976 | e_mean 8.19 | e_mixed 8.39 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 977 | e_mean 8.14 | e_mixed 8.17 | loss 0.06 | wf_acc 0.68 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 978 | e_mean 8.16 | e_mixed 8.30 | loss 0.06 | wf_acc 0.70 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+(1, 512, 7, 3)
+step 979 | e_mean 8.18 | e_mixed 8.46 | loss 0.06 | wf_acc 0.69 | mix_acc 0.90 |
+(1, 512, 7, 3) (1, 512, 7, 3) 0.02 (1,)
+Traceback (most recent call last):
+  File "debugger_py.py", line 35, in <module>
+    params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, n_eq_it=100)
+  File "/home/amawi/projects/nn_ansatz/src/nn_ansatz/pretraining.py", line 66, in pretrain_wf
+    pre_walkers, mix_acceptance = pre_sampler(params, pre_walkers, pre_subkey, pre_step_size)
+  File "/home/amawi/projects/nn_ansatz/src/nn_ansatz/pretraining.py", line 212, in _sample_metropolis_hastings
+    acceptance_total_hf += mask_hf.mean()
+  File "/home/amawi/.conda/envs/xmax/lib/python3.7/site-packages/jax/_src/numpy/lax_numpy.py", line 2221, in mean
+    sum(a, axis, dtype=dtype, keepdims=keepdims, where=where),
+  File "/home/amawi/.conda/envs/xmax/lib/python3.7/site-packages/jax/_src/numpy/lax_numpy.py", line 2147, in sum
+    initial=initial, where_=where, parallel_reduce=lax.psum)
+  File "/home/amawi/.conda/envs/xmax/lib/python3.7/site-packages/jax/_src/numpy/lax_numpy.py", line 2100, in _reduction
+    result = lax.reduce(a, init_val, op, dims)
+KeyboardInterrupt

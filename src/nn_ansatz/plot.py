@@ -4,6 +4,11 @@ import pandas as pd
 import numpy as np
 import pickle as pk
 import scipy
+from .utils import find_all_files_in_dir
+from bokeh.io import output_notebook, export_png
+from bokeh.plotting import figure, show
+from bokeh.palettes import Dark2_5 as palette
+import itertools
 
 # params = {'legend.fontsize': 16,
 #           'legend.handlelength': 3}
@@ -63,6 +68,71 @@ def pretty_base(title=None,
     [ax.axhline(y=y, ls='--') for y in ylines]
     return fig, ax
 
+
+def bokeh_bars(xs, ys, xerrs=None, yerrs=None):
+    if xerrs is None:
+        xlines = [(x, x) for x in xs]
+    else:
+        xlines = [(x-xerr, x+xerr) for x, xerr in zip(xs, xerrs)]
+    if yerrs is None:
+        ylines = [(y, y) for y in ys]
+    else:
+        ylines = [(y-yerr, y+yerr) for y, yerr in zip(ys, yerrs)]
+    return xlines, ylines
+
+
+def plot_scatter(target_dir, data_filename, 
+              hypam=None, yname=None, errname=None,
+              save_png=None, 
+              title='', xlabel='', ylabel='',
+              hlines=None):
+    data_paths = find_all_files_in_dir(target_dir, data_filename)
+    colors = itertools.cycle(palette) 
+
+    xs = []
+    ys = []
+    errs = []
+    for data_path in data_paths:
+        data = load_pk(data_path)
+        try:
+            ys.append(data[yname])
+            if errname is not None: errs.append(data[errname])
+            xs.append(data[hypam])
+        except Exception as e:
+            print(e)
+            continue
+
+    graph = figure(title = title, x_axis_label=xlabel, y_axis_label=ylabel, width=400, height=400)
+
+    if type(xs[0]) is str:
+        xticklabels = xs
+        xs = [i for i in range(len(xs))]
+        graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}
+        graph.xaxis.ticker = xs
+
+    elif type(xs[0]) is tuple:
+        order = np.argsort([np.prod(x) for x in xs])
+        xs = [xs[i] for i in order]
+        ys = [ys[i] for i in order]
+        xticklabels = [str(x) for x in xs]
+        xs = [i for i in range(len(xs))]
+        graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}
+        graph.xaxis.ticker = xs
+
+    c = next(colors)
+    graph.circle(xs, ys, size=10, color=c)
+    if errname is not None: graph.multi_line(*bokeh_bars(xs, ys, yerrs=errs), color=c)
+
+    if hlines is not None:
+        for hline in hlines:
+            graph.line(xs, [hline for _ in xs], line_width=2.)
+
+    if save_png is not None:
+        export_png(graph, filename = save_png)
+    show(graph)
+    
+    df = pd.DataFrame.from_dict(data={hypam:xticklabels, yname:ys, 'yerr': errs}, orient='columns')
+    return df
 
 # https://www.bing.com/search?q=matplotlib+list+font+families&cvid=0a051388b21c4469b7a31650ac135dfa&aqs=edge..69i57.4809j0j1&pglt=43&FORM=ANNTA1&PC=U531
 

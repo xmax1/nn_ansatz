@@ -54,11 +54,13 @@ def create_energy_fn(mol, vwf, separate=False):
     def _compute_local_energy(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
         kinetic_energy = local_kinetic_energy(params, walkers)
+        if mol.system == 'HEG':
+            potential_energy = (potential_energy/mol.density_parameter)
+            kinetic_energy = (kinetic_energy/(mol.density_parameter**2))
         if separate:
             return potential_energy, kinetic_energy
-        if mol.system == 'HEG':
-            return potential_energy/mol.density_parameter + kinetic_energy/(mol.density_parameter**2)
-        return potential_energy + kinetic_energy
+        else:
+            return potential_energy + kinetic_energy
         
     return jit(_compute_local_energy)
 
@@ -102,26 +104,23 @@ def create_potential_energy(mol):
     if mol.pbc:
 
         basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
-        reciprocal_basis = mol.reciprocal_basis
-        kappa = mol.kappa
-        volume = mol.volume
 
         real_lattice = generate_lattice(basis, mol.real_cut)  # (n_lattice, 3)
-        reciprocal_lattice = generate_lattice(reciprocal_basis, mol.reciprocal_cut)
+        reciprocal_lattice = generate_lattice(mol.reciprocal_basis, mol.reciprocal_cut)
         rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
-        rl_factor = (4.*jnp.pi / volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product  
+        rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*mol.kappa**2)) / rl_inner_product  
 
         e_charges = jnp.array([-1. for i in range(mol.n_el)])
         charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
         _compute_potential_energy_solid_i = partial(compute_potential_energy_solid_i, 
-                                                    kappa=kappa, 
+                                                    kappa=mol.kappa, 
                                                     real_lattice=real_lattice, 
                                                     reciprocal_lattice=reciprocal_lattice,
                                                     q_q=q_q, 
                                                     charges=charges, 
-                                                    volume=volume,
+                                                    volume=mol.volume,
                                                     rl_factor=rl_factor)
 
         return vmap(_compute_potential_energy_solid_i, in_axes=(0, None, None))

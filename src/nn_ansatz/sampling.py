@@ -11,6 +11,7 @@ from jax import jit, vmap, pmap
 
 from .vmc import create_energy_fn
 from .utils import key_gen, split_variables_for_pmap
+from .ansatz import create_wf, transform_vector_space
 
 
 def create_sampler(mol, vwf):
@@ -21,10 +22,13 @@ def create_sampler(mol, vwf):
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         _sampler = pmap(_sampler, in_axes=(None, 0, 0, 0))
+        return _sampler
 
     if  bool(os.environ.get('DEBUG')) is True:
-        return _sampler
+        return  _sampler
+
     return jit(_sampler)
+
 
 
 def to_prob(amplitudes):
@@ -44,17 +48,6 @@ def pbc_step(walkers, key, shape, step_size, basis, inv_basis):
     walkers = walkers + rnd.normal(key, shape) * step_size
     walkers = keep_in_boundary(walkers, basis, inv_basis)
     return walkers
-
-
-def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
-    '''
-    case 1 catches non-orthorhombic cells 
-    case 2 for orthorhombic and cubic cells
-    '''
-    if basis.shape == (3, 3):
-        return jnp.dot(vectors, basis)
-    else:
-        return vectors * basis
 
 
 def keep_in_boundary(walkers, basis, inv_basis):
@@ -117,7 +110,7 @@ def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, 
 def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
     decrease = ((acceptance < target_acceptance).astype(acceptance.dtype) * -2.) + 1.  # +1 for false, -1 for true
     delta = decrease * 1. / 1000.
-    return step_size + delta
+    return jnp.clip(step_size + delta, 0.02, 0.1)
 
 
 def adjust_step_size_with_controlflow(step_size, acceptance, target_acceptance=0.5):
@@ -137,7 +130,7 @@ def initialise_walkers(mol,
                        walkers = None):
 
     if walkers is None:
-        walkers = generate_walkers_around_nuclei(mol.n_el_atoms, mol.atom_positions, mol.n_walkers)
+        walkers = generate_walkers(mol.n_el_atoms, mol.atom_positions, mol.n_walkers, mol.n_el)
     elif not len(walkers) == mol.n_walkers:
         n_replicate = math.ceil(mol.n_walkers / len(walkers))
         walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)
@@ -156,7 +149,7 @@ def initialise_walkers(mol,
 
 
 
-def generate_walkers_around_nuclei(ne_atoms, atom_positions, n_walkers):
+def generate_walkers(n_el_atoms, atom_positions, n_walkers, n_el):
     """ Initialises walkers for pretraining
 
         Usage:
@@ -172,26 +165,33 @@ def generate_walkers_around_nuclei(ne_atoms, atom_positions, n_walkers):
 
         """
     key = rnd.PRNGKey(1)
-    ups = []
-    downs = []
-    idx = 0
-    for ne_atom, atom_position in zip(ne_atoms, atom_positions):
-        for e in range(ne_atom):
-            key, *subkeys = rnd.split(key, num=3)
+    if n_el_atoms is None:
+        walkers = rnd.uniform(key, (n_walkers, n_el, 3))
+    
+    else:
+        ups = []
+        downs = []
+        idx = 0
+        for ne_atom, atom_position in zip(n_el_atoms, atom_positions):
+            for e in range(ne_atom):
+                key, *subkeys = rnd.split(key, num=3)
 
-            if idx % 2 == 0:  # fill up the orbitals alternating up down
-                curr_sample_up = rnd.normal(subkeys[0], (n_walkers, 1, 3)) + atom_position
-                ups.append(curr_sample_up)
-            else:
-                curr_sample_down = rnd.normal(subkeys[1], (n_walkers, 1, 3)) + atom_position
-                downs.append(curr_sample_down)
+                if idx % 2 == 0:  # fill up the orbitals alternating up down
+                    curr_sample_up = rnd.normal(subkeys[0], (n_walkers, 1, 3)) + atom_position
+                    ups.append(curr_sample_up)
+                else:
+                    curr_sample_down = rnd.normal(subkeys[1], (n_walkers, 1, 3)) + atom_position
+                    downs.append(curr_sample_down)
 
-            idx += 1
+                idx += 1
 
-    ups = jnp.concatenate(ups, axis=1)
-    downs = jnp.concatenate(downs, axis=1)
-    curr_sample = jnp.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
-    return curr_sample
+        ups = jnp.concatenate(ups, axis=1)
+        if len(downs) != 0:
+            downs = jnp.concatenate(downs, axis=1)
+            walkers = jnp.concatenate([ups, downs], axis=1)  # stack the ups first to be consistent with model
+        else:
+            walkers = ups
+    return walkers
 
 
 def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
@@ -220,7 +220,36 @@ def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
             equilibration += 1
         it += 1 
         if it % 10 == 0:
-            print('%.2f %% infs and %.2f %% nans' % (n_infs/float(n_walkers), n_nans/float(n_walkers)))
+            print('step %i: %.2f %% infs and %.2f %% nans' % (it, n_infs/float(n_walkers), n_nans/float(n_walkers)))
+            if it == 100:
+                return walkers
+    return walkers
+
+
+
+def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute_energy=False, n_it=1000, step_size=0.02):
+    
+    if sampler is None:
+        if vwf is None:
+            vwf = create_wf(mol)
+        sampler = create_sampler(mol, vwf)
+    if compute_energy:
+        if vwf is None:
+            vwf = create_wf(mol)
+            
+        compute_energy = create_energy_fn(mol, vwf)
+        compute_energy = pmap(compute_energy, in_axes=(None, 0)) if bool(os.environ.get('DISTRIBUTE')) is True else compute_energy
+
+    step_size = split_variables_for_pmap(walkers.shape[0], step_size)
+
+    for it in range(n_it):
+        keys, subkeys = key_gen(keys)
+
+        walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
+        if compute_energy:
+            e_locs = compute_energy(params, walkers)
+            if it % 100 == 0:
+                print('step %i energy %.4f' % (it, jnp.mean(e_locs)))
 
     return walkers
 

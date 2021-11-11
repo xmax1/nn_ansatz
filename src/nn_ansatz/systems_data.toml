@@ -44,6 +44,8 @@ n_el = 10
 [HEG]
 pbc = true
 basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+scale_cell = 1.0
+spin_polarized = true
 
 [LiSolid]
 pbc = true
@@ -97,6 +99,9 @@ r_atoms = [[0.5, 0.5, 0.5]]
 z_atoms = [1.0]
 n_el_atoms = [1]
 n_el = 1
+
+#The density of metallic hydrogen can be estimated roughly by taking the distance between protons to be of the order of the Bohr radius a0 = ħ2/me2 = 0.529×10−8 cm
+#V.L. GINZBURG, in Physics and Astrophysics, 1985
 
 # check the primitive lattice
 # check the reciprocal lattice

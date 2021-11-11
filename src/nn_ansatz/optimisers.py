@@ -147,16 +147,14 @@ def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac
 
     return ngs, (params, *state)
 
-# @jit
 def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
 
-    gradients, gradients_tree_map = tree_flatten(gradients)
+    gradients, _ = tree_flatten(gradients)
     ngs = []
     new_maas = []
     new_msss = []
-    for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
 
-        # print(g.shape, aa.shape, ss.shape, maa.shape, mss.shape, sl_factor)
+    for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
 
         maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
 

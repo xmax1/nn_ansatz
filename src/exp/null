@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/amawi/projects/nn_ansatz/src/run_with_args.py", line 5, in <module>
+    from nn_ansatz import setup, run_vmc
+  File "/home/amawi/projects/nn_ansatz/src/nn_ansatz/__init__.py", line 2, in <module>
+    from .sampling import create_sampler, initialise_walkers, generate_walkers, keep_in_boundary, sample_until_no_infs
+  File "/home/amawi/projects/nn_ansatz/src/nn_ansatz/sampling.py", line 52
+    def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
+                                      ^
+SyntaxError: invalid syntax

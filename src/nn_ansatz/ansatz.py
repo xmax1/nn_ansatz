@@ -10,20 +10,20 @@ import numpy as np
 
 from .utils import remove_aux
 from .parameters import expand_d0s, initialise_d0s
-from .heg_ansatz import create_heg_wf, generate_k_points
+from .heg_ansatz import create_heg_wf, generate_k_points, logabssumdet
 from .ansatz_base import *
-
 
 def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, distribute=False):
     ''' initializes the wave function ansatz for various applications '''
 
     print('creating wf')
   
-    masks = create_masks(mol.n_atoms, mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_in)
+    masks = create_masks(mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_sh_in, mol.n_ph_in)
 
     _compute_single_stream_vectors = partial(compute_single_stream_vectors_i, r_atoms=mol.r_atoms, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis)
-    _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis)
+    _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity)
     _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
+    _mixer = partial(mixer_i, n_el=mol.n_el, n_up=mol.n_up, n_down=mol.n_down)
 
     _wf_orbitals = partial(wf_orbitals, 
                            masks=masks,
@@ -33,7 +33,10 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
                            _compute_single_stream_vectors=_compute_single_stream_vectors,
                            _compute_inputs=_compute_inputs,
                            _compute_orbitals=_compute_orbitals,
-                           _sum_orbitals=_sum_orbitals)
+                           _sum_orbitals=_sum_orbitals,
+                           _mixer=_mixer,
+                           _linear = partial(linear, nonlinearity=mol.nonlinearity),
+                           _linear_pairwise = partial(linear_pairwise, nonlinearity=mol.nonlinearity))
 
     def _signed_wf(params, walkers, d0s):
         orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
@@ -43,7 +46,7 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     def _wf(params, walkers, d0s):
         orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
         log_psi, _ = logabssumdet(orb_up, orb_down)
-        return log_psi
+        return log_psi 
 
     def _kfac_wf(params, walkers, d0s):
         orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
@@ -80,10 +83,14 @@ def wf_orbitals(params: dict,
                 n_up: int,
                 n_down: int,
                 n_el: int,
+                
                 _compute_single_stream_vectors: Callable,
                 _compute_inputs: Callable,
                 _compute_orbitals: Callable,
-                _sum_orbitals: Callable):
+                _sum_orbitals: Callable,
+                _mixer: Callable,
+                _linear: Callable = partial(linear, nonlinearity='tanh'),
+                _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh')):
 
     if len(walkers.shape) == 1:  # this is a hack to get around the jvp
         walkers = walkers.reshape(n_el, 3)
@@ -95,17 +102,19 @@ def wf_orbitals(params: dict,
     single, pairwise = _compute_inputs(walkers, single_stream_vectors)  # (n_el, 3), (n_pairwise, 4)
 
     single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *masks[0])
+    # single_mixed, split = _mixer(single, pairwise, *masks[0])
 
     split = linear_split(params['split0'], split, activations, d0s['split0'])
-    single = linear(params['s0'], single_mixed, split, activations, d0s['s0'])
-    pairwise = linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
+    single = _linear(params['s0'], single_mixed, split, activations, d0s['s0'])
+    pairwise = _linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
 
-    for i, mask in enumerate(masks[2:], 1):
+    for i, mask in enumerate(masks[1:], 1):
         single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *mask)
 
         split = linear_split(params['split%i'%i], split, activations, d0s['split%i'%i])
-        single = linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i]) + single
-        pairwise = linear_pairwise(params['p%i'%i], pairwise, activations, d0s['p%i'%i]) + pairwise
+        single = _linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i]) + single
+
+        if not (i + 1) == len(masks): pairwise = _linear_pairwise(params['p%i'%i], pairwise, activations, d0s['p%i'%i]) + pairwise
 
     data_up, data_down = jnp.split(single, [n_up], axis=0)
 
@@ -154,7 +163,7 @@ def create_orbitals(orbitals='anisotropic',
     if orbitals == 'real_plane_waves':
         shells = [1, 7, 19]
         shell = shells.index(n_el) + 1
-        k_points = generate_k_points(n_shells=shell) * 2*jnp.pi
+        k_points = generate_k_points(n_shells=shell) * 2 * jnp.pi
         k_points = transform_vector_space(k_points, inv_basis)
         _compute_orbitals = partial(real_plane_wave_orbitals, k_points=k_points)
         def _sum_orbitals(params: jnp.array,
@@ -163,7 +172,7 @@ def create_orbitals(orbitals='anisotropic',
                             activations: list,
                             spin: str,
                             d0s):
-            return factor * orbital
+            return factor * jnp.squeeze(orbital, axis=-1)[None, ...]
 
     return _compute_orbitals, _sum_orbitals
 
@@ -183,14 +192,14 @@ def anisotropic_orbitals(sigma,
     n_spin = orb_vector.shape[0]
     
     if pbc:
-        # orb_vector = transform_vector_space(orb_vector, inv_basis)
-        # orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*(orb_vector + eps))), orb_vector)
-        # orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*(orb_vector - eps))), orb_vector)
-        # orb_vector = transform_vector_space(orb_vector, basis)
-        
-        norm = basis.mean()
-        orb_vector = jnp.where(orb_vector <= -0.25 * norm , -1.*norm**2/(8.*(1.*norm + 2.*(orb_vector + eps))), orb_vector)
-        orb_vector = jnp.where(orb_vector >= 0.25 * norm, 1.*norm**2/(8.*(1.*norm - 2.*(orb_vector - eps))), orb_vector)
+        orb_vector = transform_vector_space(orb_vector, inv_basis)
+        orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*(orb_vector + eps))), orb_vector)
+        orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*(orb_vector - eps))), orb_vector)
+        orb_vector = transform_vector_space(orb_vector, basis)
+
+        # norm = basis.mean()
+        # orb_vector = jnp.where(orb_vector <= -0.25 * norm , -1.*norm**2/(8.*(1.*norm + 2.*(orb_vector + eps))), orb_vector)
+        # orb_vector = jnp.where(orb_vector >= 0.25 * norm, 1.*norm**2/(8.*(1.*norm - 2.*(orb_vector - eps))), orb_vector)
 
     if einsum:
         pre_activation = jnp.einsum('jv,vcki->jcki', orb_vector, sigma) + d0
@@ -324,10 +333,21 @@ def env_pi_i(params: jnp.array,
 
 
 def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp.array:
-    s_up, log_up = jnp.linalg.slogdet(orb_up)
-    s_down, log_down = jnp.linalg.slogdet(orb_down) if not orb_down is None else (jnp.ones_like(s_up), jnp.zeros_like(log_up))
 
-    # logdet_sum = jnp.where(~jnp.isinf(log_up), log_up, -jnp.ones_like(log_up)*10.**10) + jnp.where(~jnp.isinf(log_down), log_down, -jnp.ones_like(log_down)*10.**10)
+    # (k, n_el, n_el)
+    if orb_up.shape[-1] == 1:
+        s_up, log_up = (jnp.sign(orb_up).squeeze(), jnp.log(jnp.abs(orb_up)).squeeze())
+    else: 
+        s_up, log_up = jnp.linalg.slogdet(orb_up)
+    
+    if orb_down is None:
+        s_down, log_down = (jnp.ones_like(s_up), jnp.zeros_like(log_up))
+    else:
+        if orb_down.shape[-1] == 1:
+            s_down, log_down = (jnp.sign(orb_down).squeeze(), jnp.log(jnp.abs(orb_down)).squeeze())
+        else:
+            s_down, log_down = jnp.linalg.slogdet(orb_down)
+
     logdet_sum = log_up + log_down
     logdet_max = jnp.max(logdet_sum)
 
@@ -336,6 +356,38 @@ def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp
     sign = jnp.sign(sum_argument)
 
     return jnp.log(jnp.abs(sum_argument)) + logdet_max, sign
+
+import functools
+
+def logabssumdet(
+        orb_up: jnp.array,
+        orb_down: Optional[jnp.array] = None) -> jnp.array:
+    # Special case if there is only one electron in any channel
+    # We can avoid the log(0) issue by not going into the log domain
+    
+    xs = [orb_up, orb_down] if not orb_down is None else [orb_up]
+    dets = [x.reshape(-1) for x in xs if x.shape[-1] == 1]
+    dets = functools.reduce(
+        lambda a, b: a*b, dets
+    ) if len(dets) > 0 else 1
+
+    slogdets = [jnp.linalg.slogdet(x) for x in xs if x.shape[-1] > 1]
+    maxlogdet = 0
+    if len(slogdets) > 0:
+        sign_in, logdet = functools.reduce(
+            lambda a, b: (a[0]*b[0], a[1]+b[1]), slogdets
+        )
+
+        maxlogdet = jnp.max(logdet)
+        det = sign_in * dets * jnp.exp(logdet - maxlogdet)
+    else:
+        det = dets
+
+    result = jnp.sum(det)
+
+    sign_out = jnp.sign(result)
+    log_out = jnp.log(jnp.abs(result)) + maxlogdet
+    return log_out, sign_out
 
 
 def mixer_i(single: jnp.array,
