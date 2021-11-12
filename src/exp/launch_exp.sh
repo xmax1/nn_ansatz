@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source ~/.bashrc
-screen -dm exp 
-screen -p 0 -X stuff "$1^M"
+# source ~/.bashrc
+module load CUDA/11.2
+echo $LD_LIBRARY_PATH

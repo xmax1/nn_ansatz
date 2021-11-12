@@ -16,7 +16,7 @@ n_el = 7
 inact = 'sin+cos+bowl'
 density_parameter = 1.
 n_det = 1
-name = 'isotropic_comparison'
+name = '1211/isotropic_comparison'
 n_it = 50000
 
 hosts = ['titan02']
@@ -25,7 +25,7 @@ hypams = ['isotropic_spline', 'isotropic_sphere']
 processes = []
 for orbitals in hypams:
     exp = ' -s {system} -n_sh {n_sh} -n_ph {n_ph} -orb {orbitals} -n_el {n_el} -inact {inact} -dp {density_parameter} -n_det {n_det} -name {name} -n_it {n_it}'\
-                       .format(system='HEG', 
+                       .format(system=system, 
                                n_sh=n_sh, 
                                n_ph=n_ph,
                                orbitals=orbitals, 

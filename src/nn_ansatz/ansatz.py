@@ -232,24 +232,22 @@ def isotropic_orbitals(sigma,
     n_spin = orb_vector.shape[0]
     
     if not pbc:
-        norm = jnp.linalg.norm(orb_vector, axis=-1)[..., None] # (n_spin,)
+        norm = jnp.linalg.norm(orb_vector, axis=-1, keepdims=True) # (n_spin,)
         exponential = jnp.exp(-norm  * sigma + d0)
     else:
+        orb_vector = transform_vector_space(orb_vector, inv_basis)
         # METHOD 1
         if 'sphere' in orbitals:
-            orb_vector = transform_vector_space(orb_vector, inv_basis)
-            norm = jnp.linalg.norm(orb_vector, axis=-1)[..., None] # (n_spin,)
+            norm = jnp.linalg.norm(orb_vector, axis=-1, keepdims=True) # (n_spin,)
             exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(1. - norm) * sigma + d0) - 2 * jnp.exp(-sigma * 1. / 2.)
             exponential = jnp.where(norm > 0.5, 0.0, exponential)
         
         # METHOD 2
-        if 'spline' in orbitals: 
-            orb_vector = transform_vector_space(orb_vector, inv_basis)
+        if 'spline' in orbitals:
             orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*(orb_vector + eps))), orb_vector)
             orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*(orb_vector - eps))), orb_vector)
-            norm = jnp.linalg.norm(orb_vector, axis=-1)[..., None] # (n_spin,)
+            norm = jnp.linalg.norm(orb_vector, axis=-1, keepdims=True) # (n_spin,)
             exponential = jnp.exp(-norm * sigma + d0)
-            print(norm.shape, sigma.shape, d0.shape)
 
     if not activations is None: activations.append(norm)
     return exponential

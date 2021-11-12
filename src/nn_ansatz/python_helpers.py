@@ -17,7 +17,7 @@ nvidia_cmd = 'nvidia-smi --query-gpu=memory.used --format=csv'
 launch_file = '/home/amawi/projects/nn_ansatz/src/exp/launch_exp.sh'
 user = 'amawi'
 
-def submit_job_to_any_gpu_dep(cmd, hosts=None):
+def submit_job_to_any_gpu(cmd, hosts=None):
     if hosts is None: hosts = HOSTS
     executed=False
     while not executed:
@@ -29,20 +29,24 @@ def submit_job_to_any_gpu_dep(cmd, hosts=None):
             if len(free_mems) > 0:
                 gpu = mems.index(free_mems[0])
                 print('host %s node spaces %s chosen gpu %i' % (host, mems, gpu))   
-                cmd = ('CUDA_VISIBLE_DEVICES=%i '+ cmd) % gpu  # ' >null 2>&1' pipes the outputs to other places so the ssh can close
+                cmd = ("CUDA_VISIBLE_DEVICES=\'%i\' "+ cmd) % gpu  # ' >null 2>&1' pipes the outputs to other places so the ssh can close
                 print(cmd)
-                # out = str(subprocess.Popen("ssh {user}@{host} {cmd}".format(user=user, host=host, cmd=cmd)), shell=True)
+                x = subprocess.Popen("screen -dmS exp%i bash -c '%s'" % (gpu, cmd), \
+                    shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                
+                # out = str(subprocess.Popen("ssh {user}@{host} {cmd} >null 2>&1".format(user=user, host=host, cmd=cmd)), shell=True)
                 # 'screen -dmS exp bash -c "ssh titan08; sleep 10"'
                 # out = subprocess.run('screen -dmS exp bash -c "ssh {user}@{host}; {cmd}"'.format(user=user, host=host, cmd=cmd), shell=True)
                 # out = subprocess.run('screen -dmS exp bash -c "{cmd}"'.format(cmd=cmd), shell=True)
-                x = subprocess.run('screen -dmS exp%i bash -c "%s"' % (gpu, cmd), shell=True)
+                # x = subprocess.run('screen -dmS exp%i %s' % (gpu, cmd), shell=True)
                 sleep(30)
                 return x
         sleep(60)
         print('waiting for a gpu')
 
 
-def submit_job_to_any_gpu(cmd, hosts=None):
+def submit_job_to_any_gpu_dep(cmd, hosts=None):
     if hosts is None: hosts = HOSTS
     executed=False
     while not executed:

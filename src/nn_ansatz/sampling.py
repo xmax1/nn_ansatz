@@ -14,11 +14,11 @@ from .utils import key_gen, split_variables_for_pmap
 from .ansatz import create_wf, transform_vector_space
 
 
-def create_sampler(mol, vwf):
+def create_sampler(mol, vwf, nan_safe=False):
 
     _step = step if not mol.pbc else partial(pbc_step, basis=mol.basis, inv_basis=mol.inv_basis)
 
-    _sampler = partial(sample_metropolis_hastings, vwf=vwf, step_walkers=_step, correlation_length=mol.correlation_length)
+    _sampler = partial(sample_metropolis_hastings, vwf=vwf, step_walkers=_step, correlation_length=mol.correlation_length, nan_safe=nan_safe)
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         _sampler = pmap(_sampler, in_axes=(None, 0, 0, 0))
@@ -30,11 +30,16 @@ def create_sampler(mol, vwf):
     return jit(_sampler)
 
 
-
-def to_prob(amplitudes):
+def to_prob(amplitudes, nan_safe=False):
     ''' converts log amplitudes to probabilities '''
     ''' also catches nans (for the case the determinants are zero) '''
-    return jnp.exp(amplitudes)**2
+    probs = jnp.exp(amplitudes)**2
+    if not nan_safe:
+        return probs
+    else:
+        probs = jnp.where(jnp.isnan(amplitudes), 0.0, probs)
+        probs = jnp.where(jnp.isinf(amplitudes), 0.0, probs)
+        return probs
 
 
 def step(walkers, key, shape, step_size):
@@ -58,12 +63,12 @@ def keep_in_boundary(walkers, basis, inv_basis):
     return talkers
 
 
-def sample_metropolis_hastings(params, curr_walkers, key, step_size, vwf, step_walkers, correlation_length):
+def sample_metropolis_hastings(params, curr_walkers, key, step_size, vwf, step_walkers, correlation_length, nan_safe):
 
     shape = curr_walkers.shape
 
     amps = vwf(params, curr_walkers)
-    curr_probs = to_prob(amps)
+    curr_probs = to_prob(amps, nan_safe=nan_safe)
 
     acceptance_total = 0.
 
@@ -73,7 +78,7 @@ def sample_metropolis_hastings(params, curr_walkers, key, step_size, vwf, step_w
 
         # next sample
         new_walkers = step_walkers(curr_walkers, subkeys[0], shape, step_size)
-        new_probs = to_prob(vwf(params, new_walkers))
+        new_probs = to_prob(vwf(params, new_walkers), nan_safe=nan_safe)
 
         # update sample
         alpha = new_probs / curr_probs
@@ -138,8 +143,9 @@ def initialise_walkers(mol,
 
     if bool(os.environ.get('DISTRIBUTE')) is True:
         walkers = walkers.reshape(mol.n_devices, -1, *walkers.shape[1:])
-    
+
     if mol.pbc:
+        sampler = create_sampler(mol, vwf, nan_safe=True)
         print('sampling no infs, this could take a while')
         walkers = keep_in_boundary(walkers, mol.basis, mol.inv_basis)
         walkers = sample_until_no_infs(vwf, sampler, params, walkers, keys, mol.step_size)
