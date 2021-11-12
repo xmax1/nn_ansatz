@@ -58,16 +58,18 @@ def initialise_system_wf_and_sampler(cfg, walkers=None):
 
     sampler = create_sampler(mol, vwf)
 
-    if cfg['load_pretrain']:
-        params, walkers = load_pk(cfg['pre_path'])
-    elif cfg['pretrain']:
-        params, walkers = pretrain_wf(mol, **cfg)
-
-    if cfg['load_it'] > 0:
-        params = load_pk(os.path.join(cfg['models_dir'], 'i%i.pk' % cfg['load_it']))
-     
     if walkers is None:
         walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
+
+    if cfg['pretrain']:
+        params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
+
+    if os.path.exists(cfg['pre_path']):
+        print('loading pretrain wf %s' % cfg['pre_path'])
+        params, walkers = load_pk(cfg['pre_path'])
+    
+    if cfg['load_it'] > 0:
+        params = load_pk(os.path.join(cfg['models_dir'], 'i%i.pk' % cfg['load_it']))
     
     return mol, vwf, walkers, params, sampler, keys
 

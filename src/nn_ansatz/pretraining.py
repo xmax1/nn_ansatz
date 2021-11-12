@@ -28,7 +28,8 @@ def pretrain_wf(mol,
                 lr: float = 1e-4,
                 n_eq_it: int = 500,
                 pre_path=None,
-                seed=1):
+                seed=1,
+                **kwargs):
     pre_key = rnd.PRNGKey(seed)
 
     vwf = create_wf(mol)
@@ -64,9 +65,7 @@ def pretrain_wf(mol,
         e_locs = compute_local_energy(params, walkers)
 
         pre_walkers, mix_acceptance = pre_sampler(params, pre_walkers, pre_subkey, pre_step_size)
-        print(pre_walkers.shape)
         e_locs_mixed = compute_local_energy(params, pre_walkers)
-
 
         print('step %i | e_mean %.2f | e_mixed %.2f | loss %.2f | wf_acc %.2f | mix_acc %.2f |'
               % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), loss_value, acceptance, mix_acceptance))
