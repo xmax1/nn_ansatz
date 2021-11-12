@@ -33,13 +33,6 @@ def submit_job_to_any_gpu(cmd, hosts=None):
                 print(cmd)
                 x = subprocess.Popen("screen -dmS exp%i bash -c '%s'" % (gpu, cmd), \
                     shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-                
-                # out = str(subprocess.Popen("ssh {user}@{host} {cmd} >null 2>&1".format(user=user, host=host, cmd=cmd)), shell=True)
-                # 'screen -dmS exp bash -c "ssh titan08; sleep 10"'
-                # out = subprocess.run('screen -dmS exp bash -c "ssh {user}@{host}; {cmd}"'.format(user=user, host=host, cmd=cmd), shell=True)
-                # out = subprocess.run('screen -dmS exp bash -c "{cmd}"'.format(cmd=cmd), shell=True)
-                # x = subprocess.run('screen -dmS exp%i %s' % (gpu, cmd), shell=True)
                 sleep(30)
                 return x
         sleep(60)
