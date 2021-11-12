@@ -225,13 +225,11 @@ def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     os.environ['DISTRIBUTE'] = 'True'
     
     mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
-    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=True, n_it=200)
+    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=True, n_it=1000)
     energy_function = create_energy_fn(mol, vwf, separate=True)
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         energy_function = pmap(energy_function, in_axes=(None, 0))
-
-    print(walkers.shape)
     
     names = ['pe', 'ke']
     values = approximate_value(energy_function, params, sampler, walkers, keys, names, cfg, n_it=n_it)

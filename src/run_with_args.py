@@ -4,8 +4,6 @@
 import argparse
 from nn_ansatz import setup, run_vmc, approximate_energy
 
-import argparse
-
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--system", type=str, default='HEG')
@@ -21,11 +19,15 @@ def get_args():
     parser.add_argument('-lr', '--lr', type=float, default=1e-4)
     parser.add_argument('-name', '--name', type=str, default='junk')
     parser.add_argument('-n_it', '--n_it', type=int, default=10000)
+    parser.add_argument('-act', '--nonlinearity', type=str, default='tanh')
+    parser.add_argument('-sim', '--simulation_cell', nargs='+', type=int, default=(1, 1, 1))
+    parser.add_argument('-nl', '--n_layers', type=int, default=2)
     args = parser.parse_args()
     return args
 
 args = get_args()
 
+print(vars(args))
 cfg = setup(**vars(args))
 
 log = run_vmc(cfg)

@@ -81,31 +81,57 @@ def bokeh_bars(xs, ys, xerrs=None, yerrs=None):
     return xlines, ylines
 
 
-def plot_scatter(target_dir, data_filename, 
+def get_data(target_dir, data_filename='config1.pk', dicts=[]):
+    data_paths = find_all_files_in_dir(target_dir, data_filename)
+    for data_path in data_paths:
+        data = load_pk(data_path)
+        dicts.append(data)
+    df = pd.DataFrame(dicts)    # .filter(regex='energy')
+    columns = [x for x in df.columns if not ('dir' in x) and not ('path' in x)]
+    filters = ['seed', 'version', 'save_every', 'print_every', 'basis', 'load_pretrain', \
+        'pretrain', 'n_walkers_per_device', 'n_devices', 'pre_lr', 'n_pre_it', \
+            'lr', 'damping', 'norm_constraint', 'correlation_length', 'scalar_inputs', 'einsum']
+    filters.extend(['real_cut', 'reciprocal_cut', 'kappa'])
+    columns = [x for x in columns if x not in filters]
+    df = df[columns]
+    return df
+
+
+    # data_all = {'xs':[], 'ys':[], 'yerrs':[], 'xticklabels':[]}
+    # for data_path in data_paths:
+    #     data = load_pk(data_path)
+    #     try:
+    #         data_all['ys'].append(data[yname])
+    #         if errname is not None: errs.append(data[errname])
+    #         xs.append(data[hypam])
+    #         appends.append([data_path[x] for x in append_xlabel])
+    #     except Exception as e:
+    #         print(e)
+    #         continue
+
+    # return data_all
+
+
+
+
+
+
+def data_and_plot_scatter(target_dir, data_filename, 
               hypam=None, yname=None, errname=None,
               save_png=None, 
+              append_xlabel=None,
               title='', xlabel='', ylabel='',
               hlines=None):
     data_paths = find_all_files_in_dir(target_dir, data_filename)
+    
+
+    
+
     colors = itertools.cycle(palette) 
-
-    xs = []
-    ys = []
-    errs = []
-    for data_path in data_paths:
-        data = load_pk(data_path)
-        try:
-            ys.append(data[yname])
-            if errname is not None: errs.append(data[errname])
-            xs.append(data[hypam])
-        except Exception as e:
-            print(e)
-            continue
-
     graph = figure(title = title, x_axis_label=xlabel, y_axis_label=ylabel, width=400, height=400)
 
     if type(xs[0]) is str:
-        xticklabels = xs
+        xticklabels = ['/'.join([x, *append]) for x, append in zip(xs, appends)]
         xs = [i for i in range(len(xs))]
         graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}
         graph.xaxis.ticker = xs
