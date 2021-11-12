@@ -3,7 +3,7 @@ from nn_ansatz import setup, run_vmc, compare_einsum, run_vmc_debug
 
 
 cfg = setup(system='HEG',
-                    n_pre_it=1000,
+                    n_pre_it=10,
                     pretrain=True,
                     n_walkers=512,
                     n_layers=2,
@@ -14,7 +14,6 @@ cfg = setup(system='HEG',
                     orbitals='real_plane_waves',
                     simulation_cell=(1, 1, 1),
                     density_parameter=1., 
-                    n_periodic_input=1,
                     opt='kfac',
                     n_det=1,
                     print_every=50,
@@ -23,7 +22,7 @@ cfg = setup(system='HEG',
                     n_it=1000,
                     name='pre_test')
 
-walkers, grads, pe, ke = run_vmc(cfg)
+log = run_vmc(cfg)
 
 
 # cfg = setup(system='HEG',

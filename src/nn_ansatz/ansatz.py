@@ -287,9 +287,10 @@ def real_plane_wave_orbitals(sigma,
 
     # sigma (n_det, n_spin_i, n_atom, 3, 3)
     # walkers (n_spin_j, 3)
+    # k_points (n_spin, 3)
 
     n_el = orb_vector.shape[0]
-    args = orb_vector @ k_points.T  # (n_el, n_el)
+    args = orb_vector @ k_points[:n_el, :].T  # (n_el, n_el)
     args = jnp.split(args, n_el, axis=1)
     pf = [jnp.cos, jnp.sin]
     dets = []

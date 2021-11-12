@@ -51,9 +51,8 @@ def pretrain_wf(mol,
     step_size = split_variables_for_pmap(walkers.shape[0], pre_step_size)
     steps = trange(0, n_pre_it, initial=0, total=n_pre_it, desc='pretraining', disable=None)
 
-    print(step_size)
+
     for step in steps:
-        print(pre_walkers.shape, walkers.shape, pre_step_size, step_size.shape)
         pre_key, pre_subkey = rnd.split(pre_key)
         keys, subkey = key_gen(keys)
 

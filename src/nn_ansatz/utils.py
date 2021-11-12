@@ -255,7 +255,7 @@ def setup(system: str = 'Be',
 
     pretrain_dir = join_and_create(root, system, 'pretrained')
     hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
-    pre_path = join_and_create(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
+    pre_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
 
     events_dir = join_and_create(exp_dir, 'events')
     timing_dir = join_and_create(events_dir, 'timing')
