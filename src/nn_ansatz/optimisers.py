@@ -156,6 +156,8 @@ def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, no
 
     for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
 
+        # print(g.shape, aa.shape, ss.shape, maa.shape, mss.shape)
+
         maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
 
         dmaa, dmss = damp(maa, mss, sl_factor, damping)

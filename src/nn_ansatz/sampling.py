@@ -221,8 +221,7 @@ def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
         it += 1 
         if it % 10 == 0:
             print('step %i: %.2f %% infs and %.2f %% nans' % (it, n_infs/float(n_walkers), n_nans/float(n_walkers)))
-            if it == 100:
-                return walkers
+
     return walkers
 
 

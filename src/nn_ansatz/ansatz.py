@@ -156,9 +156,9 @@ def create_orbitals(orbitals='anisotropic',
         _compute_orbitals = partial(anisotropic_orbitals, basis=basis, inv_basis=inv_basis, pbc=pbc, einsum=einsum)
         _sum_orbitals = partial(env_pi_i, einsum=einsum)
 
-    if orbitals == 'isotropic':
-        _compute_orbitals = isotropic_orbitals()
-        _sum_orbitals = env_pi_i
+    if 'isotropic' in orbitals:
+        _compute_orbitals = partial(isotropic_orbitals, pbc=pbc, basis=basis, inv_basis=inv_basis, orbitals=orbitals, einsum=einsum)
+        _sum_orbitals = partial(env_pi_i, einsum=einsum)
     
     if orbitals == 'real_plane_waves':
         shells = [1, 7, 19]
@@ -187,7 +187,7 @@ def anisotropic_orbitals(sigma,
                          eps=0.000001,
                          einsum: bool=False):
     # sigma (3, 3 * n_det * n_spin)
-    # ae_vector (n_spin_j, 3)
+    # orb_vector (n_spin_j, 3)
     # d0 (n_spin_j, n_det * n_spin_i)
     n_spin = orb_vector.shape[0]
     
@@ -220,36 +220,39 @@ def isotropic_orbitals(sigma,
                        orb_vector,                      
                        d0, 
                        activations: Optional[list]=None,
+                       orbitals: str = 'isotropic',
                        basis: Optional[jnp.array]=None,
                        inv_basis: Optional[jnp.array]=None,
                        pbc: bool=False,
-                       einsum: bool=False):
+                       einsum: bool=False,
+                       eps=0.000001):
     # sigma (n_det, n_spin_i)
     # ae_vector (n_spin_j, 3)
     # d0 (n_spin_j, n_det, n_spin_i)
     n_spin = orb_vector.shape[0]
     
-    
-    
     if not pbc:
         norm = jnp.linalg.norm(orb_vector, axis=-1)[..., None] # (n_spin,)
-        exponent = (norm  * sigma + d0).reshape(n_spin, -1, n_spin, 1, order='F')
-        exponential = jnp.exp(-exponent)
+        exponential = jnp.exp(-norm  * sigma + d0)
     else:
-        orb_vector = transform_vector_space(orb_vector, inv_basis)
-        norm = jnp.linalg.norm(orb_vector, axis=-1)[..., None] # (n_spin,)
-        exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(unit_cell_length - norm) * sigma + d0) - 2 * jnp.exp(-sigma * unit_cell_length / 2.)
-        exponential = jnp.where(norm > unit_cell_length/2., 0.0, exponential)
-        exponential = exponential.reshape(n_spin, -1, n_spin, 1, order='F')
+        # METHOD 1
+        if 'sphere' in orbitals:
+            orb_vector = transform_vector_space(orb_vector, inv_basis)
+            norm = jnp.linalg.norm(orb_vector, axis=-1)[..., None] # (n_spin,)
+            exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(1. - norm) * sigma + d0) - 2 * jnp.exp(-sigma * 1. / 2.)
+            exponential = jnp.where(norm > 0.5, 0.0, exponential)
+        
+        # METHOD 2
+        if 'spline' in orbitals: 
+            orb_vector = transform_vector_space(orb_vector, inv_basis)
+            orb_vector = jnp.where(orb_vector <= -0.25, -1./(8.*(1. + 2.*(orb_vector + eps))), orb_vector)
+            orb_vector = jnp.where(orb_vector >= 0.25, 1./(8.*(1. - 2.*(orb_vector - eps))), orb_vector)
+            norm = jnp.linalg.norm(orb_vector, axis=-1)[..., None] # (n_spin,)
+            exponential = jnp.exp(-norm * sigma + d0)
+            print(norm.shape, sigma.shape, d0.shape)
 
-        # exponential = jnp.exp(-norm * sigma + d0) + jnp.exp(-(1. - norm) * sigma + d0) - 2 * jnp.exp(-(1. / 2.) * sigma)
-        # exponential = jnp.where(norm < ucl2, exponential, jnp.zeros_like(exponential)).reshape(n_spin, -1, n_spin, 1, order='F')
-
-        # tr_ae_vector = ae_vector.dot(inv_real_basis)
-        # tr_norm = jnp.linalg.norm(tr_ae_vector, axis=-1)
-        # exponential = jnp.where(tr_norm < min_cell_width / 2., exponential, jnp.zeros_like(exponential)).reshape(n_spin, -1, n_spin, 1, order='F')
-
-    return norm, exponential
+    if not activations is None: activations.append(norm)
+    return exponential
 
 
 def generate_k_points(n_shells=3):

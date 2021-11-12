@@ -3,15 +3,15 @@ sys.path.append('..')
 from nn_ansatz import setup, run_vmc, compare_einsum, approximate_energy, load_pk
 
 n_it = 10000
-cfg = setup(system='HEG',
+cfg = setup(system='LiSolidBCC',
             n_walkers=512,
             n_layers=2,
             n_sh=64,
             step_size=0.05,
             n_ph=32,
-            orbitals='real_plane_waves',
+            orbitals='isotropic_sphere',
             n_el = 7,
-            input_activation_nonlinearity='sin+cos+bowl',
+            input_activation_nonlinearity='sin+cos',
             n_periodic_input=1,
             opt='kfac',
             n_det=1,
