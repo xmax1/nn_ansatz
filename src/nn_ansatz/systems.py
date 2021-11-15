@@ -84,8 +84,6 @@ class SystemAnsatz():
                  pbc=False,
                  spin_polarized=False,
                  density_parameter=None,
-                 real_cut=None,
-                 reciprocal_cut=None,
                  kappa=None,
                  simulation_cell: tuple = (1, 1, 1),
                  scalar_inputs=False,
@@ -135,8 +133,6 @@ class SystemAnsatz():
             scale_cell = volume**(1./3.)
 
         if pbc:
-            self.real_cut = real_cut
-            self.reciprocal_cut = reciprocal_cut
             self.kappa = kappa
 
             single_cell_basis = basis * scale_cell
@@ -167,8 +163,6 @@ class SystemAnsatz():
                 'basis:', '\n', self.basis, '\n',
                 'inv_basis:', '\n', self.inv_basis, '\n',
                 'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
-                'real_cut         = %.2f \n' % self.real_cut,
-                'reciprocal_cut   = %i \n' % self.reciprocal_cut,
                 'kappa            = %.2f \n' % self.kappa,
                 'volume           = %.2f \n' % self.volume,
                 'n_periodic_input = %i \n' % n_periodic_input)

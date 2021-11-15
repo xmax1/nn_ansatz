@@ -132,7 +132,50 @@ def create_potential_energy(mol):
     return vmap(compute_potential_energy_i, in_axes=(0, None, None))
 
 
-def create_potential_energy_v2(mol, n_walkers=1024):
+def compute_reciprocal_term_i(p_p_vectors, rl_factor, reciprocal_lattice, q_q):
+# put the walkers and r_atoms together
+
+    # compute the reciprocal term reuse the ee vectors
+    exp = jnp.real(jnp.sum(rl_factor[None, None, :] * jnp.exp(1j * p_p_vectors @ jnp.transpose(reciprocal_lattice)), axis=-1))
+    reciprocal_sum = 0.5 * (q_q * exp).sum((-1,-2))  
+    return reciprocal_sum
+
+
+def compute_real_term_i(walkers, p_p_distances, kappa, real_lattice, q_q):
+
+    # p_p_distances[p_p_distances < 1e-16] = 1e200  # doesn't matter, diagonal dropped via tril, this is just here to suppress the error
+    Rs0 = jnp.tril(erfc(kappa * p_p_distances) / p_p_distances, k=-1)  # (n_particle, n_particle) everything above and including the diagonal is zero
+
+    # compute the Rs > 0 term
+    ex_walkers = vector_add(walkers, real_lattice)  # (n_particle, n_lattice, 3)
+    tmp = walkers[:, None, None, :] - ex_walkers[None, ...]  # (n_particle, n_particle, n_lattice, 3)
+    ex_distances = jnp.linalg.norm(tmp, axis=-1)
+    # ex_distances = jnp.sqrt(jnp.sum(tmp**2, axis=-1))  
+    Rs1 = jnp.sum(erfc(kappa * ex_distances) / ex_distances, axis=-1)
+    real_sum = (q_q * (Rs0 + 0.5 * Rs1)).sum((-1, -2))  # Rs0 no half because of previous tril
+    return real_sum
+
+
+def generate_lattice(basis, cut):
+    len0 = jnp.linalg.norm(basis, axis=-1).mean()  # get the mean length of the basis vectors
+    
+    img_range = jnp.arange(-cut, cut+1)  # x2 to create sphere
+    img_sets = list(product(*[img_range, img_range, img_range]))
+    # first axis is the number of lattice vectors, second is the integers to scale the primitive vectors, third is the resulting set of vectors
+    # then sum over those
+    # print(len(img_sets))
+    img_sets = jnp.concatenate([jnp.array(x)[None, :, None] for x in img_sets if not jnp.sum(jnp.array(x) == 0) == 3], axis=0)
+    # print(img_sets.shape)
+    imgs = jnp.sum(img_sets * basis, axis=1)
+
+    # if a sphere around the image is within rcut then keep it
+    # lengths = jnp.linalg.norm(imgs, axis=-1)
+    # mask = lengths < (cut * len0)
+    # img = imgs[mask]
+    return imgs
+
+
+def create_potential_energy_v2(mol, n_walkers=512, atol=1e-5):
     """
 
     Notes:
@@ -147,66 +190,99 @@ def create_potential_energy_v2(mol, n_walkers=1024):
         charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
-        real_cuts = jnp.arange(1, 10, 1)
-        reciprocal_cuts = jnp.arange(1, 10, 1)
-        kappas = jnp.arange(0.25, 2, 0.25)
+        real_cuts = jnp.arange(1, 7, 1)
+        reciprocal_cuts = jnp.arange(1, 7, 1)
+        kappas = jnp.arange(0.5, 2.5, 0.25)
 
         basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
 
-        walkers = jnp.array(rnd(jax.random.PRNGKey(369), minval=0.0, maxval=mol.scale_cell, shape=(n_walkers, mol.n_el, 3)))
+        walkers = jnp.array(rnd.uniform(rnd.PRNGKey(369), minval=0.0, maxval=mol.scale_cell, shape=(n_walkers, mol.n_el, 3)))
 
-        reciprocal_lattice = generate_lattice(mol.reciprocal_basis, 1)
+        min_diff = 100
+        min_cut_sum = 100
+        min_kappa = 0.5
+        min_real_cut = 0
+        min_reciprocal_cut = 0
+
+        # compute the Rs0 term
+        walkers = jnp.concatenate([mol.r_atoms[None, ...].repeat(walkers.shape[0], axis=0), walkers], axis=1) if not mol.r_atoms is None else walkers  # (n_particle, 3)
+        p_p_vectors = vector_sub(walkers, walkers) # (n_particle, n_particle, 3)
+        p_p_distances = compute_distances(walkers, walkers) # (n_particle, n_particle)
+
+        compute_real_term = jit(vmap(compute_real_term_i, in_axes=(0, 0, None, None, None)))
+        compute_reciprocal_term = jit(vmap(compute_reciprocal_term_i, in_axes=(0, None, None, None)))
+        for kappa in kappas:
+            reciprocal_sum = jnp.zeros((n_walkers,))
+            reciprocal_converged = False
+            for reciprocal_cut in reciprocal_cuts:    
+                reciprocal_lattice = fast_generate_lattice(mol.reciprocal_basis, reciprocal_cut)
+                rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
+                rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product
+
+                reciprocal_sum_tmp =  compute_reciprocal_term(p_p_vectors, rl_factor, reciprocal_lattice, q_q)
+
+                isclose_reciprocal = jnp.isclose(reciprocal_sum, reciprocal_sum_tmp, rtol=0.0, atol=1e-4).all()
+
+                # print('kappa %.3f || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
+                #         (kappa, reciprocal_cut, jnp.mean(reciprocal_sum), jnp.mean(reciprocal_sum_tmp), str(isclose_reciprocal.all())))
+
+                reciprocal_sum = reciprocal_sum_tmp
+
+                if isclose_reciprocal:
+                    reciprocal_converged = True
+                    break
+
+            if reciprocal_converged:
+                real_sum = jnp.zeros((n_walkers,))
+                for real_cut in real_cuts:
+
+                    real_lattice = fast_generate_lattice(basis, real_cut)  # (n_lattice, 3)
+                    
+                    real_sum_tmp = compute_real_term(walkers, p_p_distances, kappa, real_lattice, q_q)
+
+                    isclose_real = jnp.isclose(real_sum, real_sum_tmp, rtol=0.0, atol=1e-4).all()
+
+                    # print('kappa %.3f || real_cut %i || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
+                    #     (kappa, real_cut, reciprocal_cut, jnp.mean(real_sum), jnp.mean(real_sum_tmp), str(isclose_real.all())))
+
+                    real_sum = real_sum_tmp
+                    if isclose_real:
+                        real_cut -= 1
+                        reciprocal_cut -= 1
+                        diff = real_cut - reciprocal_cut 
+                        cut_sum = real_cut + reciprocal_cut 
+                        if diff <= min_diff and cut_sum <= min_cut_sum:
+                            min_diff = diff
+                            min_cut_sum = cut_sum
+                            min_real_cut = real_cut
+                            min_reciprocal_cut = reciprocal_cut
+                            min_kappa = kappa
+                        break
+
+        if min_diff == 100:
+            exit('Ewalds sum not converged')
+
+        print('Taking kappa %.3f, real cut %i, and reciprocal cut %i' % (min_kappa, min_real_cut, min_reciprocal_cut))
+                
+        real_lattice = generate_lattice(basis, min_real_cut)
+        reciprocal_lattice = generate_lattice(mol.reciprocal_basis, min_reciprocal_cut)
         rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
-        rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*mol.kappa**2)) / rl_inner_product
-
-        pe = jnp.zeros((n_walkers,))
-        for real_cut in real_cuts:
-            
-            real_lattice = generate_lattice(basis, real_cut)  # (n_lattice, 3)
-
-            _compute_potential_energy = vmap(partial(compute_potential_energy_solid_i, 
-                                                    kappa=mol.kappa, 
-                                                    real_lattice=real_lattice, 
-                                                    reciprocal_lattice=reciprocal_lattice,
-                                                    q_q=q_q, 
-                                                    charges=charges, 
-                                                    volume=mol.volume,
-                                                    rl_factor=rl_factor), in_axes=(0, None, None))
-
-            pe_tmp = _compute_potential_energy(walkers, r_atoms=mol.r_atoms, z_atoms=mol.z_atoms)
-            isclose = jnp.isclose(pe, pe_tmp).all()
-            print('real_cut %i || previous pe %.7f || pe %.7f ||' % (real_cut, pe, pe_tmp))
-            if isclose:
-                break
-            else:
-                pe = pe_tmp
+        rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*min_kappa**2)) / rl_inner_product
         
-        for reciprocal_cut in reciprocal_cuts:
-
-            reciprocal_lattice = generate_lattice(mol.reciprocal_basis, reciprocal_cut)
-            rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
-            rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*mol.kappa**2)) / rl_inner_product
-            
-            _compute_potential_energy = vmap(partial(compute_potential_energy_solid_i, 
-                                                    kappa=mol.kappa, 
+        _compute_potential_energy = vmap(partial(compute_potential_energy_solid_i, 
+                                                    kappa=min_kappa, 
                                                     real_lattice=real_lattice, 
                                                     reciprocal_lattice=reciprocal_lattice,
                                                     q_q=q_q, 
                                                     charges=charges, 
                                                     volume=mol.volume,
                                                     rl_factor=rl_factor), in_axes=(0, None, None))
-
-            pe_tmp = _compute_potential_energy(walkers, r_atoms=mol.r_atoms, z_atoms=mol.z_atoms)
-            isclose = jnp.isclose(pe, pe_tmp).all()
-            print('reciprocal_cut %i || previous pe %.7f || pe %.7f ||' % (real_cut, pe, pe_tmp))
-            if isclose:
-                break
-            else:
-                pe = pe_tmp
 
         return _compute_potential_energy
 
     return vmap(compute_potential_energy_i, in_axes=(0, None, None))
+
+
 
 
 def compute_potential_energy_solid_i(walkers, 
@@ -372,23 +448,7 @@ def fast_generate_lattice(basis, cut):
     return imgs
 
 
-def generate_lattice(basis, cut):
-    len0 = jnp.linalg.norm(basis, axis=-1).mean()  # get the mean length of the basis vectors
-    
-    img_range = jnp.arange(-cut, cut+1)  # x2 to create sphere
-    img_sets = list(product(*[img_range, img_range, img_range]))
-    # first axis is the number of lattice vectors, second is the integers to scale the primitive vectors, third is the resulting set of vectors
-    # then sum over those
-    # print(len(img_sets))
-    img_sets = jnp.concatenate([jnp.array(x)[None, :, None] for x in img_sets if not jnp.sum(jnp.array(x) == 0) == 3], axis=0)
-    # print(img_sets.shape)
-    imgs = jnp.sum(img_sets * basis, axis=1)
 
-    # if a sphere around the image is within rcut then keep it
-    # lengths = jnp.linalg.norm(imgs, axis=-1)
-    # mask = lengths < (cut * len0)
-    # img = imgs[mask]
-    return imgs
 
 
 

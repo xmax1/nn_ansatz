@@ -15,12 +15,37 @@ from nn_ansatz import *
 from fabric import Connection
 import subprocess as sub
 
+from nn_ansatz.vmc import create_potential_energy_v2
 
-x = sub.Popen("screen -dmS test bash -c 'CUDA_VISIBLE_DEVICES=\'3\' python /home/amawi/projects/nn_ansatz/src/run_with_args.py'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-print(x)
-import time
+mol = SystemAnsatz(system=None,
+                 r_atoms=None,
+                 z_atoms=None,
+                 n_el=7,
+                 basis=jnp.eye(3),
+                 inv_basis=None,
+                 pbc=True,
+                 spin_polarized=True,
+                 density_parameter=1.,
+                 real_cut=None,
+                 reciprocal_cut=None,
+                 kappa=0.75,
+                 simulation_cell = (1, 1, 1),
+                 scalar_inputs=False,
+                 orbitals='real_plane_waves',
+                 device='gpu',
+                 dtype=jnp.float32,
+                 scale_cell=1.,
+                 print_ansatz=True,
+                 n_walkers_per_device=1024,
+                 n_devices=1)
 
-time.sleep(60)
+pe = create_potential_energy_v2(mol)
+
+# x = sub.Popen("screen -dmS test bash -c 'CUDA_VISIBLE_DEVICES=\'3\' python /home/amawi/projects/nn_ansatz/src/run_with_args.py'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+# print(x)
+# import time
+
+# time.sleep(60)
 # x = sub.run('echo $LD_LIBRARY_PATH', shell=True)
 # launch_path = '/home/amawi/projects/nn_ansatz/src/exp/launch_exp.sh'
 # path = '/home/amawi/projects/nn_ansatz/src/run_with_args.py'
