@@ -20,7 +20,7 @@ from .ansatz import create_wf
 from .parameters import initialise_params
 from .systems import SystemAnsatz
 from .pretraining import pretrain_wf
-from .vmc import create_energy_fn, create_grad_function
+from .vmc import compute_potential_energy_i, create_energy_fn, create_grad_function, create_potential_energy
 from .optimisers import kfac
 from .utils import Logging, compare, load_pk, key_gen, save_config_csv_and_pickle, split_variables_for_pmap, write_summary_to_cfg
 
@@ -61,15 +61,22 @@ def initialise_system_wf_and_sampler(cfg, walkers=None):
     if walkers is None:
         walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
 
-    if cfg['pretrain']:
-        params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
-
     if os.path.exists(cfg['pre_path']):
         print('loading pretrain wf %s' % cfg['pre_path'])
         params, walkers = load_pk(cfg['pre_path'])
+        cfg['pretrain'] = False
+
+    if cfg['pretrain']:
+        params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
     
     if cfg['load_it'] > 0:
-        params = load_pk(os.path.join(cfg['models_dir'], 'i%i.pk' % cfg['load_it']))
+        load_path = os.path.join(cfg['models_dir'], 'i%i.pk' % cfg['load_it'])
+        if not os.path.exists(load_path):
+            files = os.listdir(cfg['models_dir'])
+            load_it = max([int(x.split('.')[0][1:]) for x in files])
+            load_path = os.path.join(cfg['models_dir'], 'i%i.pk' % load_it)
+        params = load_pk(load_path)
+
     
     return mol, vwf, walkers, params, sampler, keys
 
@@ -218,7 +225,7 @@ def compute_per_particle(values, n_particles):
         new_dict[k + '_per_particle'] = v / float(n_particles)
     return new_dict
 
-def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
+def approximate_energy(cfg, load_it=None, n_it=10000, walkers=None):
     if load_it is not None:
         cfg['load_it'] = load_it
 
@@ -238,20 +245,20 @@ def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     n_samples = len((values[names[0]]))
     
     save_values = {}
-    save_values['equilibrated_pe_mean'] = np.mean(values['pe'])
-    save_values['equilibrate_pe_std'] = np.std(values['pe'])
-    save_values['equilibrate_pe_sem'] = np.std(values['pe']) / np.sqrt(n_samples)
+    save_values['equilibrated_pe_mean_i%i' % load_it] = np.mean(values['pe'])
+    save_values['equilibrate_pe_std_i%i' % load_it] = np.std(values['pe'])
+    save_values['equilibrate_pe_sem_i%i' % load_it] = np.std(values['pe']) / np.sqrt(n_samples)
 
-    save_values['equilibrate_ke_mean'] = np.mean(values['ke'])
-    save_values['equilibrate_ke_std'] = np.std(values['ke'])
-    save_values['equilibrate_ke_sem'] = np.std(values['ke']) / np.sqrt(n_samples)
+    save_values['equilibrate_ke_mean_i%i' % load_it] = np.mean(values['ke'])
+    save_values['equilibrate_ke_std_i%i' % load_it] = np.std(values['ke'])
+    save_values['equilibrate_ke_sem_i%i' % load_it] = np.std(values['ke']) / np.sqrt(n_samples)
 
     energies = np.array(values['pe']) + np.array(values['ke'])
-    save_values['equilibrated_energy_mean'] = np.mean(energies)
-    save_values['equilibrated_energy_std'] = np.std(energies)
-    save_values['equilibrated_energy_sem'] = np.std(energies) / np.sqrt(n_samples)
+    save_values['equilibrated_energy_mean_i%i' % load_it] = np.mean(energies)
+    save_values['equilibrated_energy_std_i%i' % load_it] = np.std(energies)
+    save_values['equilibrated_energy_sem_i%i' % load_it] = np.std(energies) / np.sqrt(n_samples)
 
-    save_values = compute_per_particle(save_values, n_particles)
+    # save_values = compute_per_particle(save_values, n_particles)
     cfg.update(save_values)
 
     save_config_csv_and_pickle(cfg)

@@ -88,13 +88,51 @@ def get_data(target_dir, data_filename='config1.pk', dicts=[]):
         dicts.append(data)
     df = pd.DataFrame(dicts)    # .filter(regex='energy')
     columns = [x for x in df.columns if not ('dir' in x) and not ('path' in x)]
-    filters = ['seed', 'version', 'save_every', 'print_every', 'basis', 'load_pretrain', \
-        'pretrain', 'n_walkers_per_device', 'n_devices', 'pre_lr', 'n_pre_it', \
-            'lr', 'damping', 'norm_constraint', 'correlation_length', 'scalar_inputs', 'einsum']
-    filters.extend(['real_cut', 'reciprocal_cut', 'kappa'])
-    columns = [x for x in columns if x not in filters]
+    
     df = df[columns]
     return df
+
+
+def plot_scatter(xs, 
+              ys, 
+              yerrs=None,
+              xerrs=None,
+              xticklabels=None,
+              save_png=None,
+              title='', 
+              xlabel='', 
+              ylabel='',
+              hlines=None):
+
+    colors = itertools.cycle(palette) 
+    graph = figure(title = title, x_axis_label=xlabel, y_axis_label=ylabel, width=400, height=400)
+
+    if not xticklabels is None: 
+        graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}
+        graph.xaxis.ticker = xs
+        graph.xaxis.major_label_orientation = 45
+
+    # elif type(xs[0]) is tuple:
+    #     order = np.argsort([np.prod(x) for x in xs])
+    #     xs = [xs[i] for i in order]
+    #     ys = [ys[i] for i in order]
+    #     xticklabels = [str(x) for x in xs]
+    #     xs = [i for i in range(len(xs))]
+    #     graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}
+    #     graph.xaxis.ticker = xs
+
+    c = next(colors)
+    graph.circle(xs, ys, size=10, color=c)
+    if yerrs is not None: graph.multi_line(*bokeh_bars(xs, ys, yerrs=yerrs), color=c)
+
+    if hlines is not None:
+        for hline in hlines:
+            graph.line(xs, [hline for _ in xs], line_width=2.)
+
+    if save_png is not None:
+        export_png(graph, filename = save_png)
+    show(graph)
+
 
 
     # data_all = {'xs':[], 'ys':[], 'yerrs':[], 'xticklabels':[]}

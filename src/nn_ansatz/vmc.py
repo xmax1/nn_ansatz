@@ -4,6 +4,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
+import jax.random as rnd
 from jax import lax, vmap, jit, grad, pmap
 from jax.tree_util import tree_unflatten, tree_flatten
 from itertools import chain, combinations, combinations_with_replacement, product
@@ -54,9 +55,12 @@ def create_energy_fn(mol, vwf, separate=False):
     def _compute_local_energy(params, walkers):
         potential_energy = compute_potential_energy(walkers, mol.r_atoms, mol.z_atoms)
         kinetic_energy = local_kinetic_energy(params, walkers)
+        if mol.pbc:
+            potential_energy /= mol.n_atoms if not mol.n_atoms == 0 else mol.n_el
+            kinetic_energy /= mol.n_atoms if not mol.n_atoms == 0 else mol.n_el
         if mol.system == 'HEG':
-            potential_energy = (potential_energy/mol.density_parameter)
-            kinetic_energy = (kinetic_energy/(mol.density_parameter**2))
+            potential_energy /= mol.density_parameter
+            kinetic_energy /= mol.density_parameter**2
         if separate:
             return potential_energy, kinetic_energy
         else:
@@ -124,6 +128,83 @@ def create_potential_energy(mol):
                                                     rl_factor=rl_factor)
 
         return vmap(_compute_potential_energy_solid_i, in_axes=(0, None, None))
+
+    return vmap(compute_potential_energy_i, in_axes=(0, None, None))
+
+
+def create_potential_energy_v2(mol, n_walkers=1024):
+    """
+
+    Notes:
+        - May need to shift the origin to the center to enforce the spherical sum condition
+        - I am now returning to length of unit cell units which is different to the unit cell length I was using before. How does this affect the computation?
+        - Is the reciprocal height computed in the correct way?
+    """
+
+    if mol.pbc:
+
+        e_charges = jnp.array([-1. for i in range(mol.n_el)])
+        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
+        q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
+
+        real_cuts = jnp.arange(1, 10, 1)
+        reciprocal_cuts = jnp.arange(1, 10, 1)
+        kappas = jnp.arange(0.25, 2, 0.25)
+
+        basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
+
+        walkers = jnp.array(rnd(jax.random.PRNGKey(369), minval=0.0, maxval=mol.scale_cell, shape=(n_walkers, mol.n_el, 3)))
+
+        reciprocal_lattice = generate_lattice(mol.reciprocal_basis, 1)
+        rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
+        rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*mol.kappa**2)) / rl_inner_product
+
+        pe = jnp.zeros((n_walkers,))
+        for real_cut in real_cuts:
+            
+            real_lattice = generate_lattice(basis, real_cut)  # (n_lattice, 3)
+
+            _compute_potential_energy = vmap(partial(compute_potential_energy_solid_i, 
+                                                    kappa=mol.kappa, 
+                                                    real_lattice=real_lattice, 
+                                                    reciprocal_lattice=reciprocal_lattice,
+                                                    q_q=q_q, 
+                                                    charges=charges, 
+                                                    volume=mol.volume,
+                                                    rl_factor=rl_factor), in_axes=(0, None, None))
+
+            pe_tmp = _compute_potential_energy(walkers, r_atoms=mol.r_atoms, z_atoms=mol.z_atoms)
+            isclose = jnp.isclose(pe, pe_tmp).all()
+            print('real_cut %i || previous pe %.7f || pe %.7f ||' % (real_cut, pe, pe_tmp))
+            if isclose:
+                break
+            else:
+                pe = pe_tmp
+        
+        for reciprocal_cut in reciprocal_cuts:
+
+            reciprocal_lattice = generate_lattice(mol.reciprocal_basis, reciprocal_cut)
+            rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
+            rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*mol.kappa**2)) / rl_inner_product
+            
+            _compute_potential_energy = vmap(partial(compute_potential_energy_solid_i, 
+                                                    kappa=mol.kappa, 
+                                                    real_lattice=real_lattice, 
+                                                    reciprocal_lattice=reciprocal_lattice,
+                                                    q_q=q_q, 
+                                                    charges=charges, 
+                                                    volume=mol.volume,
+                                                    rl_factor=rl_factor), in_axes=(0, None, None))
+
+            pe_tmp = _compute_potential_energy(walkers, r_atoms=mol.r_atoms, z_atoms=mol.z_atoms)
+            isclose = jnp.isclose(pe, pe_tmp).all()
+            print('reciprocal_cut %i || previous pe %.7f || pe %.7f ||' % (real_cut, pe, pe_tmp))
+            if isclose:
+                break
+            else:
+                pe = pe_tmp
+
+        return _compute_potential_energy
 
     return vmap(compute_potential_energy_i, in_axes=(0, None, None))
 

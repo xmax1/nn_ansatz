@@ -18,6 +18,12 @@ Use one leading underscore only for non-public methods and instance variables
 
 Doc strings
 
+
+# queue commands 
+
+Squeue | grep sm3090
+
+
 """
         The function to add two Complex Numbers.
   

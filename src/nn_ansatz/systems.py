@@ -108,6 +108,7 @@ class SystemAnsatz():
                  dtype=jnp.float32,
                  atoms_from_unit_cell=True,
                  scale_cell=1.,
+                 print_ansatz=True,
                  **kwargs):
 
         self.system = system
@@ -161,15 +162,16 @@ class SystemAnsatz():
                 n_el_atoms = [item for sublist in [n_el_atoms for _ in range(n_cells)] for item in sublist]
                 assert sum(n_el_atoms) == n_el
 
-            print('Cell: \n',
-              'basis:', '\n', self.basis, '\n',
-              'inv_basis:', '\n', self.inv_basis, '\n',
-              'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
-              'real_cut         = %.2f \n' % self.real_cut,
-              'reciprocal_cut   = %i \n' % self.reciprocal_cut,
-              'kappa            = %.2f \n' % self.kappa,
-              'volume           = %.2f \n' % self.volume,
-              'n_periodic_input = %i \n' % n_periodic_input)
+            if print_ansatz:
+                print('Cell: \n',
+                'basis:', '\n', self.basis, '\n',
+                'inv_basis:', '\n', self.inv_basis, '\n',
+                'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
+                'real_cut         = %.2f \n' % self.real_cut,
+                'reciprocal_cut   = %i \n' % self.reciprocal_cut,
+                'kappa            = %.2f \n' % self.kappa,
+                'volume           = %.2f \n' % self.volume,
+                'n_periodic_input = %i \n' % n_periodic_input)
 
         self.pbc = pbc
         self.basis = basis
@@ -183,17 +185,18 @@ class SystemAnsatz():
 
         self.n_el_atoms = n_el_atoms
 
-        print('System: \n',
-              'n_atoms = %i \n' % self.n_atoms,
-              'n_up    = %i \n' % self.n_up,
-              'n_down  = %i \n' % self.n_down,
-              'n_el    = %i \n' % self.n_el)
+        if print_ansatz:
+            print('System: \n',
+                'n_atoms = %i \n' % self.n_atoms,
+                'n_up    = %i \n' % self.n_up,
+                'n_down  = %i \n' % self.n_down,
+                'n_el    = %i \n' % self.n_el)
 
-        print('Ansatz: \n',
-              'n_layers = %i \n' % n_layers,
-              'n_det    = %i \n' % n_det,
-              'n_sh     = %i \n' % n_sh,
-              'n_ph     = %i \n' % n_ph)
+            print('Ansatz: \n',
+                'n_layers = %i \n' % n_layers,
+                'n_det    = %i \n' % n_det,
+                'n_sh     = %i \n' % n_sh,
+                'n_ph     = %i \n' % n_ph)
 
         # ansatz
         self.n_layers = n_layers

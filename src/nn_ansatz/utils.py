@@ -228,14 +228,14 @@ def setup(system: str = 'Be',
           pre_lr: float = 1e-4,
           n_pre_it: int = 0,
           pretrain: bool = False,
-          load_pretrain: bool = False,
 
           load_it: int = 0,
 
           distribute: bool = True, 
           debug: bool = False,
 
-          seed: int = 369):
+          seed: int = 369,
+          **kwargs):
 
     n_devices = get_n_devices()
     assert n_walkers % n_devices == 0
@@ -246,25 +246,26 @@ def setup(system: str = 'Be',
 
     if name is None: name = os.path.join(today, 'junk')
 
-    ansatz_hyperparameter_name = '%s_%s_%s_%s' % (n2n(n_sh, 's'), n2n(n_ph, 'p'), n2n(n_layers, 'l'), n2n(n_det, 'det'))
+    ansatz_hyperparameter_name = '%s_%s_%s_%s_%s' % (n2n(n_el, 'el'), n2n(n_sh, 's'), n2n(n_ph, 'p'), n2n(n_layers, 'l'), n2n(n_det, 'det'))
 
     hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
     exp_dir = join_and_create(root, system, name, hyperparameter_name + ansatz_hyperparameter_name)
     run = 'run%i' % get_run(exp_dir)
     exp_dir = os.path.join(exp_dir, run)
 
+    system_config = get_system(system,
+                               n_el, 
+                               density_parameter)
+
     pretrain_dir = join_and_create(root, system, 'pretrained')
-    hyperparameter_name = '%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'))
+    hyperparameter_name = '%s_%s_%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'), orbitals, nonlinearity)
+    if system_config['pbc']: hyperparameter_name += '_%s_dp%s_%s' % (input_activation_nonlinearity, str(system_config['density_parameter']), '%i%i%i' % tuple(simulation_cell))
     pre_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
 
     events_dir = join_and_create(exp_dir, 'events')
     timing_dir = join_and_create(events_dir, 'timing')
     models_dir = join_and_create(exp_dir, 'models')
     opt_state_dir = join_and_create(models_dir, 'opt_state')
-
-    system_config = get_system(system,
-                               n_el, 
-                               density_parameter)
 
     csv_cfg_path, pk_cfg_path = create_config_paths(exp_dir)
 
@@ -273,6 +274,7 @@ def setup(system: str = 'Be',
               'n_devices': n_devices,
               'save_every': save_every,
               'print_every': print_every,
+              'name':name,
 
               # PATHS
               'exp_dir': exp_dir,
@@ -318,7 +320,6 @@ def setup(system: str = 'Be',
               # PRETRAINING HYPERPARAMETERS
               'pre_lr': pre_lr,
               'n_pre_it': n_pre_it,
-              'load_pretrain': load_pretrain,
               'pretrain': pretrain
     }
 
@@ -462,6 +463,7 @@ class Logging():
         if self.times.get('iteration') is not None:
             self.printer['t_per_it'] = self.times['iteration'][-1][1] \
                                        / (self.times['iteration'][-1][0] - self.times['step0'] + 1.)
+            self.writer('t_per_it', self.printer['t_per_it'], step)
 
         if not self.print_every == 0:
             if step % self.print_every == 0:

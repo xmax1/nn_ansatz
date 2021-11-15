@@ -1,21 +1,25 @@
 
 from typing import Callable, Optional
 from functools import partial
+from jax._src.numpy.lax_numpy import _promote_args_inexact
 
 import jax.numpy as jnp
 from jax import vmap, lax
 import numpy as np
 
 
-def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
+def transform_vector_space(vectors: jnp.array, basis: jnp.array, on=False) -> jnp.array:
     '''
     case 1 catches non-orthorhombic cells 
     case 2 for orthorhombic and cubic cells
     '''
-    if basis.shape == (3, 3):
-        return jnp.dot(vectors, basis)
+    if on:
+        if basis.shape == (3, 3):
+            return jnp.dot(vectors, basis)
+        else:
+            return vectors * basis
     else:
-        return vectors * basis
+        return vectors
 
 
 def compute_single_stream_vectors_i(walkers: jnp.array, 
@@ -247,6 +251,8 @@ def linear(p: jnp.array,
         return jnp.tanh(pre_activation + split)
     elif nonlinearity == 'sin':
         return jnp.sin(pre_activation + split)
+    elif nonlinearity == 'cos':
+        return jnp.cos(pre_activation + split)
     else:
         exit('nonlinearity not available')
 
@@ -266,6 +272,8 @@ def linear_pairwise(p: jnp.array,
         return jnp.tanh(pre_activation)
     elif nonlinearity == 'sin':
         return jnp.sin(pre_activation)
+    elif nonlinearity == 'cos':
+        return jnp.cos(pre_activation)
     else:
         exit('nonlinearity not available')
 

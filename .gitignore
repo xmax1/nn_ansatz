@@ -6,4 +6,5 @@
 *tmp*
 *.vscode
 papers/
+*slurm*
 

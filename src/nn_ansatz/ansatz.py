@@ -36,7 +36,8 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
                            _sum_orbitals=_sum_orbitals,
                            _mixer=_mixer,
                            _linear = partial(linear, nonlinearity=mol.nonlinearity),
-                           _linear_pairwise = partial(linear_pairwise, nonlinearity=mol.nonlinearity))
+                           _linear_pairwise = partial(linear_pairwise, nonlinearity=mol.nonlinearity),
+                           inv_basis=mol.inv_basis)
 
     def _signed_wf(params, walkers, d0s):
         orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
@@ -90,10 +91,14 @@ def wf_orbitals(params: dict,
                 _sum_orbitals: Callable,
                 _mixer: Callable,
                 _linear: Callable = partial(linear, nonlinearity='tanh'),
-                _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh')):
+                _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh'),
+                inv_basis = None):
 
     if len(walkers.shape) == 1:  # this is a hack to get around the jvp
         walkers = walkers.reshape(n_el, 3)
+
+    if inv_basis is not None:
+        walkers = transform_vector_space(walkers, inv_basis, on=True)
 
     activations = []
 
@@ -161,17 +166,17 @@ def create_orbitals(orbitals='anisotropic',
         _sum_orbitals = partial(env_pi_i, einsum=einsum)
     
     if orbitals == 'real_plane_waves':
-        shells = [1, 7, 19]
+        shells = [1, 7, 19, 27, 33, 57]
         shell = shells.index(n_el) + 1
         k_points = generate_k_points(n_shells=shell) * 2 * jnp.pi
         k_points = transform_vector_space(k_points, inv_basis)
         _compute_orbitals = partial(real_plane_wave_orbitals, k_points=k_points)
         def _sum_orbitals(params: jnp.array,
-                            factor: jnp.array,
-                            orbital: jnp.array,
-                            activations: list,
-                            spin: str,
-                            d0s):
+                          factor: jnp.array,
+                          orbital: jnp.array,
+                          activations: list,
+                          spin: str,
+                          d0s):
             return factor * jnp.squeeze(orbital, axis=-1)[None, ...]
 
     return _compute_orbitals, _sum_orbitals
@@ -253,7 +258,7 @@ def isotropic_orbitals(sigma,
     return exponential
 
 
-def generate_k_points(n_shells=3):
+def generate_k_shells(n_shells):
     img_range = jnp.arange(-3, 3+1)  # preset, when are we ever going to use more
     img_sets = jnp.array(list(product(*[img_range, img_range, img_range])))
     norms = jnp.linalg.norm(img_sets, axis=-1)
@@ -272,6 +277,10 @@ def generate_k_points(n_shells=3):
                 continue # because we include the opposite k_point in the sequence this statement avoids repeats
             k_shells[norm].append(k_point)
         k_shells[norm].append(-k_point)
+    return k_shells
+
+def generate_k_points(n_shells):
+    k_shells = generate_k_shells(n_shells)
     k_points = []
     for k, v in k_shells.items():
         for k_point in v:

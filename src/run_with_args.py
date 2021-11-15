@@ -22,6 +22,9 @@ def get_args():
     parser.add_argument('-act', '--nonlinearity', type=str, default='tanh')
     parser.add_argument('-sim', '--simulation_cell', nargs='+', type=int, default=(1, 1, 1))
     parser.add_argument('-nl', '--n_layers', type=int, default=2)
+    parser.add_argument('-npre', '--n_pre_it', type=int, default=1000)
+    parser.add_argument('--nopretrain',  dest='pretrain', action='store_false')
+    parser.add_argument('--sweep', dest='sweep', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -31,4 +34,9 @@ print(vars(args))
 cfg = setup(**vars(args))
 
 log = run_vmc(cfg)
-approximate_energy(cfg, load_it=args.n_it)
+
+if args.sweep == True:
+    for load_it in range(cfg['save_every'], args.n_it+cfg['save_every'], 10000):
+        approximate_energy(cfg, load_it=load_it)
+else:
+    approximate_energy(cfg, load_it=args.n_it)

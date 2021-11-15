@@ -16,6 +16,11 @@ from .parameters import initialise_d0s, expand_d0s, initialise_params
 from .utils import save_pk, split_variables_for_pmap, key_gen
 from .ansatz import create_wf, create_orbitals
 
+def mia(arr):
+    if type(arr) is float:
+        return arr
+    else:
+        return jnp.mean(arr)
 
 
 def pretrain_wf(mol,
@@ -67,7 +72,7 @@ def pretrain_wf(mol,
         e_locs_mixed = compute_local_energy(params, pre_walkers)
 
         print('step %i | e_mean %.2f | e_mixed %.2f | loss %.2f | wf_acc %.2f | mix_acc %.2f |'
-              % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), loss_value, acceptance, mix_acceptance))
+              % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), mia(loss_value), mia(acceptance), mia(mix_acceptance)))
         # steps.set_postfix(E=f'{e_locs.mean():.6f}')
 
     if not pre_path is None:
@@ -127,7 +132,7 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
 
     def _loss_function(params, walkers):
 
-        if len(walkers.shape) == 4: walkers = walkers.reshape(*walkers.shape[1:])
+        if len(walkers.shape) == 4: walkers = walkers.reshape((-1,) + walkers.shape[2:])
 
         wf_up_dets, wf_down_dets = vwf_orbitals(params, walkers)
         n_det = wf_up_dets.shape[1]
@@ -178,7 +183,7 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
 
     def _sample_metropolis_hastings(params, walkers, key, step_size):
         initial_shape = walkers.shape
-        if len(walkers.shape) == 4: walkers = walkers.reshape(*walkers.shape[1:])
+        if len(walkers.shape) == 4: walkers = walkers.reshape((-1,) + walkers.shape[2:])
 
         curr_walkers_wf, curr_walkers_hf = jnp.split(walkers, 2, axis=0)
 

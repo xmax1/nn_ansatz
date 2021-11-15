@@ -11,7 +11,7 @@ from jax import jit, vmap, pmap
 
 from .vmc import create_energy_fn
 from .utils import key_gen, split_variables_for_pmap
-from .ansatz import create_wf, transform_vector_space
+from .ansatz import create_wf
 
 
 def create_sampler(mol, vwf, nan_safe=False):
@@ -53,6 +53,17 @@ def pbc_step(walkers, key, shape, step_size, basis, inv_basis):
     walkers = walkers + rnd.normal(key, shape) * step_size
     walkers = keep_in_boundary(walkers, basis, inv_basis)
     return walkers
+
+
+def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
+    '''
+    case 1 catches non-orthorhombic cells 
+    case 2 for orthorhombic and cubic cells
+    '''
+    if basis.shape == (3, 3):
+        return jnp.dot(vectors, basis)
+    else:
+        return vectors * basis
 
 
 def keep_in_boundary(walkers, basis, inv_basis):
