@@ -19,40 +19,46 @@ import sys
 sys.path.append('/home/energy/amawi/projects/nn_ansatz/src')
 from nn_ansatz.vmc import create_potential_energy
 
-mol = SystemAnsatz(system=None,
-                 r_atoms=None,
-                 z_atoms=None,
-                 n_el=7,
-                 basis=jnp.eye(3),
-                 inv_basis=None,
-                 pbc=True,
-                 spin_polarized=True,
-                 density_parameter=1.,
-                 real_cut=None,
-                 reciprocal_cut=None,
-                 kappa=0.75,
-                 simulation_cell = (1, 1, 1),
-                 scalar_inputs=False,
-                 orbitals='real_plane_waves',
-                 device='gpu',
-                 dtype=jnp.float32,
-                 scale_cell=1.,
-                 print_ansatz=True,
-                 n_walkers_per_device=1024,
-                 n_devices=1)
 
-pe_fn = create_potential_energy(mol, find_kappa=False)
+for r_s in [0.5, 2., 4., 10.]:
+    mol = SystemAnsatz(system='HEG',
+                    r_atoms=None,
+                    z_atoms=None,
+                    n_el=7,
+                    basis=jnp.eye(3),
+                    inv_basis=None,
+                    pbc=True,
+                    spin_polarized=True,
+                    density_parameter=r_s,
+                    real_cut=None,
+                    reciprocal_cut=None,
+                    kappa=0.75,
+                    simulation_cell = (1, 1, 1),
+                    scalar_inputs=False,
+                    orbitals='real_plane_waves',
+                    device='gpu',
+                    dtype=jnp.float32,
+                    scale_cell=1.,
+                    print_ansatz=False,
+                    n_walkers_per_device=1024,
+                    n_devices=1, )
 
-walkers = jnp.array([[2.1526934277668843,         2.4560512832645855,          0.51311075081762780],    
-                    [1.3791267107711942    ,     1.6234439638535862    ,      3.0667537383069945  ,]  
-                    [1.4656891738654672    ,     0.43665165495674785   ,     1.4862060883914250   ,] 
-                    [0.53729657298062961   ,     1.4812046409522104    ,     0.78584559911787721  ,]  
-                    [1.1167108011660005    ,     2.6942379435411468    ,      1.2266702700217422  ,]  
-                    [1.2572663823111512    ,     0.25995966342111387   ,      0.24667337122245669 ,]   
-                    [1.9453890650886052    ,     1.1690075379781248    ,       2.3061978534074310,]])
-pe = pe_fn(walkers, mol.r_atoms, mol.z_atoms)
+    pe_fn = create_potential_energy(mol, find_kappa=False)
 
-print(pe)
+    walkers = jnp.array([[2.1526934277668843,         2.4560512832645855,          0.51311075081762780],    
+                        [1.3791267107711942    ,     1.6234439638535862    ,      3.0667537383069945  ],  
+                        [1.4656891738654672    ,     0.43665165495674785   ,     1.4862060883914250   ], 
+                        [0.53729657298062961   ,     1.4812046409522104    ,     0.78584559911787721 ] , 
+                        [1.1167108011660005    ,     2.6942379435411468    ,      1.2266702700217422  ]  ,
+                        [1.2572663823111512    ,     0.25995966342111387   ,      0.24667337122245669 ]   ,
+                        [1.9453890650886052    ,     1.1690075379781248    ,       2.3061978534074310]])[None, ...]
+
+
+    print(jnp.eye(3))
+
+    pe = pe_fn(walkers, mol.r_atoms, mol.z_atoms)
+
+    print(pe * 2./ (7 * r_s),   -1.3193132/r_s)
 
 # x = sub.Popen("screen -dmS test bash -c 'CUDA_VISIBLE_DEVICES=\'3\' python /home/amawi/projects/nn_ansatz/src/run_with_args.py'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 # print(x)
