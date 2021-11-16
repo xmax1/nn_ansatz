@@ -128,7 +128,7 @@ class SystemAnsatz():
         # SYSTEM SIZE
         if system == 'HEG' and density_parameter is not None:
             self.density_parameter = density_parameter
-            v_per_electron = 4. * jnp.pi * density_parameter**3 / 3. 
+            v_per_electron = 4. * jnp.pi / 3.
             volume = n_el * v_per_electron
             scale_cell = volume**(1./3.)
 
@@ -162,6 +162,7 @@ class SystemAnsatz():
                 print('Cell: \n',
                 'basis:', '\n', self.basis, '\n',
                 'inv_basis:', '\n', self.inv_basis, '\n',
+                'scale_cell: ', '\n', self.scale_cell, '\n',
                 'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
                 'kappa            = %.2f \n' % self.kappa,
                 'volume           = %.2f \n' % self.volume,
