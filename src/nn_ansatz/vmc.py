@@ -96,41 +96,6 @@ def create_local_kinetic_energy(vwf):
     return _lapl_over_f
 
 
-def create_potential_energy(mol):
-    """
-
-    Notes:
-        - May need to shift the origin to the center to enforce the spherical sum condition
-        - I am now returning to length of unit cell units which is different to the unit cell length I was using before. How does this affect the computation?
-        - Is the reciprocal height computed in the correct way?
-    """
-
-    if mol.pbc:
-
-        basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
-
-        real_lattice = generate_lattice(basis, mol.real_cut)  # (n_lattice, 3)
-        reciprocal_lattice = generate_lattice(mol.reciprocal_basis, mol.reciprocal_cut)
-        rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
-        rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*mol.kappa**2)) / rl_inner_product  
-
-        e_charges = jnp.array([-1. for i in range(mol.n_el)])
-        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
-        q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
-
-        _compute_potential_energy_solid_i = partial(compute_potential_energy_solid_i, 
-                                                    kappa=mol.kappa, 
-                                                    real_lattice=real_lattice, 
-                                                    reciprocal_lattice=reciprocal_lattice,
-                                                    q_q=q_q, 
-                                                    charges=charges, 
-                                                    volume=mol.volume,
-                                                    rl_factor=rl_factor)
-
-        return vmap(_compute_potential_energy_solid_i, in_axes=(0, None, None))
-
-    return vmap(compute_potential_energy_i, in_axes=(0, None, None))
-
 
 def compute_reciprocal_term_i(p_p_vectors, rl_factor, reciprocal_lattice, q_q):
 # put the walkers and r_atoms together
@@ -175,7 +140,7 @@ def generate_lattice(basis, cut):
     return imgs
 
 
-def create_potential_energy_v2(mol, n_walkers=512, atol=1e-5):
+def create_potential_energy(mol, n_walkers=512, atol=1e-4, find_kappa=True):
     """
 
     Notes:
@@ -185,85 +150,90 @@ def create_potential_energy_v2(mol, n_walkers=512, atol=1e-5):
     """
 
     if mol.pbc:
-
+        basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
         e_charges = jnp.array([-1. for i in range(mol.n_el)])
         charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
-        real_cuts = jnp.arange(1, 7, 1)
-        reciprocal_cuts = jnp.arange(1, 7, 1)
-        kappas = jnp.arange(0.5, 2.5, 0.25)
+        if not find_kappa:
+            min_kappa = 1.
+            min_real_cut = 6
+            min_reciprocal_cut = 6
+        
+        else:
 
-        basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
+            real_cuts = jnp.arange(1, 8, 1)
+            reciprocal_cuts = jnp.arange(1, 8, 1)
+            kappas = jnp.arange(0.25, 3., 0.25)
 
-        walkers = jnp.array(rnd.uniform(rnd.PRNGKey(369), minval=0.0, maxval=mol.scale_cell, shape=(n_walkers, mol.n_el, 3)))
+            walkers = jnp.array(rnd.uniform(rnd.PRNGKey(369), minval=0.0, maxval=mol.scale_cell, shape=(n_walkers, mol.n_el, 3)))
 
-        min_diff = 100
-        min_cut_sum = 100
-        min_kappa = 0.5
-        min_real_cut = 0
-        min_reciprocal_cut = 0
+            min_diff = 100
+            min_cut_sum = 100
+            min_kappa = 0.5
+            min_real_cut = 0
+            min_reciprocal_cut = 0
 
-        # compute the Rs0 term
-        walkers = jnp.concatenate([mol.r_atoms[None, ...].repeat(walkers.shape[0], axis=0), walkers], axis=1) if not mol.r_atoms is None else walkers  # (n_particle, 3)
-        p_p_vectors = vector_sub(walkers, walkers) # (n_particle, n_particle, 3)
-        p_p_distances = compute_distances(walkers, walkers) # (n_particle, n_particle)
+            # compute the Rs0 term
+            walkers = jnp.concatenate([mol.r_atoms[None, ...].repeat(walkers.shape[0], axis=0), walkers], axis=1) if not mol.r_atoms is None else walkers  # (n_particle, 3)
+            p_p_vectors = vector_sub(walkers, walkers) # (n_particle, n_particle, 3)
+            p_p_distances = compute_distances(walkers, walkers) # (n_particle, n_particle)
 
-        compute_real_term = jit(vmap(compute_real_term_i, in_axes=(0, 0, None, None, None)))
-        compute_reciprocal_term = jit(vmap(compute_reciprocal_term_i, in_axes=(0, None, None, None)))
-        for kappa in kappas:
-            reciprocal_sum = jnp.zeros((n_walkers,))
-            reciprocal_converged = False
-            for reciprocal_cut in reciprocal_cuts:    
-                reciprocal_lattice = fast_generate_lattice(mol.reciprocal_basis, reciprocal_cut)
-                rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
-                rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product
+            compute_real_term = jit(vmap(compute_real_term_i, in_axes=(0, 0, None, None, None)))
+            compute_reciprocal_term = jit(vmap(compute_reciprocal_term_i, in_axes=(0, None, None, None)))
+            for kappa in kappas:
+                reciprocal_sum = jnp.zeros((n_walkers,))
+                reciprocal_converged = False
+                for reciprocal_cut in reciprocal_cuts:    
+                    reciprocal_lattice = fast_generate_lattice(mol.reciprocal_basis, reciprocal_cut)
+                    rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
+                    rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product
 
-                reciprocal_sum_tmp =  compute_reciprocal_term(p_p_vectors, rl_factor, reciprocal_lattice, q_q)
+                    reciprocal_sum_tmp =  compute_reciprocal_term(p_p_vectors, rl_factor, reciprocal_lattice, q_q)
 
-                isclose_reciprocal = jnp.isclose(reciprocal_sum, reciprocal_sum_tmp, rtol=0.0, atol=1e-4).all()
+                    isclose_reciprocal = jnp.isclose(reciprocal_sum, reciprocal_sum_tmp, rtol=0.0, atol=atol).all()
 
-                # print('kappa %.3f || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
-                #         (kappa, reciprocal_cut, jnp.mean(reciprocal_sum), jnp.mean(reciprocal_sum_tmp), str(isclose_reciprocal.all())))
+                    print('kappa %.3f || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
+                            (kappa, reciprocal_cut, jnp.mean(reciprocal_sum), jnp.mean(reciprocal_sum_tmp), str(isclose_reciprocal.all())))
 
-                reciprocal_sum = reciprocal_sum_tmp
+                    reciprocal_sum = reciprocal_sum_tmp
 
-                if isclose_reciprocal:
-                    reciprocal_converged = True
-                    break
-
-            if reciprocal_converged:
-                real_sum = jnp.zeros((n_walkers,))
-                for real_cut in real_cuts:
-
-                    real_lattice = fast_generate_lattice(basis, real_cut)  # (n_lattice, 3)
-                    
-                    real_sum_tmp = compute_real_term(walkers, p_p_distances, kappa, real_lattice, q_q)
-
-                    isclose_real = jnp.isclose(real_sum, real_sum_tmp, rtol=0.0, atol=1e-4).all()
-
-                    # print('kappa %.3f || real_cut %i || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
-                    #     (kappa, real_cut, reciprocal_cut, jnp.mean(real_sum), jnp.mean(real_sum_tmp), str(isclose_real.all())))
-
-                    real_sum = real_sum_tmp
-                    if isclose_real:
-                        real_cut -= 1
-                        reciprocal_cut -= 1
-                        diff = real_cut - reciprocal_cut 
-                        cut_sum = real_cut + reciprocal_cut 
-                        if diff <= min_diff and cut_sum <= min_cut_sum:
-                            min_diff = diff
-                            min_cut_sum = cut_sum
-                            min_real_cut = real_cut
-                            min_reciprocal_cut = reciprocal_cut
-                            min_kappa = kappa
+                    if isclose_reciprocal:
+                        reciprocal_converged = True
                         break
 
-        if min_diff == 100:
-            exit('Ewalds sum not converged')
+                if reciprocal_converged:
+                    real_sum = jnp.zeros((n_walkers,))
+                    for real_cut in real_cuts:
 
-        print('Taking kappa %.3f, real cut %i, and reciprocal cut %i' % (min_kappa, min_real_cut, min_reciprocal_cut))
-                
+                        real_lattice = fast_generate_lattice(basis, real_cut)  # (n_lattice, 3)
+                        
+                        real_sum_tmp = compute_real_term(walkers, p_p_distances, kappa, real_lattice, q_q)
+
+                        isclose_real = jnp.isclose(real_sum, real_sum_tmp, rtol=0.0, atol=atol).all()
+
+                        print('kappa %.3f || real_cut %i || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
+                            (kappa, real_cut, reciprocal_cut, jnp.mean(real_sum), jnp.mean(real_sum_tmp), str(isclose_real.all())))
+
+                        real_sum = real_sum_tmp
+                        if isclose_real:
+                            real_cut -= 1
+                            reciprocal_cut -= 1
+                            diff = real_cut - reciprocal_cut 
+                            cut_sum = real_cut + reciprocal_cut 
+                            if diff <= min_diff and cut_sum <= min_cut_sum:
+                                min_diff = diff
+                                min_cut_sum = cut_sum
+                                min_real_cut = real_cut
+                                min_reciprocal_cut = reciprocal_cut
+                                min_kappa = kappa
+                            break
+
+            if min_diff == 100:
+                exit('Ewalds sum not converged')
+
+            print('Taking kappa %.3f, real cut %i, and reciprocal cut %i' % (min_kappa, min_real_cut, min_reciprocal_cut))
+                    
         real_lattice = generate_lattice(basis, min_real_cut)
         reciprocal_lattice = generate_lattice(mol.reciprocal_basis, min_reciprocal_cut)
         rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
@@ -494,3 +464,41 @@ def compute_potential_energy_i(walkers, r_atoms, z_atoms):
         potential_energy += jnp.sum(unique_a_a)
 
     return potential_energy
+
+
+
+
+def create_potential_energy_dep(mol):
+    """
+
+    Notes:
+        - May need to shift the origin to the center to enforce the spherical sum condition
+        - I am now returning to length of unit cell units which is different to the unit cell length I was using before. How does this affect the computation?
+        - Is the reciprocal height computed in the correct way?
+    """
+
+    if mol.pbc:
+
+        basis = jnp.diag(mol.basis[0]) if mol.basis.shape != (3, 3) else mol.basis  # catch when we flatten the basis in the diagonal case
+
+        real_lattice = generate_lattice(basis, mol.real_cut)  # (n_lattice, 3)
+        reciprocal_lattice = generate_lattice(mol.reciprocal_basis, mol.reciprocal_cut)
+        rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
+        rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*mol.kappa**2)) / rl_inner_product  
+
+        e_charges = jnp.array([-1. for i in range(mol.n_el)])
+        charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
+        q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
+
+        _compute_potential_energy_solid_i = partial(compute_potential_energy_solid_i, 
+                                                    kappa=mol.kappa, 
+                                                    real_lattice=real_lattice, 
+                                                    reciprocal_lattice=reciprocal_lattice,
+                                                    q_q=q_q, 
+                                                    charges=charges, 
+                                                    volume=mol.volume,
+                                                    rl_factor=rl_factor)
+
+        return vmap(_compute_potential_energy_solid_i, in_axes=(0, None, None))
+
+    return vmap(compute_potential_energy_i, in_axes=(0, None, None))

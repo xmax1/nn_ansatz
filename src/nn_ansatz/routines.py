@@ -61,10 +61,10 @@ def initialise_system_wf_and_sampler(cfg, walkers=None):
     if walkers is None:
         walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
 
-    if os.path.exists(cfg['pre_path']):
-        print('loading pretrain wf %s' % cfg['pre_path'])
-        params, walkers = load_pk(cfg['pre_path'])
-        cfg['pretrain'] = False
+    # if os.path.exists(cfg['pre_path']):
+    #     print('loading pretrain wf %s' % cfg['pre_path'])
+    #     params, walkers = load_pk(cfg['pre_path'])
+    #     cfg['pretrain'] = False
 
     if cfg['pretrain']:
         params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)

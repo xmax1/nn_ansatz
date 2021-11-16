@@ -125,8 +125,8 @@ def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, 
 
 def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
     decrease = ((acceptance < target_acceptance).astype(acceptance.dtype) * -2.) + 1.  # +1 for false, -1 for true
-    delta = decrease * 1. / 1000.
-    return jnp.clip(step_size + delta, 0.02, 0.1)
+    delta = decrease * 1. / 10000.
+    return jnp.clip(step_size + delta, 0.005, 0.2)
 
 
 def adjust_step_size_with_controlflow(step_size, acceptance, target_acceptance=0.5):

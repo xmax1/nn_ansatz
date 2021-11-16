@@ -1,4 +1,5 @@
 import jax
+jax.config.update('jax_platform_name', 'cpu')
 import jax.random as rnd
 import jax.numpy as jnp
 from jax import vmap, jit, grad, pmap
@@ -14,8 +15,9 @@ from nn_ansatz import *
 
 from fabric import Connection
 import subprocess as sub
-
-from nn_ansatz.vmc import create_potential_energy_v2
+import sys
+sys.path.append('/home/energy/amawi/projects/nn_ansatz/src')
+from nn_ansatz.vmc import create_potential_energy
 
 mol = SystemAnsatz(system=None,
                  r_atoms=None,
@@ -39,7 +41,18 @@ mol = SystemAnsatz(system=None,
                  n_walkers_per_device=1024,
                  n_devices=1)
 
-pe = create_potential_energy_v2(mol)
+pe_fn = create_potential_energy(mol, find_kappa=False)
+
+walkers = jnp.array([[2.1526934277668843,         2.4560512832645855,          0.51311075081762780],    
+                    [1.3791267107711942    ,     1.6234439638535862    ,      3.0667537383069945  ,]  
+                    [1.4656891738654672    ,     0.43665165495674785   ,     1.4862060883914250   ,] 
+                    [0.53729657298062961   ,     1.4812046409522104    ,     0.78584559911787721  ,]  
+                    [1.1167108011660005    ,     2.6942379435411468    ,      1.2266702700217422  ,]  
+                    [1.2572663823111512    ,     0.25995966342111387   ,      0.24667337122245669 ,]   
+                    [1.9453890650886052    ,     1.1690075379781248    ,       2.3061978534074310,]])
+pe = pe_fn(walkers, mol.r_atoms, mol.z_atoms)
+
+print(pe)
 
 # x = sub.Popen("screen -dmS test bash -c 'CUDA_VISIBLE_DEVICES=\'3\' python /home/amawi/projects/nn_ansatz/src/run_with_args.py'", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 # print(x)

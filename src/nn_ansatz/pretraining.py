@@ -59,20 +59,21 @@ def pretrain_wf(mol,
 
     for step in steps:
         pre_key, pre_subkey = rnd.split(pre_key)
-        keys, subkey = key_gen(keys)
+        # keys, subkey = key_gen(keys)
 
         loss_value, grads = loss_function(params, pre_walkers)
         state = update(step, grads, state)
         params = get_params(state)
 
-        walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
-        e_locs = compute_local_energy(params, walkers)
+        # walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
+        # e_locs = compute_local_energy(params, walkers)
 
         pre_walkers, mix_acceptance = pre_sampler(params, pre_walkers, pre_subkey, pre_step_size)
-        e_locs_mixed = compute_local_energy(params, pre_walkers)
+        # e_locs_mixed = compute_local_energy(params, pre_walkers)
 
-        print('step %i | e_mean %.2f | e_mixed %.2f | loss %.2f | wf_acc %.2f | mix_acc %.2f |'
-              % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), mia(loss_value), mia(acceptance), mia(mix_acceptance)))
+        # print('step %i | e_mean %.2f | e_mixed %.2f | loss %.2f | wf_acc %.2f | mix_acc %.2f |'
+            #   % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), mia(loss_value), mia(acceptance), mia(mix_acceptance)))
+        print('step {step:.0f} | loss {loss:.2f}'.format(step=step, loss=loss_value))
         # steps.set_postfix(E=f'{e_locs.mean():.6f}')
 
     if not pre_path is None:
