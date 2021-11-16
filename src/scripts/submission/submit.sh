@@ -44,7 +44,7 @@ fi
 if [ "$1" == "oneloop" ]
 then 
     echo Calling single loop
-    myArray=(1 2 3 4 5 10)
+    myArray=(0.1 0.2 0.5 1 2 5 10)
     for hypam in "${myArray[@]}" 
     do
         #n_sh=$(( $hypam*32 ))
@@ -52,16 +52,16 @@ then
         cmd="-s HEG \
             -sim 1 1 1 \
             -nw 1024 \
-            -n_sh 128 \
-            -n_ph 32 \
+            -n_sh 64 \
+            -n_ph 16 \
             -nl 3 \
             -n_det 1 \
             -orb real_plane_waves \
-            -n_el 7 \
+            -n_el 19 \
             -inact cos \
             -act cos \
             -dp $hypam \
-            -name 1511/el19_dp_sweep \
+            -name 1611/el19_dp_sweep \
             -n_it 10000  \
             -lr 0.001"
         sbatch --gres=gpu:RTX3090:$ngpu $submission_path $cmd
