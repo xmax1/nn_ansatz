@@ -79,6 +79,8 @@ class SystemAnsatz():
                  r_atoms=None,
                  z_atoms=None,
                  n_el=None,
+                 n_el_atoms=None,
+                 n_up=None,
                  basis=None,
                  inv_basis=None,
                  pbc=False,
@@ -91,16 +93,14 @@ class SystemAnsatz():
                  einsum:bool = False,
                  nonlinearity: str = 'tanh',
                  input_activation_nonlinearity: str = 'sin',
-                 n_periodic_input=1,
+                 jastrow: bool = False,
                  n_layers=2,
                  n_sh=64,
                  n_ph=16,
                  n_det=2,
                  step_size=0.05,
                  correlation_length=10,
-                 n_walkers=256,
-                 n_el_atoms=None,
-                 n_up=None,
+                 n_walkers=256,   
                  orbital_basis='sto3g',
                  device='cpu',
                  dtype=jnp.float32,
@@ -110,6 +110,7 @@ class SystemAnsatz():
                  **kwargs):
 
         self.system = system
+        self.jastrow = jastrow
 
         self.device, self.dtype = device, dtype
         self.n_walkers_per_device = kwargs['n_walkers_per_device']

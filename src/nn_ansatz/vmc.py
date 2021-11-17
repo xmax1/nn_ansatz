@@ -140,7 +140,7 @@ def generate_lattice(basis, cut):
     return imgs
 
 
-def create_potential_energy(mol, n_walkers=512, atol=1e-4, find_kappa=True):
+def create_potential_energy(mol, n_walkers=512, atol=1e-5, find_kappa=True):
     """
 
     Notes:
@@ -164,7 +164,7 @@ def create_potential_energy(mol, n_walkers=512, atol=1e-4, find_kappa=True):
 
             real_cuts = jnp.arange(1, 8, 1)
             reciprocal_cuts = jnp.arange(1, 8, 1)
-            kappas = jnp.arange(0.25, 3., 0.25)
+            kappas = jnp.arange(0.25, 6., 0.5)
 
             walkers = jnp.array(rnd.uniform(rnd.PRNGKey(369), minval=0.0, maxval=mol.scale_cell, shape=(n_walkers, mol.n_el, 3)))
 
@@ -181,8 +181,9 @@ def create_potential_energy(mol, n_walkers=512, atol=1e-4, find_kappa=True):
 
             compute_real_term = jit(vmap(compute_real_term_i, in_axes=(0, 0, None, None, None)))
             compute_reciprocal_term = jit(vmap(compute_reciprocal_term_i, in_axes=(0, None, None, None)))
+            found_params = False
             for kappa in kappas:
-                reciprocal_sum = jnp.zeros((n_walkers,))
+                reciprocal_sum = jnp.ones((n_walkers,)) * 99999999
                 reciprocal_converged = False
                 for reciprocal_cut in reciprocal_cuts:    
                     reciprocal_lattice = fast_generate_lattice(mol.reciprocal_basis, reciprocal_cut)
@@ -203,7 +204,7 @@ def create_potential_energy(mol, n_walkers=512, atol=1e-4, find_kappa=True):
                         break
 
                 if reciprocal_converged:
-                    real_sum = jnp.zeros((n_walkers,))
+                    real_sum = jnp.ones((n_walkers,)) * 99999999
                     for real_cut in real_cuts:
 
                         real_lattice = fast_generate_lattice(basis, real_cut)  # (n_lattice, 3)
@@ -227,7 +228,13 @@ def create_potential_energy(mol, n_walkers=512, atol=1e-4, find_kappa=True):
                                 min_real_cut = real_cut
                                 min_reciprocal_cut = reciprocal_cut
                                 min_kappa = kappa
+                                if min_diff < 2 and min_cut_sum < 6:
+                                    found_params = True
                             break
+                    if found_params:
+                        break
+                if found_params:
+                    break
 
             if min_diff == 100:
                 exit('Ewalds sum not converged')

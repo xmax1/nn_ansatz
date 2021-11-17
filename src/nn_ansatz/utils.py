@@ -151,6 +151,7 @@ def dict_entries_to_array(dictionary):
 
 def get_system(system, 
                n_el,
+               n_up,
                density_parameter):
 
     PATH = os.path.abspath(os.path.dirname(__file__))
@@ -159,13 +160,22 @@ def get_system(system,
         pass
         sys.exit('system not in db')
     if system == 'HEG':
+        if n_up is None:
+            n_up = n_el
+        if n_up == n_el:
+            systems_data['HEG']['spin_polarized'] = True
+        else:
+            systems_data['HEG']['spin_polarized'] = False
+
         systems_data = {'HEG':{
-            **systems_data['HEG'],  # real_basis, pbc
+            **systems_data['HEG'],  # real_basis, pbc, spin_polarized
             'r_atoms': None,  # enforces n_atoms = 1 in the molecule class HACKY
             'z_atoms': None,
             'n_el': n_el,
+            'n_up': n_up, 
             'density_parameter': density_parameter}              
         }
+        
 
     systems_data = dict_entries_to_array(systems_data[system])
     return systems_data
@@ -195,6 +205,7 @@ def setup(system: str = 'Be',
           r_atoms=None,
           z_atoms=None,
           n_el=None,
+          n_up=None,
           n_el_atoms=None,
           ignore_toml=False,
           pbc=False,
@@ -224,6 +235,7 @@ def setup(system: str = 'Be',
           einsum: bool = False, 
           nonlinearity: str = 'tanh',
           input_activation_nonlinearity: str = 'sin',
+          jastrow: bool = False,
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 0,
@@ -255,6 +267,7 @@ def setup(system: str = 'Be',
 
     system_config = get_system(system,
                                n_el, 
+                               n_up,
                                density_parameter)
 
     pretrain_dir = join_and_create(root, system, 'pretrained')
@@ -289,6 +302,7 @@ def setup(system: str = 'Be',
               # SYSTEM
               **system_config,
               'system': system,
+              'n_up': n_up, 
               'real_cut': real_cut,
               'reciprocal_cut': reciprocal_cut,
               'kappa': kappa,
@@ -304,6 +318,7 @@ def setup(system: str = 'Be',
               'einsum': einsum,
               'nonlinearity': nonlinearity,
               'input_activation_nonlinearity': input_activation_nonlinearity,
+              'jastrow': jastrow,
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,
@@ -418,10 +433,10 @@ class Logging():
 
     def writer(self, name, value, step):
         self.summary_writer.add_scalar(name, value, step)
-        if self.data.get(name) is None:
-            self.data[name] = [value]
-        else:
-            self.data[name].append(value)
+        # if self.data.get(name) is None:
+            # self.data[name] = [value]
+        # else:
+            # self.data[name].append(value)
         self.update_summary(name, value)
 
     def log(self,
@@ -471,7 +486,7 @@ class Logging():
 
         if step % self.save_every == 0:
             self.save_state(step, opt_state=opt_state, params=params, walkers=walkers)
-            save_pk(self.data, os.path.join(self.events_dir, 'data.pk'))
+            # save_pk(self.data, os.path.join(self.events_dir, 'data.pk'))
 
         self.params = params
 

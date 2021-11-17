@@ -40,9 +40,9 @@ def pretrain_wf(mol,
     vwf = create_wf(mol)
     vwf_orbitals = create_wf(mol, orbitals=True)
 
-    compute_local_energy = create_energy_fn(mol, vwf)
-    if bool(os.environ.get('DISTRIBUTE')) is True:
-        compute_local_energy = pmap(compute_local_energy, in_axes=(None, 0))
+    # compute_local_energy = create_energy_fn(mol, vwf)
+    # if bool(os.environ.get('DISTRIBUTE')) is True:
+        # compute_local_energy = pmap(compute_local_energy, in_axes=(None, 0))
 
     loss_function, pre_sampler = create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals)
     loss_function = value_and_grad(loss_function)
@@ -86,11 +86,18 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
 
     if mol.pbc is True:
         if mol.system == 'HEG':
-            real_plane_wave_orbitals, _ = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
+            real_plane_wave_orbitals, _ = create_orbitals(orbitals=mol.orbitals, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
             @jit
             def _hf_orbitals(walkers):
-                orbs = real_plane_wave_orbitals(None, walkers, None)  # expects (n_k, n_el, n_el)
-                return orbs, None
+                if mol.n_up == mol.n_el:
+                    orb_up = real_plane_wave_orbitals(None, walkers, None) 
+                    orb_down = None
+                else:
+                    walkers_up, walkers_down = jnp.split(walkers, [mol.n_up], axis=0)
+                    orb_up = real_plane_wave_orbitals(None, walkers_up, None)  # expects (n_k, n_el, n_el)
+                    orb_down = real_plane_wave_orbitals(None, walkers_down, None)  # expects (n_k, n_el, n_el)
+
+                return orb_up, orb_down
             _hf_orbitals = vmap(_hf_orbitals, in_axes=(0,))
             
     else:

@@ -45,7 +45,6 @@ n_el = 10
 pbc = true
 basis = [[1.0,  0.0,  0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
 scale_cell = 1.0
-spin_polarized = true
 
 [LiSolid]
 pbc = true

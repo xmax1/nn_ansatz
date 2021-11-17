@@ -225,7 +225,7 @@ def compute_per_particle(values, n_particles):
         new_dict[k + '_per_particle'] = v / float(n_particles)
     return new_dict
 
-def approximate_energy(cfg, load_it=None, n_it=10000, walkers=None):
+def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     if load_it is not None:
         cfg['load_it'] = load_it
 

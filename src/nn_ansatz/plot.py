@@ -102,10 +102,16 @@ def plot_scatter(xs,
               title='', 
               xlabel='', 
               ylabel='',
+              xaxis='linear',
+              yaxis='linear',
               hlines=None):
 
     colors = itertools.cycle(palette) 
-    graph = figure(title = title, x_axis_label=xlabel, y_axis_label=ylabel, width=400, height=400)
+    graph = figure(title = title, 
+                   x_axis_label=xlabel, 
+                   y_axis_label=ylabel, 
+                   width=400, height=400,
+                   y_axis_type=yaxis, x_axis_type=xaxis)
 
     if not xticklabels is None: 
         graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}

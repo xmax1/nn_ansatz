@@ -37,41 +37,42 @@ then
                 -lr 0.001"
             sbatch --gres=gpu:RTX3090:$ngpu $submission_path $cmd
             echo $hypam $hypam2
-            sleep 15
+            sleep 20
         done
     done
 fi
-if [ "$1" == "oneloop" ]
-then 
+
+if [ "$1" == "oneloop" ]; then 
     echo Calling single loop
-    myArray=(0.1 0.2 0.5 1 2 5 10)
+    # myArray=(0.5 1 2 5 10 20 50 100)
+    myArray=(1 2 5 10)
+    myArray=(1024 2048 4096)
+    # myArray=(1 2 4 8 16)
     for hypam in "${myArray[@]}" 
     do
         #n_sh=$(( $hypam*32 ))
         #n_ph=$(( $hypam*8 ))
         cmd="-s HEG \
             -sim 1 1 1 \
-            -nw 1024 \
-            -n_sh 64 \
-            -n_ph 16 \
+            -nw $hypam \
+            -n_sh 128 \
+            -n_ph 32 \
             -nl 3 \
             -n_det 1 \
             -orb real_plane_waves \
-            -n_el 19 \
-            -inact cos \
-            -act cos \
-            -dp $hypam \
-            -name 1611/el19_dp_sweep \
+            -n_el 7 \
+            -n_up 7 \
+            -dp 10 \
+            -name 1611/el7_nw_sweep \
             -n_it 10000  \
             -lr 0.001"
         sbatch --gres=gpu:RTX3090:$ngpu $submission_path $cmd
         echo $cmd
-        sleep 15
+        sleep 20
     done
 fi
 
-if [ "$1" == "single" ]
-then 
+if [ "$1" == "single" ]; then 
     echo Calling single submission
 
     cmd="-s HEG \
@@ -83,16 +84,23 @@ then
         -n_det 1 \
         -orb real_plane_waves \
         -n_el 7 \
-        -inact cos \
-        -act cos \
+        -act face
         -dp 1 \
-        -name 1511/7el_opt_sweep \
-        -n_it 100000 \
-        --sweep"
+        -name 1611/junk \
+        -n_it 100"
+        # --sweep"
     sbatch --gres=gpu:RTX3090:$ngpu $submission_path $cmd
 
 fi
 
 
+# HEG
+# 7 el
+# 1024 128 32 3 7 0 1gpu tick
+# 2048 128 32 3 7 0 1gpu tick
+# 1024 128 32 3 7 7 1gpu OOM 512 tick 256 tick
+# 1024 128 32 3 7 8 1gpu OOM 512 256 
+# 2048 128 32 3 7 7 2gpu OOM 512 tick 256 tick
 
-
+# 14 el para
+# 1024 128 32 3 1gpu 

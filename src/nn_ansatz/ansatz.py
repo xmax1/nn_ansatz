@@ -24,6 +24,8 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity)
     _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
     _mixer = partial(mixer_i, n_el=mol.n_el, n_up=mol.n_up, n_down=mol.n_down)
+    _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, r_boundary=3./8.) if mol.jastrow else None
+    # _logabssumdet = partial(logabssumdet, jastrow=_compute_jastrow)
 
     _wf_orbitals = partial(wf_orbitals, 
                            masks=masks,
@@ -39,27 +41,23 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
                            _linear_pairwise = partial(linear_pairwise, nonlinearity=mol.nonlinearity),
                            inv_basis=mol.inv_basis)
 
-    def _signed_wf(params, walkers, d0s):
-        orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
-        log_psi, sign = logabssumdet(orb_up, orb_down)
-        return log_psi, sign
-
     def _wf(params, walkers, d0s):
-        orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
-        log_psi, _ = logabssumdet(orb_up, orb_down)
-        return log_psi 
-
-    def _kfac_wf(params, walkers, d0s):
         orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
-        log_psi, _ = logabssumdet(orb_up, orb_down)
-        return log_psi, activations
+        log_psi, sign = logabssumdet(orb_up, orb_down)
+
+        if _compute_jastrow is not None:
+            jastrow_factor = _compute_jastrow(walkers)
+            sign *= jnp.sign(jastrow_factor)
+            log_psi += jnp.log(jnp.abs(jastrow_factor))
+        
+        if kfac:
+            return log_psi, activations
+        elif signed:
+            return log_psi, signed
+        else:
+            return log_psi
     
     d0s = initialise_d0s(mol)
-
-    if signed:
-        _partial_wf = partial(_signed_wf, d0s=d0s)
-        _vwf = vmap(_partial_wf, in_axes=(None, 0))
-        return _vwf
 
     if orbitals:
         def _orbs(params, walkers):
@@ -68,14 +66,12 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
         return vmap(_orbs, in_axes=(None, 0))
 
     if kfac:
-        return vmap(_kfac_wf, in_axes=(None, 0, 0))
+        return vmap(_wf, in_axes=(None, 0, 0))
 
     _partial_wf = partial(_wf, d0s=d0s)
     _vwf = vmap(_partial_wf, in_axes=(None, 0))
     
     return _vwf
-
-import sys
 
 def wf_orbitals(params: dict, 
                 walkers: jnp.array, 
@@ -84,7 +80,7 @@ def wf_orbitals(params: dict,
                 n_up: int,
                 n_down: int,
                 n_el: int,
-                
+            
                 _compute_single_stream_vectors: Callable,
                 _compute_inputs: Callable,
                 _compute_orbitals: Callable,
@@ -155,7 +151,7 @@ def create_orbitals(orbitals='anisotropic',
                     basis: Optional[jnp.array]=None,
                     inv_basis: Optional[jnp.array]=None,
                     pbc: bool=False,
-                    einsum: bool=False):
+                    einsum: bool=False,):
 
     if orbitals == 'anisotropic':
         _compute_orbitals = partial(anisotropic_orbitals, basis=basis, inv_basis=inv_basis, pbc=pbc, einsum=einsum)
@@ -166,8 +162,10 @@ def create_orbitals(orbitals='anisotropic',
         _sum_orbitals = partial(env_pi_i, einsum=einsum)
     
     if orbitals == 'real_plane_waves':
+        # n_down = n_el - n_up
         shells = [1, 7, 19, 27, 33, 57]
-        shell = shells.index(n_el) + 1
+        # shell = shells.index(n_el) + 1 + 2 # + 1 for correct the index + 2 to take the next shell up for partial polarization
+        shell = 6
         k_points = generate_k_points(n_shells=shell) * 2 * jnp.pi
         k_points = transform_vector_space(k_points, inv_basis)
         _compute_orbitals = partial(real_plane_wave_orbitals, k_points=k_points)
@@ -366,7 +364,9 @@ def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp
     sum_argument = jnp.sum(argument, axis=0)
     sign = jnp.sign(sum_argument)
 
-    return jnp.log(jnp.abs(sum_argument)) + logdet_max, sign
+    log_psi = jnp.log(jnp.abs(sum_argument)) + logdet_max
+
+    return log_psi, sign
 
 import functools
 
