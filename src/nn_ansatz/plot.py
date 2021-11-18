@@ -9,6 +9,7 @@ from bokeh.io import output_notebook, export_png
 from bokeh.plotting import figure, show
 from bokeh.palettes import Dark2_5 as palette
 import itertools
+import re
 
 # params = {'legend.fontsize': 16,
 #           'legend.handlelength': 3}
@@ -88,8 +89,17 @@ def get_data(target_dir, data_filename='config1.pk', dicts=[]):
         dicts.append(data)
     df = pd.DataFrame(dicts)    # .filter(regex='energy')
     columns = [x for x in df.columns if not ('dir' in x) and not ('path' in x)]
-    
     df = df[columns]
+
+    columns = [c for c in df.columns if 'equilibrated_energy_mean' in c]
+    # print(columns)
+    # [print(re.findall('\d+', x[0])) for x in columns]
+    max_n = [int(re.findall('\d+', x)[0]) if len(x) > 0 else 0 for x in columns]
+    if len(max_n) > 0: 
+        max_n = max(max_n)
+        df['equilibrated_energy_mean'] = df['equilibrated_energy_mean_i%i' % max_n]
+        df['equilibrated_energy_sem'] = df['equilibrated_energy_sem_i%i' % max_n]
+        print('max it: %i' % max_n)
     return df
 
 

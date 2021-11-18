@@ -78,19 +78,18 @@ if [ "$1" == "single" ]; then
     cmd="-s HEG \
         -sim 1 1 1 \
         -nw 1024 \
-        -n_sh 128 \
-        -n_ph 32 \
+        -n_sh 64 \
+        -n_ph 16 \
         -nl 3 \
         -n_det 1 \
         -orb real_plane_waves \
         -n_el 7 \
-        -act face
         -dp 1 \
-        -name 1611/junk \
-        -n_it 100"
+        -name 1811/find_jastrow \
+        -n_it 10000 \
+        --jastrow"
         # --sweep"
     sbatch --gres=gpu:RTX3090:$ngpu $submission_path $cmd
-
 fi
 
 
