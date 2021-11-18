@@ -4,83 +4,121 @@ from functools import partial
 from jax._src.numpy.lax_numpy import _promote_args_inexact
 
 import jax.numpy as jnp
-from jax import vmap, lax
+from jax import lax
 import numpy as np
 from jax.nn import silu
 
 
 def compute_jastrow(rij: jnp.array, A: float, F: float):
-    u = (A / rij) * (1 - jnp.exp(-rij / F))
+    u = - (A / rij) * (1 - jnp.exp(-rij / F))
+    return jnp.where(rij == 0., 0., u)  # sets the diagonal to zero and accounts for the limit as r_ij -> 0 for cuspss
+
+
+def compute_djastrow(rij: float, A:float, F: float):
+    return - ((- A / rij**2) * (1 - jnp.exp(-rij/F)) + (A/(rij*F)) * jnp.exp(-rij/F))
+
+def compute_jastrow_arr(rij: jnp.array, A: float, F: jnp.array):
+    u = - (A / rij) * (1 - jnp.exp(-rij / F))
     return jnp.where(rij == 0., 0., u)
-
-
-def compute_djastrow(rij: float, A:float, F:float):
-    return (- A / rij**2) * (1 - np.exp(-rij/F)) + (A/(rij*F)) * np.exp(-rij/F)
-
 
 def cubic(r: float):
     return [r**3, r**2, r, 1]
 
 
 def cubic_arr(r: jnp.array, poly: jnp.array):
-    return poly[None, None, :] * jnp.stack([r**3, r**2, r, 1.], axis=-1)
+    return (poly[None, None, :] * jnp.stack([r**3, r**2, r, jnp.ones_like(r)], axis=-1)).sum(-1)
 
 
 def dcubic(r: float):
     return [3*r**2, 2*r, 1, 0]
 
 
-def get_spline_polynomial(A:float, F:float, r_boundary=1./4.):
+def get_spline_polynomial(A:float, F:float, r_boundary: float, floor: float, order=2):
     r_edge = 1/2
 
-    coefs = jnp.array([cubic(r_boundary),
-                       dcubic(r_boundary),
-                       cubic(r_edge),
-                       dcubic(r_edge)])
+    if order == 2:
+        coefs = jnp.array([cubic(r_boundary),
+                           dcubic(r_boundary),
+                           cubic(r_edge),
+                           dcubic(r_edge)])
 
-    res = jnp.array([[compute_jastrow(r_boundary, A, F)],
-           [compute_djastrow(r_boundary, A, F)],
-           [compute_jastrow(r_edge, A, F)],
-           [compute_djastrow(r_edge, A, F)]])
+        res = jnp.array([[compute_jastrow(r_boundary, A, F)],
+                         [compute_djastrow(r_boundary, A, F)],
+                         [floor],
+                         [0.0]])
 
-    poly_coefs = jnp.inverse(coefs).dot(res)
+        poly_coefs = jnp.linalg.inv(coefs).dot(res)
+
+    if order == 3:
+        coefs = jnp.array([cubic(r_boundary),
+                        dcubic(r_boundary),
+                        cubic(r_edge),
+                        dcubic(r_edge)])
+
+        res = jnp.array([[compute_jastrow(r_boundary, A, F)],
+            [compute_djastrow(r_boundary, A, F)],
+            [compute_jastrow(r_edge, A, F)],
+            [0.0]])
+
+        # res = jnp.array([[compute_jastrow(r_boundary, A, F)],
+        #     [compute_djastrow(r_boundary, A, F)],
+        #     [floor],
+        #     [0.0]])
+
+        poly_coefs = jnp.linalg.inv(coefs).dot(res)
     return poly_coefs.reshape(-1)
+
+
+def quad_arr():
+    return 
 
 
 def create_jastrow_factor(n_el: int, 
                           n_up: int, 
                           volume: float,
-                          r_boundary: float=1/4.):
+                          basis: jnp.array,
+                          inv_basis: jnp.array,
+                          r_boundary: float=0.4,
+                          floor: float=0.,
+                          order=3):
 
     n_down = n_el - n_up
 
     number_density = n_el / volume
     A = 1. / (jnp.sqrt(4 * jnp.pi * number_density))
-    F_same = jnp.sqrt(2 * A)
-    F_opp = jnp.sqrt(A)
 
     mask_up = jnp.concatenate([jnp.ones((n_up, n_up)), jnp.zeros((n_down, n_up))], axis=0)
     mask_down = jnp.concatenate([jnp.zeros((n_up, n_down)), jnp.ones((n_down, n_down))], axis=0)
     mask_same = jnp.concatenate([mask_up, mask_down], axis=1)
-    mask_opp = (mask_same - 1.) * -1
+    mask_opp = (mask_same - 1.) * - 1.
 
-    poly_same = get_spline_polynomial(A, F_same, r_boundary)
-    poly_opp = get_spline_polynomial(A, F_opp, r_boundary)
+    F_same = jnp.sqrt(2 * A)
+    F_opp = jnp.sqrt(A)
+    F = mask_same * F_same + mask_opp * F_opp
+
+    poly_same_coefs = get_spline_polynomial(A, F_same, r_boundary, floor, order=order)
+    poly_opp_coefs = get_spline_polynomial(A, F_opp, r_boundary, floor, order=order)
+
+    spline_fn = cubic_arr if order == 3 else quad_arr
 
     def _compute_jastrow_factor_i(walkers: jnp.array):
         
-        ee_distances = jnp.linalg.norm(compute_ee_vectors_i(walkers), axis=-1)  # (n_el, n_el)
+        ee_vectors = compute_ee_vectors_i(walkers) + 0.1 * jnp.eye(n_el)[..., None]
+        ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
+        ee_distances = jnp.linalg.norm(ee_vectors, axis=-1)  # (n_el, n_el)
 
-        jastrow_same = compute_jastrow(ee_distances, A, F_same) # (n_el, n_el)
-        jastrow_opp = compute_jastrow(ee_distances, A, F_opp) # (n_el, n_el)
+        jastrow = compute_jastrow_arr(ee_distances, A, F) # (n_el, n_el)
 
-        jastrow = mask_same * jastrow_same + mask_opp * jastrow_opp # (n_el, n_el)
-
-        poly = mask_same * cubic_arr(ee_distances, poly_same) + mask_opp * cubic_arr(ee_distances, poly_opp) # (n_el, n_el)
+        poly_same = spline_fn(ee_distances, poly_same_coefs)
+        poly_opp = spline_fn(ee_distances, poly_opp_coefs)
+        
+        poly = mask_same * poly_same + mask_opp * poly_opp # (n_el, n_el)
         
         jastrow_spline = jnp.where(ee_distances > r_boundary, poly, jastrow) # (n_el, n_el)
-        jastrow_spline = jnp.where(ee_distances > 0.5, 0.0, jastrow_spline) # (n_el, n_el)
-        return jastrow_spline.sum() # scalar
+        jastrow_spline = jnp.where(ee_distances > 0.5, floor, jastrow_spline) # (n_el, n_el)
+        jastrow_spline = jastrow_spline * (jnp.eye(n_el)-1.) * -1.
+        
+        return 0.5 * jastrow_spline.sum() # scalar
 
     return _compute_jastrow_factor_i
 
@@ -172,7 +210,7 @@ def compute_inputs_i(walkers: jnp.array,
 
     single_distances = jnp.linalg.norm(single_stream_vectors, axis=-1, keepdims=True)
     if pbc: 
-        single_distances = jnp.linalg.norm(input_activation(single_stream_vectors, inv_basis, nonlinearity='bowl'), axis=-1, keepdims=True)
+        single_distances = jnp.linalg.norm(input_activation(single_stream_vectors, inv_basis, nonlinearity=input_activation_nonlinearity), axis=-1, keepdims=True)
 
         single_stream_vectors = input_activation(single_stream_vectors, inv_basis, nonlinearity=input_activation_nonlinearity)
 
@@ -185,7 +223,7 @@ def compute_inputs_i(walkers: jnp.array,
     if pbc: 
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
 
-        ee_distances = jnp.linalg.norm(input_activation(ee_vectors, inv_basis, nonlinearity='bowl'), axis=-1, keepdims=True)
+        ee_distances = jnp.linalg.norm(input_activation(ee_vectors, inv_basis, nonlinearity=input_activation_nonlinearity), axis=-1, keepdims=True)
 
         ee_vectors = input_activation(ee_vectors, inv_basis, nonlinearity=input_activation_nonlinearity)
     pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
