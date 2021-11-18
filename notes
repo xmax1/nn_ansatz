@@ -25,6 +25,8 @@ Squeue | grep sm3090
 
 squeue --me -h -o "%i" | xargs scancel
 
+&> for errors also
+
 
 """
         The function to add two Complex Numbers.

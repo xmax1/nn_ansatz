@@ -88,7 +88,6 @@ class SystemAnsatz():
                  density_parameter=None,
                  kappa=None,
                  simulation_cell: tuple = (1, 1, 1),
-                 scalar_inputs=False,
                  orbitals='anisotropic',
                  einsum:bool = False,
                  nonlinearity: str = 'tanh',
@@ -166,8 +165,7 @@ class SystemAnsatz():
                 'scale_cell: ', '\n', self.scale_cell, '\n',
                 'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
                 'kappa            = %.2f \n' % self.kappa,
-                'volume           = %.2f \n' % self.volume,
-                'n_periodic_input = %i \n' % n_periodic_input)
+                'volume           = %.2f \n' % self.volume)
 
         self.pbc = pbc
         self.basis = basis
@@ -199,7 +197,6 @@ class SystemAnsatz():
         self.n_sh = n_sh
         self.n_ph = n_ph
         self.n_det = n_det
-        self.scalar_inputs = scalar_inputs
 
         nfunc_in = get_nfunc_in(input_activation_nonlinearity)
         self.n_in = 4 if not pbc else 3 * nfunc_in + 1

@@ -1,16 +1,13 @@
 from typing import Callable
-from functools import partial
-
+from functools import partial, reduce
 from itertools import product
-import os
 
 import jax.numpy as jnp
-from jax import vmap, lax, pmap
+from jax import vmap
 import numpy as np
 
-from .utils import remove_aux
-from .parameters import expand_d0s, initialise_d0s
-from .heg_ansatz import create_heg_wf, generate_k_points, logabssumdet
+from .parameters import initialise_d0s
+from .heg_ansatz import generate_k_points, logabssumdet
 from .ansatz_base import *
 
 def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, distribute=False):
@@ -24,7 +21,7 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity)
     _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
     _mixer = partial(mixer_i, n_el=mol.n_el, n_up=mol.n_up, n_down=mol.n_down)
-    _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, r_boundary=3./8.) if mol.jastrow else None
+    _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, mol.basis, mol.inv_basis, r_boundary=3./8.) if mol.jastrow else None
     # _logabssumdet = partial(logabssumdet, jastrow=_compute_jastrow)
 
     _wf_orbitals = partial(wf_orbitals, 
@@ -42,13 +39,21 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
                            inv_basis=mol.inv_basis)
 
     def _wf(params, walkers, d0s):
+
+        if len(walkers.shape) == 1:  # this is a hack to get around the jvp
+            walkers = walkers.reshape(mol.n_el, 3)
+
+        if mol.inv_basis is not None:
+            walkers = transform_vector_space(walkers, mol.inv_basis, on=True)
+
         orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
         log_psi, sign = logabssumdet(orb_up, orb_down)
 
         if _compute_jastrow is not None:
+    
             jastrow_factor = _compute_jastrow(walkers)
             sign *= jnp.sign(jastrow_factor)
-            log_psi += jnp.log(jnp.abs(jastrow_factor))
+            log_psi += jastrow_factor
         
         if kfac:
             return log_psi, activations
@@ -61,6 +66,12 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
 
     if orbitals:
         def _orbs(params, walkers):
+            if len(walkers.shape) == 1:  # this is a hack to get around the jvp
+                walkers = walkers.reshape(mol.n_el, 3)
+
+            if mol.inv_basis is not None:
+                walkers = transform_vector_space(walkers, mol.inv_basis, on=True)
+
             orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
             return orb_up, orb_down
         return vmap(_orbs, in_axes=(None, 0))
@@ -90,11 +101,7 @@ def wf_orbitals(params: dict,
                 _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh'),
                 inv_basis = None):
 
-    if len(walkers.shape) == 1:  # this is a hack to get around the jvp
-        walkers = walkers.reshape(n_el, 3)
-
-    if inv_basis is not None:
-        walkers = transform_vector_space(walkers, inv_basis, on=True)
+    
 
     activations = []
 
@@ -341,7 +348,7 @@ def env_pi_i(params: jnp.array,
         return factor * jnp.transpose(orbitals_sum.reshape(n_spins, n_det, n_spins), (1, 2, 0))
 
 
-def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp.array:
+def logabssumdet_dep(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp.array:
 
     # (k, n_el, n_el)
     if orb_up.shape[-1] == 1:
@@ -368,7 +375,7 @@ def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp
 
     return log_psi, sign
 
-import functools
+
 
 def logabssumdet(
         orb_up: jnp.array,
@@ -378,14 +385,14 @@ def logabssumdet(
     
     xs = [orb_up, orb_down] if not orb_down is None else [orb_up]
     dets = [x.reshape(-1) for x in xs if x.shape[-1] == 1]
-    dets = functools.reduce(
+    dets = reduce(
         lambda a, b: a*b, dets
     ) if len(dets) > 0 else 1
 
     slogdets = [jnp.linalg.slogdet(x) for x in xs if x.shape[-1] > 1]
     maxlogdet = 0
     if len(slogdets) > 0:
-        sign_in, logdet = functools.reduce(
+        sign_in, logdet = reduce(
             lambda a, b: (a[0]*b[0], a[1]+b[1]), slogdets
         )
 
