@@ -101,24 +101,37 @@ def create_jastrow_factor(n_el: int,
 
     spline_fn = cubic_arr if order == 3 else quad_arr
 
-    def _compute_jastrow_factor_i(walkers: jnp.array):
+    # def _compute_jastrow_factor_i(walkers: jnp.array):
         
+    #     ee_vectors = compute_ee_vectors_i(walkers) + 0.1 * jnp.eye(n_el)[..., None]
+    #     ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
+    #     ee_distances = jnp.linalg.norm(ee_vectors, axis=-1)  # (n_el, n_el)
+
+    #     jastrow = compute_jastrow_arr(ee_distances, A, F) # (n_el, n_el)
+
+    #     poly_same = spline_fn(ee_distances, poly_same_coefs)
+    #     poly_opp = spline_fn(ee_distances, poly_opp_coefs)
+        
+    #     poly = mask_same * poly_same + mask_opp * poly_opp # (n_el, n_el)
+        
+    #     jastrow_spline = jnp.where(ee_distances > r_boundary, poly, jastrow) # (n_el, n_el)
+    #     jastrow_spline = jnp.where(ee_distances > 0.5, floor, jastrow_spline) # (n_el, n_el)
+    #     jastrow_spline = jastrow_spline * (jnp.eye(n_el)-1.) * -1.
+        
+    #     return 0.5 * jastrow_spline.sum() # scalar
+
+    def _compute_jastrow_factor_i(walkers: jnp.array):
+
         ee_vectors = compute_ee_vectors_i(walkers) + 0.1 * jnp.eye(n_el)[..., None]
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
+        # ee_vectors = bowl(ee_vectors)
+        ee_vectors = ((jnp.cos(2 * jnp.pi * ee_vectors) * -1.) + 1.) / 4.
         ee_distances = jnp.linalg.norm(ee_vectors, axis=-1)  # (n_el, n_el)
 
-        jastrow = compute_jastrow_arr(ee_distances, A, F) # (n_el, n_el)
+        jastrow = compute_jastrow_arr(ee_distances, A, F) * ((jnp.eye(n_el)-1.) * -1.) # (n_el, n_el)
+        
+        return 0.5 * jastrow.sum() # scalar
 
-        poly_same = spline_fn(ee_distances, poly_same_coefs)
-        poly_opp = spline_fn(ee_distances, poly_opp_coefs)
-        
-        poly = mask_same * poly_same + mask_opp * poly_opp # (n_el, n_el)
-        
-        jastrow_spline = jnp.where(ee_distances > r_boundary, poly, jastrow) # (n_el, n_el)
-        jastrow_spline = jnp.where(ee_distances > 0.5, floor, jastrow_spline) # (n_el, n_el)
-        jastrow_spline = jastrow_spline * (jnp.eye(n_el)-1.) * -1.
-        
-        return 0.5 * jastrow_spline.sum() # scalar
 
     return _compute_jastrow_factor_i
 
@@ -159,11 +172,17 @@ def compute_ee_vectors_i(walkers):
     return walkers[None, ...] - walkers[:, None, ...]
 
 
+def bowl(walkers_transformed: jnp.array, walkers: Optional[jnp.array]=None):
+    if walkers is None:
+        walkers = walkers_transformed
+    return walkers**2 / jnp.exp(4. * jnp.abs(walkers_transformed))
+
+
 def input_activation(inputs: jnp.array, inv_basis: jnp.array, nonlinearity: str = 'sin'):
     inputs_transformed = transform_vector_space(inputs, inv_basis)
     split = nonlinearity.split('+')
     if 'bowl' in nonlinearity:
-        bowl_features = [inputs**2 / jnp.exp(4. * jnp.abs(inputs_transformed))]
+        bowl_features = [bowl(inputs_transformed, inputs)]
     else:
         bowl_features = []
     

@@ -58,7 +58,7 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
         if kfac:
             return log_psi, activations
         elif signed:
-            return log_psi, signed
+            return log_psi, sign
         else:
             return log_psi
     
@@ -300,11 +300,11 @@ def real_plane_wave_orbitals(sigma,
                              k_points=jnp.array) -> jnp.array:
 
     # sigma (n_det, n_spin_i, n_atom, 3, 3)
-    # walkers (n_spin_j, 3)
-    # k_points (n_spin, 3)
+    # orb_vector (n_spin_j, 3)
+    # k_points (n_spin_i, 3)
 
     n_el = orb_vector.shape[0]
-    args = orb_vector @ k_points[:n_el, :].T  # (n_el, n_el)
+    args = orb_vector @ k_points[:n_el, :].T  # (n_el_j, n_el_i)
     args = jnp.split(args, n_el, axis=1)
     pf = [jnp.cos, jnp.sin]
     dets = []
@@ -312,7 +312,7 @@ def real_plane_wave_orbitals(sigma,
         column = pf[i%2](arg)
         dets.append(column)
     dets = jnp.concatenate(dets, axis=-1)
-    return dets
+    return jnp.transpose(dets)
 
 
 def env_pi_i(params: jnp.array,
@@ -377,9 +377,7 @@ def logabssumdet_dep(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) ->
 
 
 
-def logabssumdet(
-        orb_up: jnp.array,
-        orb_down: Optional[jnp.array] = None) -> jnp.array:
+def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp.array:
     # Special case if there is only one electron in any channel
     # We can avoid the log(0) issue by not going into the log domain
     
