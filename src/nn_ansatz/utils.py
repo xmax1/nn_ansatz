@@ -19,7 +19,7 @@ from jax.tree_util import tree_flatten
 import numpy as np
 import csv
 import sys
-import re
+from random import randint
 
 
 from .python_helpers import *
@@ -184,11 +184,11 @@ def get_system(system,
 def get_run(exp_dir):
     exps = os.listdir(exp_dir)
     nums = [int(e[3:]) for e in exps if 'run' in e]
-    trial = 0
+    trial = randint(1, 1000000)
     while True:
         if trial not in nums:
             break
-        trial += 1
+        trial = randint(1, 1000000)
     return trial
 
 

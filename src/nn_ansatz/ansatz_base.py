@@ -51,7 +51,7 @@ def get_spline_polynomial(A:float, F:float, r_boundary: float, floor: float, ord
 
     if order == 3:
         coefs = jnp.array([cubic(r_boundary),
-                        dcubic(r_boundary),
+                            dcubic(r_boundary),
                         cubic(r_edge),
                         dcubic(r_edge)])
 
@@ -91,34 +91,49 @@ def create_jastrow_factor(n_el: int,
     mask_down = jnp.concatenate([jnp.zeros((n_up, n_down)), jnp.ones((n_down, n_down))], axis=0)
     mask_same = jnp.concatenate([mask_up, mask_down], axis=1)
     mask_opp = (mask_same - 1.) * - 1.
+    
 
     F_same = jnp.sqrt(2 * A)
     F_opp = jnp.sqrt(A)
     F = mask_same * F_same + mask_opp * F_opp
+    floor = compute_jastrow(0.5, A, F)
 
     poly_same_coefs = get_spline_polynomial(A, F_same, r_boundary, floor, order=order)
     poly_opp_coefs = get_spline_polynomial(A, F_opp, r_boundary, floor, order=order)
 
     spline_fn = cubic_arr if order == 3 else quad_arr
 
+    # def _compute_jastrow_factor_i(walkers: jnp.array):
+        
+    #     ee_vectors = compute_ee_vectors_i(walkers) + 0.1 * jnp.eye(n_el)[..., None]
+    #     ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
+    #     ee_distances = jnp.linalg.norm(ee_vectors, axis=-1)  # (n_el, n_el)
+
+    #     jastrow = compute_jastrow_arr(ee_distances, A, F) # (n_el, n_el)
+
+    #     poly_same = spline_fn(ee_distances, poly_same_coefs)
+    #     poly_opp = spline_fn(ee_distances, poly_opp_coefs)
+        
+    #     poly = mask_same * poly_same + mask_opp * poly_opp # (n_el, n_el)
+        
+    #     jastrow_spline = jnp.where(ee_distances > r_boundary, poly, jastrow) # (n_el, n_el)
+    #     jastrow_spline = jnp.where(ee_distances > 0.5, floor, jastrow_spline) # (n_el, n_el)
+    #     jastrow_spline = jastrow_spline * ((jnp.eye(n_el)-1.) * -1.)
+        
+    #     return 0.5 * jastrow_spline.sum() # scalar
+
+    I_shift = 0.1 * jnp.eye(n_el)[..., None]
+    I_mask = ((jnp.eye(n_el)-1.) * -1.)
+
     def _compute_jastrow_factor_i(walkers: jnp.array):
-        
-        ee_vectors = compute_ee_vectors_i(walkers) + 0.1 * jnp.eye(n_el)[..., None]
+
+        ee_vectors = compute_ee_vectors_i(walkers) + I_shift
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
-        ee_distances = jnp.linalg.norm(ee_vectors, axis=-1)  # (n_el, n_el)
+        ee_vectors = ((jnp.cos(2 * jnp.pi * ee_vectors) * -1.) + 1.) / 4.
+        ee_distances = jnp.linalg.norm(ee_vectors, axis=-1) # (n_el, n_el)
+        jastrow = compute_jastrow_arr(ee_distances, A, F) * I_mask  # (n_el, n_el)
 
-        jastrow = compute_jastrow_arr(ee_distances, A, F) # (n_el, n_el)
-
-        poly_same = spline_fn(ee_distances, poly_same_coefs)
-        poly_opp = spline_fn(ee_distances, poly_opp_coefs)
-        
-        poly = mask_same * poly_same + mask_opp * poly_opp # (n_el, n_el)
-        
-        jastrow_spline = jnp.where(ee_distances > r_boundary, poly, jastrow) # (n_el, n_el)
-        jastrow_spline = jnp.where(ee_distances > 0.5, floor, jastrow_spline) # (n_el, n_el)
-        jastrow_spline = jastrow_spline * (jnp.eye(n_el)-1.) * -1.
-        
-        return 0.5 * jastrow_spline.sum() # scalar
+        return 0.5 * jastrow.sum() # scalar
 
     return _compute_jastrow_factor_i
 
