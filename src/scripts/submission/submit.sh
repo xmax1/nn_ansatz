@@ -44,30 +44,31 @@ fi
 
 if [ "$1" == "oneloop" ]; then 
     echo Calling single loop
-    # myArray=(0.5 1 2 5 10 20 50 100)
+    myArray=(0.5 1 2 5 10 20 50 100)
     # myArray=(1 2 5 10)
     # myArray=(512 1024 )
     # myArray=(2048 )
     # myArray=(4096 )
     # myArray=(1 2 4 8 16)
     # myArray=(1 2 4 8 16)
-    myArray=(4 8 )
+    # myArray=(4 8 )
     for hypam in "${myArray[@]}" 
     do
-        n_sh=$(( $hypam*16 ))
-        n_ph=$(( $hypam*4 ))
+        # n_sh=$(( $hypam*16 ))
+        # n_ph=$(( $hypam*4 ))
         cmd="-s HEG \
             -sim 1 1 1 \
-            -nw 1024 \
-            -n_sh $n_sh \
-            -n_ph $n_ph \
-            -nl 2 \
+            -nw 4096 \
+            -n_sh 128 \
+            -n_ph 32 \
+            -nl 3 \
             -n_det 1 \
             -orb real_plane_waves \
-            -n_el 19 \
-            -dp 1 \
-            -name 1811/find_n_params_repeat \
-            -n_it 10000  \
+            -n_el 7 \
+            -dp $hypam \
+            -name 2111/find_jastrow_sin \
+            --jastrow \
+            -n_it 100000 \
             -lr 0.001"
         sbatch --gres=gpu:RTX3090:$ngpu --job-name=n_params $submission_path $cmd
         echo $cmd
@@ -80,17 +81,17 @@ if [ "$1" == "single" ]; then
 
     cmd="-s HEG \
         -sim 1 1 1 \
-        -nw 1024 \
-        -n_sh 64 \
-        -n_ph 16 \
+        -nw 4096 \
+        -n_sh 128 \
+        -n_ph 32 \
         -nl 3 \
         -n_det 1 \
         -orb real_plane_waves \
         -n_el 7 \
         -dp 1 \
-        -name 1911/find_jastrow_initial \
+        -name 2111/find_jastrow \
         --jastrow \
-        -n_it 10000 \
+        -n_it 100000 \
         -lr 0.001"
     sbatch --gres=gpu:RTX3090:$ngpu --job-name=para_el7 $submission_path $cmd
 fi

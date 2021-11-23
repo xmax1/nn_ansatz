@@ -85,7 +85,7 @@ def create_jastrow_factor(n_el: int,
     n_down = n_el - n_up
 
     number_density = n_el / volume
-    A = 1. / (jnp.sqrt(4 * jnp.pi * number_density))
+    A = 1. / (2. * jnp.sqrt(4 * jnp.pi * number_density))  # factor of 2 for adjusting to the sin inputs
 
     mask_up = jnp.concatenate([jnp.ones((n_up, n_up)), jnp.zeros((n_down, n_up))], axis=0)
     mask_down = jnp.concatenate([jnp.zeros((n_up, n_down)), jnp.ones((n_down, n_down))], axis=0)
@@ -122,16 +122,19 @@ def create_jastrow_factor(n_el: int,
         
     #     return 0.5 * jastrow_spline.sum() # scalar
 
-    I_shift = 0.1 * jnp.eye(n_el)[..., None]
-    I_mask = ((jnp.eye(n_el)-1.) * -1.)
+    eye_shift = 0.1 * jnp.eye(n_el)[..., None]
+    eye_mask = ((jnp.eye(n_el)-1.) * -1.)
 
     def _compute_jastrow_factor_i(walkers: jnp.array):
 
-        ee_vectors = compute_ee_vectors_i(walkers) + I_shift
+        ee_vectors = compute_ee_vectors_i(walkers) + eye_shift
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
-        ee_vectors = ((jnp.cos(2 * jnp.pi * ee_vectors) * -1.) + 1.) / 4.
+        # ee_vectors = ((jnp.cos(2 * jnp.pi * ee_vectors) * -1.) + 1.) / 4.
+
+        ee_vectors = jnp.sin(jnp.pi * jnp.abs(ee_vectors)) / 2.
+
         ee_distances = jnp.linalg.norm(ee_vectors, axis=-1) # (n_el, n_el)
-        jastrow = compute_jastrow_arr(ee_distances, A, F) * I_mask  # (n_el, n_el)
+        jastrow = compute_jastrow_arr(ee_distances, A, F) * eye_mask  # (n_el, n_el)
 
         return 0.5 * jastrow.sum() # scalar
 
