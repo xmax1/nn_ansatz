@@ -85,7 +85,7 @@ def create_jastrow_factor(n_el: int,
     n_down = n_el - n_up
 
     number_density = n_el / volume
-    A = 1. / (2. * jnp.sqrt(4 * jnp.pi * number_density))  # factor of 2 for adjusting to the sin inputs
+    A = 1. / (jnp.sqrt(4 * jnp.pi * number_density))  # factor of 2 for adjusting to the sin inputs
 
     mask_up = jnp.concatenate([jnp.ones((n_up, n_up)), jnp.zeros((n_down, n_up))], axis=0)
     mask_down = jnp.concatenate([jnp.zeros((n_up, n_down)), jnp.ones((n_down, n_down))], axis=0)

@@ -60,11 +60,12 @@ def create_natural_gradients_fn(mol, params, walkers):
     substate = (params, maas, msss)
     sl_factors = get_sl_factors(activations)
 
-    _compute_natural_gradients = partial(compute_natural_gradients, sl_factors=sl_factors,
-                                                                    d0s=d0s,
-                                                                    kfac_wf=kfac_wf, 
-                                                                    _compute_covariances=_compute_covariances,
-                                                                    _sensitivities_fn=_sensitivities_fn)
+    _compute_natural_gradients = partial(compute_natural_gradients, 
+                                         sl_factors=sl_factors,
+                                         d0s=d0s,
+                                         kfac_wf=kfac_wf, 
+                                         _compute_covariances=_compute_covariances,
+                                         _sensitivities_fn=_sensitivities_fn)
 
     
 
@@ -83,11 +84,12 @@ def get_sl_factors(activations):
         if lena == 3:
             sl_factor = a.shape[-2]
         sl_factors.append(sl_factor**2)
+        print('sl_factors: ', activations.shape, sl_factor)
     return sl_factors
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss):
-    cov_moving_weight = jnp.min(jnp.array([step, 0.95]))
+def update_maa_and_mss(step, maa, aa, mss, ss, cov_moving_weight=0.8):
+    cov_moving_weight = jnp.min(jnp.array([step, 0.8]))
     cov_instantaneous_weight = 1. - cov_moving_weight
     total = cov_moving_weight + cov_instantaneous_weight
 
@@ -104,7 +106,6 @@ def create_sensitivities_grad_fn(kfac_wf):
         return log_psi.mean()  # is this sum? making it the mean improves the optimisation a lot (puzzled face)
 
     grad_fn = grad(_mean_log_psi, argnums=2)
-
     return grad_fn
 
 

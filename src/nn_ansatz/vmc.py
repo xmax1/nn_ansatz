@@ -140,7 +140,7 @@ def generate_lattice(basis, cut):
     return imgs
 
 
-def create_potential_energy(mol, n_walkers=512, atol=1e-5, find_kappa=True):
+def create_potential_energy(mol, n_walkers=512, atol=1e-6, find_kappa=True):
     """
 
     Notes:

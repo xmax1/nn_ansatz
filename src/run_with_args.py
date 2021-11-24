@@ -26,7 +26,7 @@ def get_args():
     parser.add_argument('-npre', '--n_pre_it', type=int, default=1000)
     parser.add_argument('--nopretrain',  dest='pretrain', action='store_false')
     parser.add_argument('--sweep', dest='sweep', action='store_true')
-    parser.add_argument('--jastrow', dest='jastrow', action='store_true')
+    # parser.add_argument('--jastrow', dest='jastrow', action='store_true')
     args = parser.parse_args()
     return args
 

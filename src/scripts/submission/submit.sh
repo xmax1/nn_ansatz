@@ -81,7 +81,7 @@ if [ "$1" == "single" ]; then
 
     cmd="-s HEG \
         -sim 1 1 1 \
-        -nw 4096 \
+        -nw 1028 \
         -n_sh 128 \
         -n_ph 32 \
         -nl 3 \
@@ -89,9 +89,8 @@ if [ "$1" == "single" ]; then
         -orb real_plane_waves \
         -n_el 7 \
         -dp 1 \
-        -name 2111/find_jastrow \
-        --jastrow \
-        -n_it 100000 \
+        -name 2411/kfac_sum_not_mean \
+        -n_it 10000 \
         -lr 0.001"
     sbatch --gres=gpu:RTX3090:$ngpu --job-name=para_el7 $submission_path $cmd
 fi

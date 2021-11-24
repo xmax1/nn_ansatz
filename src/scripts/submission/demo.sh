@@ -6,13 +6,12 @@
 # #SBATCH --gres=gpu:RTX3090:$1 # Request 1 GPU (can increase for more)
 
 source ~/.bashrc
-module load CUDA/11.1
-module load cuDNN
+
 # module load foss
 # # #SBATCH -o junk.out
 # nvidia-smi
 # nvcc --version
-conda activate pansatz
+conda activate base
 
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
