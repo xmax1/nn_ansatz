@@ -7,9 +7,9 @@ from nn_ansatz import setup, run_vmc, approximate_energy
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--system", type=str, default='HEG')
-    parser.add_argument("-nw", "--n_walkers", type=int, default=512)
-    parser.add_argument("-n_sh", "--n_sh", type=int, default=64)
-    parser.add_argument("-n_ph", '--n_ph', type=int, default=16)
+    parser.add_argument("-nw", "--n_walkers", type=int, default=2048)
+    parser.add_argument("-n_sh", "--n_sh", type=int, default=128)
+    parser.add_argument("-n_ph", '--n_ph', type=int, default=32)
     parser.add_argument('-orb', '--orbitals', type=str, default='real_plane_waves')
     parser.add_argument('-n_el', '--n_el', type=int, default=7)
     parser.add_argument('-n_up', '--n_up', type=int, default=None)
@@ -26,7 +26,7 @@ def get_args():
     parser.add_argument('-npre', '--n_pre_it', type=int, default=1000)
     parser.add_argument('--nopretrain',  dest='pretrain', action='store_false')
     parser.add_argument('--sweep', dest='sweep', action='store_true')
-    parser.add_argument('--jastrow', dest='jastrow', action='store_true')
+    # parser.add_argument('--jastrow', dest='jastrow', action='store_true')
     args = parser.parse_args()
     return args
 

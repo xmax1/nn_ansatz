@@ -164,7 +164,7 @@ class SystemAnsatz():
                 'inv_basis:', '\n', self.inv_basis, '\n',
                 'scale_cell: ', '\n', self.scale_cell, '\n',
                 'reciprocal_basis:', '\n', self.reciprocal_basis, '\n',
-                'kappa            = %.2f \n' % self.kappa,
+                'kappa            = %.2f \n' % self.kappa, '\n',
                 'volume           = %.2f \n' % self.volume)
 
         self.pbc = pbc

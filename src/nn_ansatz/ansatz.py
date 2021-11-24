@@ -21,7 +21,7 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity)
     _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
     _mixer = partial(mixer_i, n_el=mol.n_el, n_up=mol.n_up, n_down=mol.n_down)
-    _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, mol.basis, mol.inv_basis, r_boundary=3./8.) if mol.jastrow else None
+    _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, mol.basis, mol.inv_basis) if mol.jastrow else None
     # _logabssumdet = partial(logabssumdet, jastrow=_compute_jastrow)
 
     _wf_orbitals = partial(wf_orbitals, 

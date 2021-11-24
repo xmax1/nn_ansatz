@@ -9,6 +9,7 @@ from bokeh.io import output_notebook, export_png
 from bokeh.plotting import figure, show
 from bokeh.palettes import Dark2_5 as palette
 import itertools
+import re
 
 # params = {'legend.fontsize': 16,
 #           'legend.handlelength': 3}
@@ -88,8 +89,18 @@ def get_data(target_dir, data_filename='config1.pk', dicts=[]):
         dicts.append(data)
     df = pd.DataFrame(dicts)    # .filter(regex='energy')
     columns = [x for x in df.columns if not ('dir' in x) and not ('path' in x)]
-    
     df = df[columns]
+
+    columns = [c for c in df.columns if 'equilibrated_energy_mean' in c]
+    # print(columns)
+    # [print(re.findall('\d+', x[0])) for x in columns]
+    max_n = [int(re.findall('\d+', x)[0]) if len(x) > 0 else 0 for x in columns]
+    if len(max_n) > 0: 
+        max_n = max(max_n)
+        df['equilibrated_energy_mean'] = df['equilibrated_energy_mean_i%i' % max_n]
+        df['equilibrated_energy_sem'] = df['equilibrated_energy_sem_i%i' % max_n]
+        print('max it: %i' % max_n)
+    df['energy (Ry)'] = df['equilibrated_energy_mean'] * 2.
     return df
 
 
@@ -104,31 +115,33 @@ def plot_scatter(xs,
               ylabel='',
               xaxis='linear',
               yaxis='linear',
-              hlines=None):
+              hlines=None,
+              graph=None,
+              colors=None,
+              line_label=None,
+              legend_location='top_left'):
 
-    colors = itertools.cycle(palette) 
-    graph = figure(title = title, 
-                   x_axis_label=xlabel, 
-                   y_axis_label=ylabel, 
-                   width=400, height=400,
-                   y_axis_type=yaxis, x_axis_type=xaxis)
+    if graph is None:
+        graph = figure(title = title, 
+                    x_axis_label=xlabel, 
+                    y_axis_label=ylabel, 
+                    width=400, height=400,
+                    y_axis_type=yaxis, x_axis_type=xaxis)
+
+    if colors is None:
+        colors = itertools.cycle(palette) 
 
     if not xticklabels is None: 
         graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}
         graph.xaxis.ticker = xs
         graph.xaxis.major_label_orientation = 45
 
-    # elif type(xs[0]) is tuple:
-    #     order = np.argsort([np.prod(x) for x in xs])
-    #     xs = [xs[i] for i in order]
-    #     ys = [ys[i] for i in order]
-    #     xticklabels = [str(x) for x in xs]
-    #     xs = [i for i in range(len(xs))]
-    #     graph.xaxis.major_label_overrides = {i:name for i, name in enumerate(xticklabels)}
-    #     graph.xaxis.ticker = xs
-
     c = next(colors)
-    graph.circle(xs, ys, size=10, color=c)
+    if line_label is None:
+        graph.circle(xs, ys, size=10, color=c)
+    else:
+        graph.circle(xs, ys, size=10, color=c, legend_label=line_label)
+    if line_label is not None: graph.legend.location = legend_location
     if yerrs is not None: graph.multi_line(*bokeh_bars(xs, ys, yerrs=yerrs), color=c)
 
     if hlines is not None:
@@ -137,7 +150,8 @@ def plot_scatter(xs,
 
     if save_png is not None:
         export_png(graph, filename = save_png)
-    show(graph)
+
+    return graph
 
 
 

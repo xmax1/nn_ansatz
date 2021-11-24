@@ -1,10 +1,7 @@
-
-import numpy as np
 import os
 from functools import partial
-import math 
+from math import ceil
 
-import jax
 import jax.numpy as jnp
 from jax import random as rnd
 from jax import jit, vmap, pmap
@@ -55,7 +52,7 @@ def pbc_step(walkers, key, shape, step_size, basis, inv_basis):
     return walkers
 
 
-def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
+def transform_vector_space_sam(vectors: jnp.array, basis: jnp.array) -> jnp.array:
     '''
     case 1 catches non-orthorhombic cells 
     case 2 for orthorhombic and cubic cells
@@ -67,10 +64,10 @@ def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
 
 
 def keep_in_boundary(walkers, basis, inv_basis):
-    talkers = transform_vector_space(walkers, inv_basis)
+    talkers = transform_vector_space_sam(walkers, inv_basis)
     talkers = jnp.fmod(talkers, 1.)
     talkers = jnp.where(talkers < 0., talkers + 1., talkers)
-    talkers = transform_vector_space(talkers, basis)
+    talkers = transform_vector_space_sam(talkers, basis)
     return talkers
 
 
@@ -148,7 +145,7 @@ def initialise_walkers(mol,
     if walkers is None:
         walkers = generate_walkers(mol.n_el_atoms, mol.atom_positions, mol.n_walkers, mol.n_el)
     elif not len(walkers) == mol.n_walkers:
-        n_replicate = math.ceil(mol.n_walkers / len(walkers))
+        n_replicate = ceil(mol.n_walkers / len(walkers))
         walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)
         walkers = walkers[:mol.n_walkers, ...]
 
