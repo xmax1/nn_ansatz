@@ -4,10 +4,8 @@ import jax.numpy as jnp
 
 
 cfg = setup(system='HEG',
-                    n_pre_it=10,
                     pretrain=False,
                     n_walkers=512,
-                    jastrow=True,
                     n_layers=2,
                     n_sh=64,
                     step_size=0.05,
@@ -22,7 +20,7 @@ cfg = setup(system='HEG',
                     save_every=2500,
                     lr=1e-3,
                     n_it=10000,
-                    name='jastrow_test')
+                    name='kfac_sum')
 
 log = run_vmc(cfg)
 

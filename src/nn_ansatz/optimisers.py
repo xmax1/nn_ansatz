@@ -22,12 +22,12 @@ def kfac(mol, params, walkers, lr, damping, norm_constraint):
 
     @jit
     def _update(step, grads, state):
-        params = _get_params(state)
+        params, _, _, lr, damping, norm_constraint = state
         params, tree = tree_flatten(params)
         params = [p - g for p, g in zip(params, grads)]
         params = tree_unflatten(tree, params)
 
-        return [params, *state[1:]]
+        return [params, *state[1:3], lr, damping, norm_constraint]
 
     state = [*substate, lr, damping, norm_constraint]
 
@@ -84,12 +84,12 @@ def get_sl_factors(activations):
         if lena == 3:
             sl_factor = a.shape[-2]
         sl_factors.append(sl_factor**2)
-        print('sl_factors: ', activations.shape, sl_factor)
+        # print('sl_factors: ', a.shape, sl_factor)
     return sl_factors
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss, cov_moving_weight=0.8):
-    cov_moving_weight = jnp.min(jnp.array([step, 0.8]))
+def update_maa_and_mss(step, maa, aa, mss, ss, cov_moving_weight=0.9):
+    cov_moving_weight = jnp.min(jnp.array([step, cov_moving_weight]))
     cov_instantaneous_weight = 1. - cov_moving_weight
     total = cov_moving_weight + cov_instantaneous_weight
 
@@ -150,6 +150,10 @@ def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac
 
 def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
 
+    # lr = decay_variable(lr, step)
+    damping = decay_variable(damping, step)
+    norm_constraint = decay_variable(norm_constraint, step)
+
     gradients, _ = tree_flatten(gradients)
     ngs = []
     new_maas = []
@@ -205,8 +209,8 @@ def compute_norm_constraint(nat_grads, grads, lr, norm_constraint):
     return eta
 
 
-def decay_variable(self, variable, iteration):
-    return variable / (1. + self.decay * iteration)
+def decay_variable(variable, iteration, decay=1e-5, floor=1e-5):
+    return jnp.clip(variable / (1. + decay * iteration), a_min=floor)
 
 
 def damp(maa, mss, sl_factor, damping):
