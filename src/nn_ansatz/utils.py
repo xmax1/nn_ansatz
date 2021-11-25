@@ -201,15 +201,10 @@ def setup(system: str = 'Be',
           name = None,
           save_every: int = 5000,
           print_every: int = 1000,
-
-          r_atoms=None,
-          z_atoms=None,
+          
           n_el=None,
           n_up=None,
-          n_el_atoms=None,
-          ignore_toml=False,
-          pbc=False,
-          real_basis=None,
+          
           simulation_cell: tuple = (1, 1, 1),
           density_parameter=None,
           real_cut=6,

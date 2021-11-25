@@ -2,12 +2,10 @@
 import numpy as np
 import jax.numpy as jnp
 import math
-from pyscf import dft, gto
+from pyscf import gto
 from pyscf.scf import RHF
-import jax.random as rnd
-import itertools
-from .utils import key_gen, split_variables_for_pmap
-from jax import pmap
+from itertools import product, combinations
+from .utils import split_variables_for_pmap
 from .ansatz_base import transform_vector_space
 
 
@@ -60,17 +58,19 @@ def add_nfuncs(func_split, n_funcs):
 
 
 def get_nfunc_in(func):
-    func_split = func.split('+')
-    if len(func_split) == 1:
-        return 1
-    elif len(func_split) == 2:  # sin+cos
-        n_funcs = 2
-        return add_nfuncs(func_split, n_funcs)
-    elif len(func_split) == 3:  # sin+cos+bowl
-        n_funcs = 3
-        return add_nfuncs(func_split, n_funcs)
-
-            
+    split = func.split('+')
+    n_funcs = 0
+    if 'bowl' in func:
+        n_funcs += 1
+    if 'sin' in func:
+        sin_desc = [x for x in split if 'sin' in x][0]
+        nsin = int(sin_desc[:-3]) if len(sin_desc) > 3 else 1
+        n_funcs += nsin
+    if 'cos' in func:
+        cos_desc = [x for x in split if 'cos' in x][0]
+        ncos = int(cos_desc[:-3]) if len(cos_desc) > 3 else 1
+        n_funcs += ncos
+    return n_funcs
 
 
 class SystemAnsatz():
@@ -82,6 +82,7 @@ class SystemAnsatz():
                  n_el_atoms=None,
                  n_up=None,
                  basis=None,
+                 kpoints=None,
                  inv_basis=None,
                  pbc=False,
                  spin_polarized=False,
@@ -167,9 +168,17 @@ class SystemAnsatz():
                 'kappa            = %.2f \n' % self.kappa, '\n',
                 'volume           = %.2f \n' % self.volume)
 
+            # n_down = n_el - n_up
+            shells = [1, 7, 19, 27, 33, 57]
+            # shell = shells.index(n_el) + 1 + 2 # + 1 for correct the index + 2 to take the next shell up for partial polarization
+            shell = 6
+            kpoints = generate_k_points(n_shells=shell) * 2 * jnp.pi
+            kpoints = transform_vector_space(kpoints, inv_basis)
+
         self.pbc = pbc
         self.basis = basis
         self.inv_basis = inv_basis 
+        self.kpoints = kpoints
 
         # ATOMS
         self.n_atoms = r_atoms.shape[0] if r_atoms is not None else 0
@@ -200,6 +209,8 @@ class SystemAnsatz():
 
         nfunc_in = get_nfunc_in(input_activation_nonlinearity)
         self.n_in = 4 if not pbc else 3 * nfunc_in + 1
+        if 'kpoints' in input_activation_nonlinearity: 
+            self.n_in += int([x for x in input_activation_nonlinearity.split('+') if 'kpoints' in x][0][:-7])
         self.n_sh_in = self.n_in * self.n_atoms if not self.n_atoms == 0 else self.n_in
         self.n_ph_in = self.n_in
         self.orbitals = orbitals
@@ -235,16 +246,46 @@ class SystemAnsatz():
     def atom_positions(self):
         return self.r_atoms.split(self.n_atoms, axis=0) if self.r_atoms is not None else None
 
+
+def generate_k_shells(n_shells):
+    img_range = jnp.arange(-3, 3+1)  # preset, when are we ever going to use more
+    img_sets = jnp.array(list(product(*[img_range, img_range, img_range])))
+    norms = jnp.linalg.norm(img_sets, axis=-1)
+    idxs = jnp.argsort(norms)
+    img_sets, norms = img_sets[idxs], norms[idxs]
+    norm = 0.
+    k_shells = {norm: [jnp.array([0.0, 0.0, 0.0])]}  # leacing the dictionary logic in case we ever need this data structure
+    for k_point, norm_tmp in zip(img_sets[1:], norms[1:]):
+        if norm_tmp > norm:
+            if len(k_shells) == n_shells:
+                break
+            norm = norm_tmp
+            k_shells[norm] = [k_point]
+        else:
+            if np.any([(k_point == x).all() for x in k_shells[norm]]):
+                continue # because we include the opposite k_point in the sequence this statement avoids repeats
+            k_shells[norm].append(k_point)
+        k_shells[norm].append(-k_point)
+    return k_shells
+
+def generate_k_points(n_shells):
+    k_shells = generate_k_shells(n_shells)
+    k_points = []
+    for k, v in k_shells.items():
+        for k_point in v:
+            k_points.append(k_point)
+    return jnp.array(k_points)
+
     
 def generate_plane_vectors(primitives, origin, contra, center):
-    origin_pairs = list(itertools.combinations(primitives, 2))
+    origin_pairs = list(combinations(primitives, 2))
     origin_pairs = [np.squeeze(x) for x in np.split(np.array(origin_pairs), 2, axis=1)]
     origin_plane_vectors = np.cross(origin_pairs[0], origin_pairs[1])
     
     tmp = np.stack([origin_plane_vectors, -origin_plane_vectors], axis=1)  # put the cross product in either direction
     origin_plane_vectors = use_vector_facing_away(origin, center, tmp)  # select the direction that points away from the center
 
-    contra_pairs = list(itertools.combinations(-primitives, 2))
+    contra_pairs = list(combinations(-primitives, 2))
     contra_pairs = [np.squeeze(x) for x in np.split(np.array(contra_pairs), 2, axis=1)]
     contra_plane_vectors = np.cross(contra_pairs[0], contra_pairs[1])
     

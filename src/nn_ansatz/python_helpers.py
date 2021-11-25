@@ -102,6 +102,9 @@ def join_and_create(*args):
     if not os.path.exists(path): os.makedirs(path, exist_ok=True)
     return path
 
+def flatten(lol):
+    return [x for lst in lol for x in lst]
+
 
 if __name__ == '__main__':
     cmd = 'echo max'

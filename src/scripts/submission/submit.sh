@@ -12,8 +12,8 @@ if [ "$1" == "twoloop" ]  # the space is needed because [ is a test ]
 then
     echo Calling twoloop submission
 
-    myArray=(bowl sin cos bowl+cos bowl+sin sin+cos bowl+sin+cos bowl+2sin+2cos)
-    myArray2=(tanh sin cos silu)
+    myArray=(cos 2cos 3cos 4cos 2cos+2sin 3cos+3sin)
+    myArray2=(tanh cos)
     # myArray=(16 32 64 128)
     # myArray2=(4 8 16 32)
     for hypam in "${myArray[@]}" 
@@ -23,18 +23,17 @@ then
             cmd="-s HEG \
                 -sim 1 1 1 \
                 -nw 1024 \
-                -n_sh 64 \
-                -n_ph 16 \
+                -n_sh 128 \
+                -n_ph 32 \
                 -nl 3 \
                 -n_det 1 \
                 -orb real_plane_waves \
-                -n_el 19 \
+                -n_el 7 \
                 -inact $hypam \
                 -act $hypam2 \
                 -dp 1 \
-                -name 1811/find_act \
-                -n_it 10000 \
-                -lr 0.001"
+                -name 2611/find_act \
+                -n_it 100000 "
             sbatch --gres=gpu:RTX3090:$ngpu --job-name=actsweep $submission_path $cmd
             echo $hypam $hypam2
             sleep 20
@@ -81,7 +80,7 @@ if [ "$1" == "single" ]; then
 
     cmd="-s HEG \
         -sim 1 1 1 \
-        -nw 1028 \
+        -nw 1024 \
         -n_sh 128 \
         -n_ph 32 \
         -nl 3 \
@@ -89,9 +88,8 @@ if [ "$1" == "single" ]; then
         -orb real_plane_waves \
         -n_el 7 \
         -dp 1 \
-        -name 2411/kfac_sum_not_mean \
-        -n_it 10000 \
-        -lr 0.001"
+        -name 2511/decay_test \
+        -n_it 100000"
     sbatch --gres=gpu:RTX3090:$ngpu --job-name=para_el7 $submission_path $cmd
 fi
 

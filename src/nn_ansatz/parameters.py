@@ -35,7 +35,6 @@ def unit_plus_noise(shape, key):
     return jnp.ones(shape) + rnd.normal(key, shape) * 0.01
 
 
-
 def count_mixed_features(n_sh, n_ph, n_down):
     #     n_sh_mix = 2 * n_ph + n_sh # change mixer
     return n_sh + n_ph * (2 - int(n_down==0))

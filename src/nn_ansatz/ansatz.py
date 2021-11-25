@@ -18,10 +18,10 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     masks = create_masks(mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_sh_in, mol.n_ph_in)
 
     _compute_single_stream_vectors = partial(compute_single_stream_vectors_i, r_atoms=mol.r_atoms, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis)
-    _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity)
-    _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
+    _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity, kpoints=mol.kpoints)
+    _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum, kpoints=mol.kpoints)
     _mixer = partial(mixer_i, n_el=mol.n_el, n_up=mol.n_up, n_down=mol.n_down)
-    _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, mol.basis, mol.inv_basis) if mol.jastrow else None
+    _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, mol.density_parameter, mol.basis, mol.inv_basis) if mol.jastrow else None
     # _logabssumdet = partial(logabssumdet, jastrow=_compute_jastrow)
 
     _wf_orbitals = partial(wf_orbitals, 
@@ -158,7 +158,8 @@ def create_orbitals(orbitals='anisotropic',
                     basis: Optional[jnp.array]=None,
                     inv_basis: Optional[jnp.array]=None,
                     pbc: bool=False,
-                    einsum: bool=False,):
+                    einsum: bool=False,
+                    kpoints: Optional[jnp.array] = None):
 
     if orbitals == 'anisotropic':
         _compute_orbitals = partial(anisotropic_orbitals, basis=basis, inv_basis=inv_basis, pbc=pbc, einsum=einsum)
@@ -169,13 +170,7 @@ def create_orbitals(orbitals='anisotropic',
         _sum_orbitals = partial(env_pi_i, einsum=einsum)
     
     if orbitals == 'real_plane_waves':
-        # n_down = n_el - n_up
-        shells = [1, 7, 19, 27, 33, 57]
-        # shell = shells.index(n_el) + 1 + 2 # + 1 for correct the index + 2 to take the next shell up for partial polarization
-        shell = 6
-        k_points = generate_k_points(n_shells=shell) * 2 * jnp.pi
-        k_points = transform_vector_space(k_points, inv_basis)
-        _compute_orbitals = partial(real_plane_wave_orbitals, k_points=k_points)
+        _compute_orbitals = partial(real_plane_wave_orbitals, k_points=kpoints)
         def _sum_orbitals(params: jnp.array,
                           factor: jnp.array,
                           orbital: jnp.array,
@@ -263,34 +258,7 @@ def isotropic_orbitals(sigma,
     return exponential
 
 
-def generate_k_shells(n_shells):
-    img_range = jnp.arange(-3, 3+1)  # preset, when are we ever going to use more
-    img_sets = jnp.array(list(product(*[img_range, img_range, img_range])))
-    norms = jnp.linalg.norm(img_sets, axis=-1)
-    idxs = jnp.argsort(norms)
-    img_sets, norms = img_sets[idxs], norms[idxs]
-    norm = 0.
-    k_shells = {norm: [jnp.array([0.0, 0.0, 0.0])]}  # leacing the dictionary logic in case we ever need this data structure
-    for k_point, norm_tmp in zip(img_sets[1:], norms[1:]):
-        if norm_tmp > norm:
-            if len(k_shells) == n_shells:
-                break
-            norm = norm_tmp
-            k_shells[norm] = [k_point]
-        else:
-            if np.any([(k_point == x).all() for x in k_shells[norm]]):
-                continue # because we include the opposite k_point in the sequence this statement avoids repeats
-            k_shells[norm].append(k_point)
-        k_shells[norm].append(-k_point)
-    return k_shells
 
-def generate_k_points(n_shells):
-    k_shells = generate_k_shells(n_shells)
-    k_points = []
-    for k, v in k_shells.items():
-        for k_point in v:
-            k_points.append(k_point)
-    return jnp.array(k_points)
 
 
 def real_plane_wave_orbitals(sigma,

@@ -7,7 +7,7 @@ from nn_ansatz import setup, run_vmc, approximate_energy
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--system", type=str, default='HEG')
-    parser.add_argument("-nw", "--n_walkers", type=int, default=2048)
+    parser.add_argument("-nw", "--n_walkers", type=int, default=1024)
     parser.add_argument("-n_sh", "--n_sh", type=int, default=128)
     parser.add_argument("-n_ph", '--n_ph', type=int, default=32)
     parser.add_argument('-orb', '--orbitals', type=str, default='real_plane_waves')
@@ -17,7 +17,7 @@ def get_args():
     parser.add_argument('-opt', '--opt', type=str, default='kfac')
     parser.add_argument('-n_det', '--n_det', type=int, default=1)
     parser.add_argument('-dp', '--density_parameter', type=float, default=1.0)
-    parser.add_argument('-lr', '--lr', type=float, default=1e-4)
+    parser.add_argument('-lr', '--lr', type=float, default=1e-3)
     parser.add_argument('-name', '--name', type=str, default='junk')
     parser.add_argument('-n_it', '--n_it', type=int, default=10000)
     parser.add_argument('-act', '--nonlinearity', type=str, default='cos')

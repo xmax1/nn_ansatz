@@ -209,7 +209,7 @@ def compute_norm_constraint(nat_grads, grads, lr, norm_constraint):
     return eta
 
 
-def decay_variable(variable, iteration, decay=1e-5, floor=1e-5):
+def decay_variable(variable, iteration, decay=1e-4, floor=1e-5):
     return jnp.clip(variable / (1. + decay * iteration), a_min=floor)
 
 
