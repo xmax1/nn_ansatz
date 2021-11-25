@@ -18,9 +18,10 @@ cfg = setup(system='HEG',
                     n_det=1,
                     print_every=10,
                     save_every=2500,
+                    input_activation_nonlinearity='cos+19kpoints',
                     lr=1e-3,
                     n_it=10000,
-                    name='kfac_sum')
+                    name='junk')
 
 log = run_vmc(cfg)
 

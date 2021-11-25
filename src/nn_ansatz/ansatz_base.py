@@ -1,6 +1,6 @@
 
 from typing import Optional
-from python_helpers import flatten
+from .python_helpers import flatten
 
 import jax.numpy as jnp
 from jax import lax
