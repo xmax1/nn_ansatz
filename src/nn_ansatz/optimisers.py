@@ -13,6 +13,7 @@ from .vmc import create_grad_function
 from .ansatz import create_wf
 
 
+
 def kfac(mol, params, walkers, lr, damping, norm_constraint):
 
     kfac_update, substate = create_natural_gradients_fn(mol, params, walkers)
@@ -34,7 +35,106 @@ def kfac(mol, params, walkers, lr, damping, norm_constraint):
     return _update, _get_params, kfac_update, state
 
 
+
+
 def create_natural_gradients_fn(mol, params, walkers):
+
+    kfac_wf = create_wf(mol, kfac=True)
+    
+    d0s = initialise_d0s(mol, expand=True)  # expand adds leading dimensions for multiple devices
+
+    def sum_log_psi(params, walkers, d0s):
+        log_psi, activations = kfac_wf(params, walkers, d0s)
+        return log_psi.sum(), activations
+
+    def compute_covariances(activations, sensitivities):  # (m, sl, nf)
+        activations, _ = tree_flatten(activations)
+        sensitivities, _ = tree_flatten(sensitivities)
+
+        aas, sss = [], []
+        for a, s in zip(activations, sensitivities):
+            a = a.reshape(-1)
+            s = s.reshape(-1)
+
+            aa = (jnp.transpose(a) @ a) / float(a.shape[0])
+            ss = (jnp.transpose(s) @ s) / float(s.shape[0])
+
+            aas.append(aa)
+            sss.append(ss)
+
+        return aas, sss
+
+    compute_sensitivities = grad(sum_log_psi, argnums=2, has_aux=True)
+
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        compute_sensitivities = pmap(compute_sensitivities, in_axes=(None, 0, 0))
+        compute_covariances = pmap(compute_covariances, in_axes=(0, 0))
+    
+    sensitivities, activations = compute_sensitivities(params, walkers, d0s)
+    activations, _ = tree_flatten(activations)
+    sensitivities, _ = tree_flatten(sensitivities)
+    maas = [jnp.zeros((a.shape[-1], a.shape[-1])) for a in activations]
+    msss = [jnp.zeros((s.shape[-1], s.shape[-1])) for s in sensitivities]
+    substate = (params, maas, msss)
+
+    @jit
+    def compute_natural_gradients_local(step, gradients, aas, sss, maas, msss, lr, damping, norm_constraint):
+
+        if bool(os.environ.get('DISTRIBUTE')) is True:
+            aas = [aa.mean(0) for aa in aas]
+            sss = [ss.mean(0) for ss in sss]
+
+            # lr = decay_variable(lr, step)
+        damping = decay_variable(damping, step)
+        norm_constraint = decay_variable(norm_constraint, step)
+
+        gradients, _ = tree_flatten(gradients)
+        
+        ngs, new_maas, new_msss = [], [], []
+        for g, aa, ss, maa, mss in zip(gradients, aas, sss, maas, msss):
+
+            maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
+
+            dmaa, dmss = damp(maa, mss, 1., damping)
+
+            dmaa = (dmaa + jnp.transpose(dmaa)) / 2.
+            dmss = (dmss + jnp.transpose(dmss)) / 2.
+
+            chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
+            chol_dmss = jax.scipy.linalg.cho_factor(dmss)
+
+            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
+            inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
+
+            ng = inv_dmaa @ g @ inv_dmss 
+
+            ngs.append(ng)
+            new_maas.append(maa)
+            new_msss.append(mss)
+
+        eta = compute_norm_constraint(ngs, gradients, lr, norm_constraint)
+
+        return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
+
+
+    def compute_natural_gradients(step, grads, state, walkers):
+
+        params, maas, msss, lr, damping, norm_constraint = state
+
+        sensitivities, activations = compute_sensitivities(params, walkers, d0s)
+        aas, sss = compute_covariances(activations, sensitivities)
+
+        grads, state = compute_natural_gradients_local(step, grads, aas, sss, maas, msss, lr, damping, norm_constraint)
+
+        return grads, (params, *state)
+    
+
+    return compute_natural_gradients, substate
+
+
+
+
+def create_natural_gradients_fn2(mol, params, walkers):
     
     kfac_wf = create_wf(mol, kfac=True)
     
@@ -119,14 +219,16 @@ def compute_covariances(activations, sensitivities):
     aas = []
     sss = []
     for a, s in zip(activations, sensitivities):
+        # shapes (m, sl_factor, n_f)
+        print(a.shape, s.shape)
         n = a.shape[0]
         if len(a.shape) == 3:
             a = a.mean(1)
         if len(s.shape) == 3:
             s = s.mean(1)
 
-        aa = jnp.transpose(a) @ a / float(n)
-        ss = jnp.transpose(s) @ s / float(n)
+        aa = (jnp.transpose(a) @ a) / float(n)
+        ss = (jnp.transpose(s) @ s) / float(n)
 
         aas.append(aa)
         sss.append(ss)
@@ -145,8 +247,10 @@ def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac
     aas, sss = _compute_covariances(activations, sensitivities)
 
     if bool(os.environ.get('DISTRIBUTE')) is True:
-        aas = [jax.device_put(aa, jax.devices()[0]).mean(0) for aa in aas]
-        sss = [jax.device_put(ss, jax.devices()[0]).mean(0) for ss in sss]
+        [print(aa.shape) for aa in aas]
+        [print(ss.shape) for ss in sss]
+        aas = [aa.mean(0) for aa in aas]
+        sss = [ss.mean(0) for ss in sss]
 
     ngs, state = kfac_step(step, grads, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint)
 
@@ -164,6 +268,7 @@ def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, no
     new_msss = []
 
     for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
+        print(g.shape, aa.shape, ss.shape, sl_factor)
 
         # print(g.shape, aa.shape, ss.shape, maa.shape, mss.shape)
 

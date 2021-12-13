@@ -159,10 +159,10 @@ def create_potential_energy(mol, n_walkers=512, find_kappa=True):
         charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
-        if not find_kappa:
-            min_kappa = 1.
-            min_real_cut = 6
-            min_reciprocal_cut = 6
+        if find_kappa:
+            min_kappa = 0.75
+            min_real_cut = 3
+            min_reciprocal_cut = 4
         
         else:
 

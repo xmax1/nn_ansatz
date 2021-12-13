@@ -4,26 +4,22 @@ import jax.numpy as jnp
 
 
 cfg = setup(system='HEG',
-                    pretrain=False,
-                    n_walkers=512,
+                    n_pre_it=0,
+                    n_el=14,
+                    n_up=7,
+                    density_parameter=1.,
+                    n_walkers=64,
                     n_layers=2,
-                    n_sh=64,
-                    step_size=0.05,
-                    n_ph=16,
-                    n_el=7,
+                    n_sh=32,
+                    n_ph=8,
                     orbitals='real_plane_waves',
-                    simulation_cell=(1, 1, 1),
-                    density_parameter=1., 
-                    opt='kfac',
-                    n_det=1,
-                    print_every=10,
-                    save_every=2500,
-                    input_activation_nonlinearity='cos+19kpoints',
-                    lr=1e-3,
-                    n_it=10000,
-                    name='junk')
+                    n_it=10)
+
+# mol = SystemAnsatz(**cfg)
 
 log = run_vmc(cfg)
+
+
 
 # walkers, grads, pe, ke, probs = run_vmc_debug(cfg)
 
