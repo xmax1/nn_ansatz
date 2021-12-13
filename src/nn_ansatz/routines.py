@@ -10,6 +10,7 @@ from jax.experimental.optimizers import adam
 from tqdm import trange
 import sys
 import numpy as np
+import tensorflow as tf
 
 from .ansatz_base import apply_minimum_image_convention, drop_diagonal_i, split_and_squeeze
 
@@ -81,6 +82,7 @@ def initialise_system_wf_and_sampler(cfg, walkers=None):
     return mol, vwf, walkers, params, sampler, keys
 
 def run_vmc(cfg, walkers=None):
+    
 
     logger = Logging(**cfg)
 
@@ -196,6 +198,7 @@ def approximate_value(function, params, sampler, walkers, keys, names, cfg, n_it
         if type(new_values) is tuple:
             for name, new_value in zip(names, new_values):
                 new_value = jnp.mean(new_value)
+                new_value_std = jnp.std(new_value)
                 update_dict(values, name, new_value)
         else:
             new_value = jnp.mean(new_values)
@@ -226,23 +229,35 @@ def compute_per_particle(values, n_particles):
     return new_dict
 
 def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
+    cfg['pretrain'] = False
+    
     if load_it is not None:
         cfg['load_it'] = load_it
 
     os.environ['DISTRIBUTE'] = 'True'
     
     mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
-    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=True, n_it=1000)
+    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=10000)
     energy_function = create_energy_fn(mol, vwf, separate=True)
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         energy_function = pmap(energy_function, in_axes=(None, 0))
     
-    names = ['pe', 'ke']
-    values = approximate_value(energy_function, params, sampler, walkers, keys, names, cfg, n_it=n_it)
-    
+    step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
+    values = {}
+    for i in range(n_it):
+        keys, subkeys = key_gen(keys)
+
+        walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
+
+        pe, ke = energy_function(params, walkers)
+        update_dict(values, 'pe', jnp.mean(pe))
+        update_dict(values, 'ke', jnp.mean(ke))
+        update_dict(values, 'energy', jnp.mean(pe+ke))
+        update_dict(values, 'energy_std', jnp.std(pe+ke))
+
     n_particles = mol.n_atoms if mol.n_atoms != 0 else mol.n_el
-    n_samples = len((values[names[0]]))
+    n_samples = len((values['pe']))
     
     save_values = {}
     save_values['equilibrated_pe_mean_i%i' % load_it] = np.mean(values['pe'])
@@ -253,10 +268,13 @@ def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     save_values['equilibrate_ke_std_i%i' % load_it] = np.std(values['ke'])
     save_values['equilibrate_ke_sem_i%i' % load_it] = np.std(values['ke']) / np.sqrt(n_samples)
 
-    energies = np.array(values['pe']) + np.array(values['ke'])
-    save_values['equilibrated_energy_mean_i%i' % load_it] = np.mean(energies)
-    save_values['equilibrated_energy_std_i%i' % load_it] = np.std(energies)
-    save_values['equilibrated_energy_sem_i%i' % load_it] = np.std(energies) / np.sqrt(n_samples)
+    save_values['equilibrated_energy_mean_i%i' % load_it] = np.mean(values['energy'])
+    save_values['equilibrated_energy_std_i%i' % load_it] = np.std(values['energy'])
+    save_values['equilibrated_energy_sem_i%i' % load_it] = np.std(values['energy']) / np.sqrt(n_samples)
+
+    save_values['equilibrated_energystd_mean_i%i' % load_it] = np.mean(values['energy_std'])
+    save_values['equilibrated_energystd_std_i%i' % load_it] = np.std(values['energy_std'])
+    save_values['equilibrated_energystd_sem_i%i' % load_it] = np.std(values['energy_std']) / np.sqrt(n_samples)
 
     # save_values = compute_per_particle(save_values, n_particles)
     cfg.update(save_values)

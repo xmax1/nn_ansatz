@@ -60,7 +60,6 @@ def initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_s
     for i, (sk1, sk2, sk3) in enumerate(zip(*([iter(subkeys)] * 3)), 1):  # idiom for iterating in sets of 2/3/...
         params['split%i' % i] = init_linear(sk1, (n_sh_split, n_sh), bias=False)
         params['s%i' % i] = init_linear(sk2, (n_sh_mix, n_sh), bias=True)
-        
         if not i == n_layers: params['p%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
 
     return params, key
@@ -206,10 +205,10 @@ def initialise_d0s(mol, expand=False):
                 d0s['env_sigma_up_m%i' % m] = jnp.zeros((n_up, n_exponent_dim, n_det, n_up))
                 if not n_down == 0: d0s['env_sigma_down_m%i' % m] = jnp.zeros((n_down, n_exponent_dim, n_det, n_down))
             
-            d0s['env_pi_up'] = jnp.zeros((n_det,n_up, n_up))
+            d0s['env_pi_up'] = jnp.zeros((n_det, n_up, n_up))
             
             if not n_down == 0:
-                d0s['env_pi_down'] = jnp.zeros((n_det,n_down, n_down))
+                d0s['env_pi_down'] = jnp.zeros((n_det, n_down, n_down))
 
     if expand: # distinguish between the cases 1- used to create a partial function (don't expand) 2- used to find the sensitivities (expand)
         d0s = expand_d0s(d0s, mol.n_devices, mol.n_walkers_per_device)

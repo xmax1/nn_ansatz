@@ -4,6 +4,7 @@ from operator import methodcaller
 import os
 import pickle as pk
 from torch.utils.tensorboard import SummaryWriter
+import tensorflow as tf
 import time
 from jax import jit
 from jax.experimental import optimizers
@@ -210,6 +211,7 @@ def setup(system: str = 'Be',
           real_cut=6,
           reciprocal_cut=6,
           kappa=0.5,
+          atol=1e-5,
 
           opt: str = 'kfac',
           lr: float = 1e-3,
@@ -233,7 +235,7 @@ def setup(system: str = 'Be',
           jastrow: bool = True,
 
           pre_lr: float = 1e-4,
-          n_pre_it: int = 0,
+          n_pre_it: int = 500,
           pretrain: bool = False,
 
           load_it: int = 0,
@@ -243,6 +245,7 @@ def setup(system: str = 'Be',
 
           seed: int = 369,
           **kwargs):
+    tf.config.experimental.set_visible_devices([], "GPU")
 
     n_devices = get_n_devices()
     assert n_walkers % n_devices == 0
@@ -302,6 +305,7 @@ def setup(system: str = 'Be',
               'reciprocal_cut': reciprocal_cut,
               'kappa': kappa,
               'simulation_cell': simulation_cell,
+              'atol':atol, 
 
               # ANSATZ
               'n_layers': n_layers,

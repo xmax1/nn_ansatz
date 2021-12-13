@@ -80,7 +80,8 @@ def sample_metropolis_hastings(params, curr_walkers, key, step_size, vwf, step_w
 
     acceptance_total = 0.
 
-    for _ in range(correlation_length):
+    # iterate with step size
+    for _ in range(correlation_length//2):
         
         key, *subkeys = rnd.split(key, num=3)
 
@@ -97,9 +98,33 @@ def sample_metropolis_hastings(params, curr_walkers, key, step_size, vwf, step_w
 
         acceptance_total += mask_probs.mean()
         
-    acceptance = acceptance_total / float(correlation_length)
+    acceptance = acceptance_total / float(correlation_length//2)
 
-    step_size = adjust_step_size(step_size, acceptance)
+    new_step_size = adjust_step_size(step_size, acceptance, key)
+
+    acceptance_total = 0.
+
+    # iterate with new step size
+    for _ in range(correlation_length//2):
+        
+        key, *subkeys = rnd.split(key, num=3)
+
+        # next sample
+        new_walkers = step_walkers(curr_walkers, subkeys[0], shape, new_step_size)
+        new_probs = to_prob(vwf(params, new_walkers), nan_safe=nan_safe)
+
+        # update sample
+        alpha = new_probs / curr_probs
+        mask_probs = alpha > rnd.uniform(subkeys[1], (shape[0],))
+
+        curr_walkers = jnp.where(mask_probs[:, None, None], new_walkers, curr_walkers)
+        curr_probs = jnp.where(mask_probs, new_probs, curr_probs)
+
+        acceptance_total += mask_probs.mean()
+        
+    new_acceptance = acceptance_total / float(correlation_length//2)
+
+    step_size = jnp.where(jnp.abs(acceptance - 0.5) < jnp.abs(new_acceptance - 0.5), step_size, new_step_size)
 
     return curr_walkers, acceptance, step_size
 
@@ -120,10 +145,15 @@ def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, 
     return curr_walkers, curr_probs, mask_probs
 
 
-def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
-    decrease = ((acceptance < target_acceptance).astype(acceptance.dtype) * -2.) + 1.  # +1 for false, -1 for true
-    delta = decrease * 1. / 10000.
-    return jnp.clip(step_size + delta, 0.005, 0.2)
+# def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
+#     decrease = ((acceptance < target_acceptance).astype(acceptance.dtype) * -2.) + 1.  # +1 for false, -1 for true
+#     delta = decrease * 1. / 10000.
+#     return jnp.clip(step_size + delta, 0.005, 0.2)
+
+
+def adjust_step_size(step_size, acceptance, key, target_acceptance=0.5, std=0.005):
+    step_size = step_size + std * rnd.normal(key, step_size.shape)
+    return jnp.clip(step_size, 0.0005, 0.5)
 
 
 def adjust_step_size_with_controlflow(step_size, acceptance, target_acceptance=0.5):

@@ -10,16 +10,121 @@ from bokeh.plotting import figure, show
 from bokeh.palettes import Dark2_5 as palette
 import itertools
 import re
+import csv 
 
 # params = {'legend.fontsize': 16,
 #           'legend.handlelength': 3}
 
 # plt.rcParams.update(params)
 
+
+def create_error_str_from_numbers(value, val_error):
+    precision = 10**np.floor(np.log10(val_error))
+    str_precision = '{:.16f}'.format(precision)
+    error = int(val_error / precision)
+    split_precision = str_precision.split('.')
+
+    if precision > 1:
+        raise NotImplementedError
+    else:
+        # lens to the right of the point
+        # print(value, val_error, split_precision)
+        assert float(split_precision[0]) == 0.  # make sure the precision is < 1
+        new_value = '{:.16f}'.format(value).split('.')  # put in float format
+        new_number = [new_value[0], '.']  # get the > 1 value
+        # print(new_value)
+        decimal = [c for c in new_value[1]]   # line up the decimal values
+        idx_digits = len(split_precision[1].rstrip('0'))  # get the index of the precision
+        decimal[idx_digits] = '(%i)' % error   # replace the correct precision with the error
+        new_number.extend(decimal[:idx_digits+1])  # build the list of the new number
+        new_value = str(''.join(new_number))  # join
+    
+    print('value: ', value, 'error: ', val_error, 'new_value: ', new_value)
+    return new_value
+
+
+
+
+
+def generate_latex_table(origin, target, keep_cols=[]):
+
+    new_file = []
+    with open(origin, "r") as file:
+        for line in file:
+            line = line.split(',')
+            line = '&'.join(line[i].strip() for i in keep_cols).strip()
+            # new_line = line.strip().replace(',', '&')
+            # line += ' \\\\ \n'
+            line += '\n'
+            if len(line) > 0: new_file.append(line)
+    
+    with open(target, 'w') as f:
+        for line in new_file:
+            f.write(line)
+
+
+def create_error_cols(origin, merge_cols, method=None, method_column=None):
+    # create the error columns
+    df = pd.read_csv(origin)
+
+    for (x, _, _) in merge_cols:
+        df[x] = ''
+
+    rs_values = df['rs'].unique()
+     
+    if not method is None:
+        new_data = []
+        for rs in rs_values:
+            for m in method[::-1]:
+                if m in df[df['rs'] == rs][method_column].values:
+                    break
+            row = df[(df['rs'] == rs) & (df[method_column] == m)].values[0]
+            new_data.append(row)
+
+        df = pd.DataFrame(new_data, columns=df.columns)
+
+    for i, row in enumerate(df.iterrows()):
+        # print(i, row)
+        for (new_col, old_col, old_err) in merge_cols:
+            # print(new_col, old_col, old_err)
+            err = row[1][old_err]
+            # print(err)
+            new_val = create_error_str_from_numbers(row[1][old_col], err)
+            df[new_col].iloc[i] = new_val
+
+    df.to_csv(origin, index=False)
+
+    return df
+
+
+def saverio_2_csv(origin, target, save=True):
+    new_file = []
+    with open(origin, "r") as file:
+        for line in file:
+            new_line = line.split()
+            if len(new_line) > 0: new_file.append(new_line)
+
+    df = pd.DataFrame(data=new_file[1:], columns=new_file[0])
+
+    dtypes = [float, str, float, float, float, float, float, float]
+    for (k, v), dtype in zip(df.items(), dtypes):
+        df[k] = df[k].astype(dtype)
+
+    df.to_csv(target, index=False)
+    
+    # df = create_error_cols(df, merge_cols)
+
+    return df
+
+    
+
+
 def load_pk(path):
         with open(path, 'rb') as f:
             x = pk.load(f)
         return x
+
+
 
 def decorate(ax, title=None, xaxis=None, yaxis=None, xlims=None, ylims=None):
     ax.set_title(title)
@@ -58,9 +163,9 @@ def pretty_base(title=None,
     ax.set_ylabel(ylabel, fontsize=16, **hfont)
     if legend is None:
         pass
-    elif legend is 'outside':
+    elif legend == 'outside':
         ax.legend(fontsize=12, bbox_to_anchor=(1.05, 1), loc='upper left')
-    elif legend is 'inside':
+    elif legend == 'inside':
         ax.legend(fontsize=12)
     if xlims is not None: ax.set_xlim(xlims) 
     if ylims is not None: ax.set_ylim(ylims)
@@ -82,7 +187,33 @@ def bokeh_bars(xs, ys, xerrs=None, yerrs=None):
     return xlines, ylines
 
 
-def get_data(target_dir, data_filename='config1.pk', dicts=[]):
+def get_n_inputs(data):
+    inacts = data['input_activation_nonlinearity'].values
+    new_data = {'ncos': [], 'nsin': [], 'nkpoints': []}
+    for nonlinearity in inacts:
+        split = nonlinearity.split('+')
+        nsin = ncos = nkpoints = 0
+        if 'sin' in nonlinearity:
+            sin_desc = [x for x in split if 'sin' in x][0]
+            nsin = int(sin_desc[:-3]) if len(sin_desc) > 3 else 1
+
+        if 'cos' in nonlinearity:
+            cos_desc = [x for x in split if 'cos' in x][0]
+            ncos = int(cos_desc[:-3]) if len(cos_desc) > 3 else 1
+
+        if 'kpoints' in nonlinearity:
+            kpoints_desc = [x for x in split if 'kpoints' in x][0]
+            nkpoints = int(kpoints_desc[:-7])
+
+        new_data['nsin'].append(nsin)
+        new_data['ncos'].append(ncos)
+        new_data['nkpoints'].append(nkpoints)
+
+    data = data.assign(**new_data)
+    return data
+
+
+def get_data(target_dir, groupby=None, data_filename='config1.pk', dicts=[]):
     data_paths = find_all_files_in_dir(target_dir, data_filename)
     for data_path in data_paths:
         data = load_pk(data_path)
@@ -90,22 +221,52 @@ def get_data(target_dir, data_filename='config1.pk', dicts=[]):
     df = pd.DataFrame(dicts)    # .filter(regex='energy')
     columns = [x for x in df.columns if not ('dir' in x) and not ('path' in x)]
     df = df[columns]
+    
+    try:
 
-    columns = [c for c in df.columns if 'equilibrated_energy_mean' in c]
-    # print(columns)
-    # [print(re.findall('\d+', x[0])) for x in columns]
-    max_n = [int(re.findall('\d+', x)[0]) if len(x) > 0 else 0 for x in columns]
-    if len(max_n) > 0: 
-        max_n = max(max_n)
-        df['equilibrated_energy_mean'] = df['equilibrated_energy_mean_i%i' % max_n]
-        df['equilibrated_energy_sem'] = df['equilibrated_energy_sem_i%i' % max_n]
-        print('max it: %i' % max_n)
-    df['energy (Ry)'] = df['equilibrated_energy_mean'] * 2.
+        columns = [c for c in df.columns if 'equilibrated_energy_mean_' in c]
+        # df_tmp = df[columns].dropna()
+        min_cols = df[columns].idxmin(axis=1, skipna=False)
+        min_es, min_stds, min_sems, min_is = [], [], [], []
+        for i, (row, min_col) in enumerate(zip(df.iterrows(), min_cols)):
+            row = row[1]
+            try:
+                min_i = int(re.findall('\d+', min_col)[0])
+                min_e = row[min_col]
+                min_std = row['equilibrated_energystd_std_i%i' % min_i]
+                min_sem = row['equilibrated_energy_sem_i%i' % min_i]
+                
+            except Exception as e:
+                print(e)
+                min_std = None
+                min_sem = None
+                min_e = None
+                min_i = None
+            min_stds.append(min_std)
+            min_sems.append(min_sem)
+            min_es.append(min_e)
+            min_is.append(min_i)
+
+        df['n_it_best_model'] = min_is
+        df['equilibrated_energy_mean'] = min_es
+        df['std_of_stds'] = min_stds
+        df['variance'] = df['std_of_stds']**2
+        df['equilibrated_energy_sem'] = min_sems
+        df['energy (Ry)'] = df['equilibrated_energy_mean'] * 2.
+        df = get_n_inputs(df)
+
+        if groupby is not None:
+            df = df.groupby(groupby).mean()
+            df[groupby] = df.index
+    except KeyError:
+        print(df)
+
     return df
 
 
 def plot_scatter(xs, 
               ys, 
+              xlines=None,
               yerrs=None,
               xerrs=None,
               xticklabels=None,
@@ -136,20 +297,26 @@ def plot_scatter(xs,
         graph.xaxis.ticker = xs
         graph.xaxis.major_label_orientation = 45
 
-    c = next(colors)
-    if line_label is None:
-        graph.circle(xs, ys, size=10, color=c)
-    else:
-        graph.circle(xs, ys, size=10, color=c, legend_label=line_label)
-    if line_label is not None: graph.legend.location = legend_location
-    if yerrs is not None: graph.multi_line(*bokeh_bars(xs, ys, yerrs=yerrs), color=c)
+    if not type(xs) is list: xs = [xs]
+    if not type(ys) is list: ys = [ys]
+    if yerrs is None: yerrs = [None for _ in xs]
+    elif not type(yerrs) is list: yerrs = [yerrs]
 
-    if hlines is not None:
-        for hline in hlines:
-            graph.line(xs, [hline for _ in xs], line_width=2.)
+    for x, y, yerr in zip(xs, ys, yerrs):
+        c = next(colors)
+        if line_label is None:
+            graph.circle(x, y, size=10, color=c)
+        else:
+            graph.circle(x, y, size=10, color=c, legend_label=line_label)
+        if line_label is not None: graph.legend.location = legend_location
+        if yerr is not None: graph.multi_line(*bokeh_bars(x, y, yerrs=yerr), color=c)
 
-    if save_png is not None:
-        export_png(graph, filename = save_png)
+        if hlines is not None:
+            for hline in hlines:
+                graph.line(xs, [hline for _ in xs], line_width=2.)
+
+        if save_png is not None:
+            export_png(graph, filename = save_png)
 
     return graph
 

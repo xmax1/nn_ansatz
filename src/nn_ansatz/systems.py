@@ -107,6 +107,7 @@ class SystemAnsatz():
                  atoms_from_unit_cell=True,
                  scale_cell=1.,
                  print_ansatz=True,
+                 atol=1e-5,
                  **kwargs):
 
         self.system = system
@@ -149,6 +150,7 @@ class SystemAnsatz():
             self.reciprocal_basis = compute_reciprocal_basis(basis, volume)
             self.scale_cell = scale_cell
             self.volume = volume
+            self.atol = atol # tolerance for converging the ewalds sum
 
             if r_atoms is not None:
                 if atoms_from_unit_cell: 
@@ -168,7 +170,6 @@ class SystemAnsatz():
                 'kappa            = %.2f \n' % self.kappa, '\n',
                 'volume           = %.2f \n' % self.volume)
 
-            # n_down = n_el - n_up
             shells = [1, 7, 19, 27, 33, 57]
             # shell = shells.index(n_el) + 1 + 2 # + 1 for correct the index + 2 to take the next shell up for partial polarization
             shell = 6
@@ -209,9 +210,9 @@ class SystemAnsatz():
 
         nfunc_in = get_nfunc_in(input_activation_nonlinearity)
         self.n_in = 4 if not pbc else 3 * nfunc_in + 1
-        if 'kpoints' in input_activation_nonlinearity: 
-            self.n_in += int([x for x in input_activation_nonlinearity.split('+') if 'kpoints' in x][0][:-7]) - 1
         self.n_sh_in = self.n_in * self.n_atoms if not self.n_atoms == 0 else self.n_in
+        if 'kpoints' in input_activation_nonlinearity: 
+            self.n_sh_in += int([x for x in input_activation_nonlinearity.split('+') if 'kpoints' in x][0][:-7]) - 1
         self.n_ph_in = self.n_in
         self.orbitals = orbitals
         self.einsum = einsum
@@ -267,6 +268,7 @@ def generate_k_shells(n_shells):
             k_shells[norm].append(k_point)
         k_shells[norm].append(-k_point)
     return k_shells
+
 
 def generate_k_points(n_shells):
     k_shells = generate_k_shells(n_shells)

@@ -1,13 +1,10 @@
 from typing import Callable
 from functools import partial, reduce
-from itertools import product
 
 import jax.numpy as jnp
 from jax import vmap
-import numpy as np
 
 from .parameters import initialise_d0s
-from .heg_ansatz import generate_k_points, logabssumdet
 from .ansatz_base import *
 
 def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, distribute=False):
@@ -101,8 +98,6 @@ def wf_orbitals(params: dict,
                 _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh'),
                 inv_basis = None):
 
-    
-
     activations = []
 
     single_stream_vectors = _compute_single_stream_vectors(walkers)  # (n_el, n_atom, 3)
@@ -129,7 +124,7 @@ def wf_orbitals(params: dict,
     factor_up = env_linear_i(params['env_lin_up'], data_up, activations, d0s['env_lin_up'])
     if not n_up == n_el: factor_down = env_linear_i(params['env_lin_down'], data_down, activations, d0s['env_lin_down'])
 
-    single_stream_vectors = split_and_squeeze(single_stream_vectors, axis=1)  # n_atom * (n_el, 3)
+    single_stream_vectors = split_and_squeeze(single_stream_vectors, axis=1)  # [n_atom * (n_el, 3)]
 
     exp_up = []
     exp_down = []
@@ -170,13 +165,16 @@ def create_orbitals(orbitals='anisotropic',
         _sum_orbitals = partial(env_pi_i, einsum=einsum)
     
     if orbitals == 'real_plane_waves':
-        _compute_orbitals = partial(real_plane_wave_orbitals, k_points=kpoints)
+        _compute_orbitals = partial(real_plane_wave_orbitals, kpoints=kpoints)
         def _sum_orbitals(params: jnp.array,
                           factor: jnp.array,
                           orbital: jnp.array,
                           activations: list,
                           spin: str,
                           d0s):
+            
+            # orbital (n_spin_i, n_spin_j, 1)
+            # factor (n_det, n_spin_i, n_spin_j)
             return factor * jnp.squeeze(orbital, axis=-1)[None, ...]
 
     return _compute_orbitals, _sum_orbitals
@@ -258,29 +256,26 @@ def isotropic_orbitals(sigma,
     return exponential
 
 
-
-
-
 def real_plane_wave_orbitals(sigma,
                              orb_vector,
                              d0,
                              activations: Optional[list]=None,
-                             k_points=jnp.array) -> jnp.array:
+                             kpoints=jnp.array) -> jnp.array:
 
     # sigma (n_det, n_spin_i, n_atom, 3, 3)
     # orb_vector (n_spin_j, 3)
     # k_points (n_spin_i, 3)
 
     n_el = orb_vector.shape[0]
-    args = orb_vector @ k_points[:n_el, :].T  # (n_el_j, n_el_i)
+    args = orb_vector @ kpoints[:n_el, :].T  # (n_el_j, n_el_i)
     args = jnp.split(args, n_el, axis=1)
     pf = [jnp.cos, jnp.sin]
     dets = []
     for i, arg in enumerate(args):
         column = pf[i%2](arg)
         dets.append(column)
-    dets = jnp.concatenate(dets, axis=-1)
-    return jnp.transpose(dets)
+    dets = jnp.concatenate(dets, axis=-1) # (n_el_j, n_el_i)
+    return jnp.transpose(dets) # (n_el_i, n_el_j)
 
 
 def env_pi_i(params: jnp.array,

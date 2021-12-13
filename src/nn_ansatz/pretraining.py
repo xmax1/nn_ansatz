@@ -29,7 +29,7 @@ def pretrain_wf(mol,
                 sampler,
                 walkers,
                 pre_step_size: float = 0.02,
-                n_pre_it: int = 1000,
+                n_pre_it: int = 500,
                 lr: float = 1e-4,
                 n_eq_it: int = 500,
                 pre_path=None,
@@ -86,7 +86,12 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
 
     if mol.pbc is True:
         if mol.system == 'HEG':
-            real_plane_wave_orbitals, _ = create_orbitals(orbitals=mol.orbitals, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum)
+            real_plane_wave_orbitals, _ = create_orbitals(orbitals=mol.orbitals, 
+                                                          pbc=mol.pbc, 
+                                                          basis=mol.basis, 
+                                                          inv_basis=mol.inv_basis, 
+                                                          einsum=mol.einsum, 
+                                                          kpoints=mol.kpoints)
             @jit
             def _hf_orbitals(walkers):
                 if mol.n_up == mol.n_el:
@@ -228,6 +233,10 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
         acc = (acceptance_total_wf + acceptance_total_hf) / (2 * float(correlation_length))
         return walkers, acceptance_total_hf / float(correlation_length)
 
+    if mol.system == 'HEG':
+        _loss_function = jit(_loss_function)
+        _sample_metropolis_hastings = jit(_sample_metropolis_hastings)
+        
     return _loss_function, _sample_metropolis_hastings
 
 

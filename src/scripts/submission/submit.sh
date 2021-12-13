@@ -43,16 +43,17 @@ fi
 
 if [ "$1" == "oneloop" ]; then 
     echo Calling single loop
-    myArray=(0.5 1 2 5 10 20 50 100)
-    # myArray=(1 2 5 10)
-    # myArray=(512 1024 )
-    # myArray=(2048 )
-    # myArray=(4096 )
-    # myArray=(1 2 4 8 16)
-    # myArray=(1 2 4 8 16)
-    # myArray=(4 8 )
-    for hypam in "${myArray[@]}" 
+    myArray=(10 20 50 100) # 0.5 1 2 5 
+    # myArray=(512 1024 2048 4096)
+    # myArray=(1 2 3 4 5)
+    # myArray=(0 1 2 3 4 5)
+    # myArray=(7 19 27 33 57)
+    # ngpus=(1 1 1 1 1)
+    for i in "${!myArray[@]}"
+    # for hypam in "${myArray[@]}" 
     do
+        hypam=${myArray[i]}
+        # ngpu=${ngpus[i]}
         # n_sh=$(( $hypam*16 ))
         # n_ph=$(( $hypam*4 ))
         cmd="-s HEG \
@@ -63,15 +64,17 @@ if [ "$1" == "oneloop" ]; then
             -nl 3 \
             -n_det 1 \
             -orb real_plane_waves \
-            -n_el 7 \
+            -n_el 14 \
+            -n_up 7 \
+            -inact 3cos+3sin+19kpoints \
             -dp $hypam \
-            -name 2111/find_jastrow_sin \
-            --jastrow \
+            -name 1212/dp_14 \
+            -lr 0.001 \
             -n_it 100000 \
-            -lr 0.001"
-        sbatch --gres=gpu:RTX3090:$ngpu --job-name=n_params $submission_path $cmd
+            --sweep"
+        sbatch --gres=gpu:RTX3090:$ngpu --job-name=dp$hypam $submission_path $cmd
         echo $cmd
-        sleep 3
+        echo ngpu $ngpu
     done
 fi
 
@@ -79,18 +82,22 @@ if [ "$1" == "single" ]; then
     echo Calling single submission
 
     cmd="-s HEG \
-        -sim 1 1 1 \
-        -nw 1024 \
-        -n_sh 128 \
-        -n_ph 32 \
-        -nl 3 \
-        -n_det 1 \
-        -orb real_plane_waves \
-        -n_el 7 \
-        -dp 1 \
-        -name 2511/decay_test \
-        -n_it 100000"
-    sbatch --gres=gpu:RTX3090:$ngpu --job-name=para_el7 $submission_path $cmd
+            -sim 1 1 1 \
+            -nw 1024 \
+            -n_sh 64 \
+            -n_ph 32 \
+            -nl 3 \
+            -n_det 1 \
+            -orb real_plane_waves \
+            -n_el 14 \
+            -n_up 7 \
+            -inact 3cos+3sin+19kpoints \
+            -dp 1 \
+            -name 0812/sampler_test \
+            -lr 0.001 \
+            -n_it 10000"
+    echo $cmd
+    sbatch --gres=gpu:RTX3090:$ngpu --job-name=sampler_test $submission_path $cmd
 fi
 
 
@@ -102,10 +109,16 @@ fi
 # 1024 128 32 3 7 8 1gpu OOM 512 256 
 # 2048 128 32 3 7 7 2gpu OOM 512 tick 256 tick
 
+# 1024 128 32 2l 7el 1in tick
+# 2048 64 16 2l 7el 1in tick
+
 # 14 el para
 # 1024 128 32 3 1gpu 
 
 # 19 el
-# 1024 64 16 19 el 2gpu tick 
+# 1024 128 32 2 19el 34GB
+# 1024 64 16 4 el 34GB
+# 1024 64 16 3 19el 
 # 1024 64 16 2 19el 1gpu 
-# 
+# 1024 64 16 2 19el 5in 24GB
+# 2048 64 16 2 19el 1in 34GB

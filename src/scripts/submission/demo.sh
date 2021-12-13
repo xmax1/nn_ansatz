@@ -2,7 +2,7 @@
 #SBATCH --partition=sm3090
 #SBATCH -N 1      # Minimum of 1 node
 #SBATCH -n 8     # 8 MPI processes per node
-#SBATCH --time=0-36:00:00 # 2 days of runtime (can be set to 7 days)
+#SBATCH --time=0-50:00:00 # 2 days of runtime (can be set to 7 days)
 # #SBATCH --gres=gpu:RTX3090:$1 # Request 1 GPU (can increase for more)
 
 source ~/.bashrc

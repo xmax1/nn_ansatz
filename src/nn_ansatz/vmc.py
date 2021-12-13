@@ -18,9 +18,9 @@ def create_grad_function(mol, vwf):
     compute_energy = create_energy_fn(mol, vwf)
 
     def _forward_pass(params, walkers):
-        e_locs = lax.stop_gradient(compute_energy(params, walkers))
+        e_locs = compute_energy(params, walkers)
 
-        e_locs_centered = clip_and_center(e_locs) # takes the mean of the data on each device and does not distribute
+        e_locs_centered = lax.stop_gradient(clip_and_center(e_locs)) # takes the mean of the data on each device and does not distribute
         log_psi = vwf(params, walkers)
 
         return jnp.mean(e_locs_centered * log_psi), e_locs
@@ -28,19 +28,23 @@ def create_grad_function(mol, vwf):
     _param_grad_fn = grad(_forward_pass, has_aux=True)  # has_aux indicates the number of outputs is greater than 1
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
-        _param_grad_fn = pmap(_param_grad_fn, in_axes=(None, 0))
+        _param_grad_fn = pmap(_param_grad_fn, in_axes=(None, 0), axis_name='n')
 
     '''nb: it is not possible to undevice variables within a pmap'''
 
-    def _grad_fn(params, walkers):
-        grads, e_locs = _param_grad_fn(params, walkers)
+    @jit
+    def _grad_fn(grads, e_locs):
         grads = jax.device_put(grads, jax.devices()[0])
         grads, tree = tree_flatten(grads)
         grads = [g.mean(0) for g in grads]
         grads = tree_unflatten(tree, grads)
         return grads, jax.device_put(e_locs, jax.devices()[0]).reshape(-1)
 
-    return jit(_grad_fn)
+    def __grad_fn(params, walkers):  # doing it this way avoids jit of a pmap, is it ugly? yes. 
+        grads, e_locs = _param_grad_fn(params, walkers)
+        return _grad_fn(grads, e_locs)
+
+    return __grad_fn
 
 
 def create_atom_batch(r_atoms, n_samples):
@@ -140,7 +144,7 @@ def generate_lattice(basis, cut):
     return imgs
 
 
-def create_potential_energy(mol, n_walkers=512, atol=1e-6, find_kappa=True):
+def create_potential_energy(mol, n_walkers=512, find_kappa=True):
     """
 
     Notes:
@@ -192,7 +196,7 @@ def create_potential_energy(mol, n_walkers=512, atol=1e-6, find_kappa=True):
 
                     reciprocal_sum_tmp =  compute_reciprocal_term(p_p_vectors, rl_factor, reciprocal_lattice, q_q)
 
-                    isclose_reciprocal = jnp.isclose(reciprocal_sum, reciprocal_sum_tmp, rtol=0.0, atol=atol).all()
+                    isclose_reciprocal = jnp.isclose(reciprocal_sum, reciprocal_sum_tmp, rtol=0.0, atol=mol.atol).all()
 
                     print('kappa %.3f || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
                             (kappa, reciprocal_cut, jnp.mean(reciprocal_sum), jnp.mean(reciprocal_sum_tmp), str(isclose_reciprocal.all())))
@@ -211,15 +215,15 @@ def create_potential_energy(mol, n_walkers=512, atol=1e-6, find_kappa=True):
                         
                         real_sum_tmp = compute_real_term(walkers, p_p_distances, kappa, real_lattice, q_q)
 
-                        isclose_real = jnp.isclose(real_sum, real_sum_tmp, rtol=0.0, atol=atol).all()
+                        isclose_real = jnp.isclose(real_sum, real_sum_tmp, rtol=0.0, atol=mol.atol).all()
 
                         print('kappa %.3f || real_cut %i || reciprocal_cut %i || previous pe %.7f || pe %.7f || isclose %s' % \
                             (kappa, real_cut, reciprocal_cut, jnp.mean(real_sum), jnp.mean(real_sum_tmp), str(isclose_real.all())))
 
                         real_sum = real_sum_tmp
                         if isclose_real:
-                            real_cut -= 1
-                            reciprocal_cut -= 1
+                            # real_cut -= 1
+                            # reciprocal_cut -= 1
                             diff = real_cut - reciprocal_cut 
                             cut_sum = real_cut + reciprocal_cut 
                             if diff <= min_diff and cut_sum <= min_cut_sum:
@@ -228,7 +232,7 @@ def create_potential_energy(mol, n_walkers=512, atol=1e-6, find_kappa=True):
                                 min_real_cut = real_cut
                                 min_reciprocal_cut = reciprocal_cut
                                 min_kappa = kappa
-                                if min_diff < 2 and min_cut_sum < 6:
+                                if min_diff < 2 and min_cut_sum < 8:
                                     found_params = True
                             break
                     if found_params:
@@ -400,11 +404,12 @@ def sgd(params, grads, lr=1e-4):
 
 
 def clip_and_center(e_locs):
+    # pmean the center ?????
     median = jnp.median(e_locs)
     total_var = jnp.mean(jnp.abs(e_locs - median))
     lower, upper = median - 5 * total_var, median + 5 * total_var
     e_locs = jnp.clip(e_locs, a_min=lower, a_max=upper)
-    return e_locs - jnp.mean(e_locs)
+    return e_locs - jnp.mean(e_locs)  #  - jax.lax.pmean(e_locs, 'n')
 
 
 def fast_generate_lattice(basis, cut):

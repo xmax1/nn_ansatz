@@ -89,7 +89,9 @@ def get_sl_factors(activations):
 
 
 def update_maa_and_mss(step, maa, aa, mss, ss, cov_moving_weight=0.9):
+
     cov_moving_weight = jnp.min(jnp.array([step, cov_moving_weight]))
+
     cov_instantaneous_weight = 1. - cov_moving_weight
     total = cov_moving_weight + cov_instantaneous_weight
 
@@ -103,7 +105,7 @@ def create_sensitivities_grad_fn(kfac_wf):
 
     def _mean_log_psi(params, walkers, d0s):
         log_psi, _ = kfac_wf(params, walkers, d0s)
-        return log_psi.mean()  # is this sum? making it the mean improves the optimisation a lot (puzzled face)
+        return log_psi.sum()  # is this sum? making it the mean improves the optimisation a lot (puzzled face)
 
     grad_fn = grad(_mean_log_psi, argnums=2)
     return grad_fn
@@ -131,6 +133,8 @@ def compute_covariances(activations, sensitivities):
 
     return aas, sss
 
+
+# walkers (n_gpus, n_walkers, n_el, 3)
 
 def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac_wf, _compute_covariances, _sensitivities_fn):
 
@@ -196,9 +200,9 @@ def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, no
 
     return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
 
+
 def check_symmetric(x):
     x = x - x.transpose(-1, -2)
-    print(x.mean())
 
 
 def compute_norm_constraint(nat_grads, grads, lr, norm_constraint):
@@ -209,7 +213,7 @@ def compute_norm_constraint(nat_grads, grads, lr, norm_constraint):
     return eta
 
 
-def decay_variable(variable, iteration, decay=1e-4, floor=1e-5):
+def decay_variable(variable, iteration, decay=1e-4, floor=1e-6):
     return jnp.clip(variable / (1. + decay * iteration), a_min=floor)
 
 
