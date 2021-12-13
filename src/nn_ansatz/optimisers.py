@@ -53,8 +53,8 @@ def create_natural_gradients_fn(mol, params, walkers):
 
         aas, sss = [], []
         for a, s in zip(activations, sensitivities):
-            a = a.reshape(-1)
-            s = s.reshape(-1)
+            a = a.reshape(-1, a.shape[-1])
+            s = s.reshape(-1, s.shape[-1])
 
             aa = (jnp.transpose(a) @ a) / float(a.shape[0])
             ss = (jnp.transpose(s) @ s) / float(s.shape[0])
