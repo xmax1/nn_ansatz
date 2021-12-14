@@ -43,7 +43,7 @@ fi
 
 if [ "$1" == "oneloop" ]; then 
     echo Calling single loop
-    myArray=(10 20 50 100) # 0.5 1 2 5 
+    myArray=(1 ) # 0.5 1 2 5 
     # myArray=(512 1024 2048 4096)
     # myArray=(1 2 3 4 5)
     # myArray=(0 1 2 3 4 5)
@@ -58,17 +58,16 @@ if [ "$1" == "oneloop" ]; then
         # n_ph=$(( $hypam*4 ))
         cmd="-s HEG \
             -sim 1 1 1 \
-            -nw 4096 \
+            -nw 2048 \
             -n_sh 128 \
             -n_ph 32 \
-            -nl 3 \
+            -nl 2 \
             -n_det 1 \
             -orb real_plane_waves \
-            -n_el 14 \
-            -n_up 7 \
+            -n_el 7 \
             -inact 3cos+3sin+19kpoints \
-            -dp $hypam \
-            -name 1212/dp_14 \
+            -dp 1 \
+            -name dp_7_tests/base_4in \
             -lr 0.001 \
             -n_it 100000 \
             --sweep"
@@ -83,19 +82,20 @@ if [ "$1" == "single" ]; then
 
     cmd="-s HEG \
             -sim 1 1 1 \
-            -nw 1024 \
-            -n_sh 64 \
+            -nw 2048 \
+            -n_sh 128 \
             -n_ph 32 \
-            -nl 3 \
+            -nl 2 \
             -n_det 1 \
             -orb real_plane_waves \
             -n_el 14 \
             -n_up 7 \
-            -inact 3cos+3sin+19kpoints \
+            -inact 4cos+4sin \
             -dp 1 \
-            -name 0812/sampler_test \
+            -name dp_14_tests/nok \
             -lr 0.001 \
-            -n_it 10000"
+            -n_it 100000 \
+            --sweep"
     echo $cmd
     sbatch --gres=gpu:RTX3090:$ngpu --job-name=sampler_test $submission_path $cmd
 fi

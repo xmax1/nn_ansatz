@@ -1,4 +1,3 @@
-
 from .parameters import initialise_d0s
 import jax
 import jax.numpy as jnp
@@ -11,7 +10,6 @@ from functools import partial
 
 from .vmc import create_grad_function
 from .ansatz import create_wf
-
 
 
 def kfac(mol, params, walkers, lr, damping, norm_constraint):
@@ -33,8 +31,6 @@ def kfac(mol, params, walkers, lr, damping, norm_constraint):
     state = [*substate, lr, damping, norm_constraint]
 
     return _update, _get_params, kfac_update, state
-
-
 
 
 def create_natural_gradients_fn(mol, params, walkers):
@@ -128,10 +124,7 @@ def create_natural_gradients_fn(mol, params, walkers):
 
         return grads, (params, *state)
     
-
     return compute_natural_gradients, substate
-
-
 
 
 def create_natural_gradients_fn2(mol, params, walkers):

@@ -40,7 +40,7 @@ log = run_vmc(cfg)
 
 
 if args.sweep == True:
-    for load_it in range(cfg['save_every'], args.n_it+cfg['save_every'], 10000):
+    for load_it in range(10000, args.n_it+1, 10000):
         approximate_energy(cfg, load_it=load_it)
 else:
     approximate_energy(cfg, load_it=args.n_it)
