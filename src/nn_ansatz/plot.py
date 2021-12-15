@@ -223,10 +223,9 @@ def get_data(target_dir, groupby=None, data_filename='config1.pk', dicts=[]):
     df = df[columns]
     
     try:
-
         columns = [c for c in df.columns if 'equilibrated_energy_mean_' in c]
         # df_tmp = df[columns].dropna()
-        min_cols = df[columns].idxmin(axis=1, skipna=False)
+        min_cols = df[columns].idxmin(axis=1, skipna=True)
         min_es, min_stds, min_sems, min_is = [], [], [], []
         for i, (row, min_col) in enumerate(zip(df.iterrows(), min_cols)):
             row = row[1]
@@ -237,7 +236,7 @@ def get_data(target_dir, groupby=None, data_filename='config1.pk', dicts=[]):
                 min_sem = row['equilibrated_energy_sem_i%i' % min_i]
                 
             except Exception as e:
-                print(e)
+                print(e, min_col, row['name'])
                 min_std = None
                 min_sem = None
                 min_e = None

@@ -232,7 +232,7 @@ def setup(system: str = 'Be',
           einsum: bool = False, 
           nonlinearity: str = 'cos',
           input_activation_nonlinearity: str = 'cos',
-          jastrow: bool = True,
+          no_jastrow: bool = False,
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 500,
@@ -246,6 +246,9 @@ def setup(system: str = 'Be',
           seed: int = 369,
           **kwargs):
     tf.config.experimental.set_visible_devices([], "GPU")
+
+    if no_jastrow: jastrow = False
+    else: jastrow = True
 
     n_devices = get_n_devices()
     assert n_walkers % n_devices == 0

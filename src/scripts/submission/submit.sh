@@ -92,7 +92,7 @@ if [ "$1" == "single" ]; then
             -n_up 7 \
             -inact 4cos+4sin \
             -dp 1 \
-            -name dp_14_tests/nok \
+            -name jastrow_compare/j \
             -lr 0.001 \
             -n_it 100000 \
             --sweep"

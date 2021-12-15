@@ -261,7 +261,7 @@ def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, no
     new_msss = []
 
     for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
-        print(g.shape, aa.shape, ss.shape, sl_factor)
+        # print(g.shape, aa.shape, ss.shape, sl_factor)
 
         # print(g.shape, aa.shape, ss.shape, maa.shape, mss.shape)
 
@@ -311,7 +311,7 @@ def compute_norm_constraint(nat_grads, grads, lr, norm_constraint):
     return eta
 
 
-def decay_variable(variable, iteration, decay=1e-4, floor=1e-6):
+def decay_variable(variable, iteration, decay=1e-2, floor=1e-6):
     return jnp.clip(variable / (1. + decay * iteration), a_min=floor)
 
 
