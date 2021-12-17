@@ -245,6 +245,8 @@ def create_masks(n_electrons, n_up, n_layers, n_sh, n_ph, n_sh_in, n_ph_in):
     for _ in range(n_layers):
         masks.append(create_masks_layer(n_sh, n_ph, n_electrons, n_up))
 
+    masks.append(create_masks_layer(n_sh//2, n_ph//2, n_electrons, n_up))
+
     return masks
 
 

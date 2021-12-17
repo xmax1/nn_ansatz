@@ -40,13 +40,7 @@ def count_mixed_features(n_sh, n_ph, n_down):
     return n_sh + n_ph * (2 - int(n_down==0))
 
 
-def initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers):
-    # count the number of input features
-    
-
-    # count the features in the intermediate layers
-    n_sh_mix = count_mixed_features(n_sh, n_ph, n_down)
-    n_sh_split = n_sh * (2 - int(n_down==0)) # n_down==0 reduces the hidden dimension when n_down is zero
+def initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers):
 
     # initial layers
     key, *subkeys = rnd.split(key, num=4)
@@ -55,12 +49,18 @@ def initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_s
     params['p0'] = init_linear(subkeys[2], (n_ph_in, n_ph), bias=True)
 
     # intermediate layers
-    key, *subkeys = rnd.split(key, num=(n_layers * 3 + 1))
+    key, *subkeys = rnd.split(key, num=((n_layers-1) * 3 + 1))
 
     for i, (sk1, sk2, sk3) in enumerate(zip(*([iter(subkeys)] * 3)), 1):  # idiom for iterating in sets of 2/3/...
         params['split%i' % i] = init_linear(sk1, (n_sh_split, n_sh), bias=False)
         params['s%i' % i] = init_linear(sk2, (n_sh_mix, n_sh), bias=True)
-        if not i == n_layers: params['p%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
+        params['p%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
+
+    i += 1
+    key, *subkeys = rnd.split(key, num=4)
+    params['split%i' % i] = init_linear(subkeys[0], (n_sh_split, n_sh//2), bias=False)
+    params['s%i' % i] = init_linear(subkeys[1], (n_sh_mix, n_sh//2), bias=True)
+    params['p%i' % i] = init_linear(subkeys[2], (n_ph, n_ph//2), bias=True)  # final network layer doesn't have pairwise layer
 
     return params, key
 
@@ -86,15 +86,18 @@ def initialise_params(mol, key):
     n_layers, n_sh, n_ph, n_det, n_in, n_sh_in, n_ph_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in, mol.n_sh_in, mol.n_ph_in
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
     orbitals = mol.orbitals
+
+    n_sh_mix = count_mixed_features(n_sh, n_ph, n_down)
+    n_sh_split = n_sh * (2 - int(n_down==0)) # n_down==0 reduces the hidden dimension when n_down is zero
     
     params = OrderedDict()
 
-    params, key = initialise_linear_layers(params, key, n_in, n_atoms, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers)
+    params, key = initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers)
 
     # env_linear
     key, *subkeys = rnd.split(key, num=3)
-    params['env_lin_up'] = init_linear(subkeys[0], (n_sh, n_det * n_up), bias=True)
-    if not n_down == 0: params['env_lin_down'] = init_linear(subkeys[1], (n_sh, n_det * n_down), bias=True)
+    params['env_lin_up'] = init_linear(subkeys[0], ((n_sh_split + n_sh_mix)//2, n_det * n_up), bias=True)
+    if not n_down == 0: params['env_lin_down'] = init_linear(subkeys[1], ((n_sh_split + n_sh_mix)//2, n_det * n_down), bias=True)
 
     # if not mol.einsum:
         
@@ -159,10 +162,15 @@ def initialise_linear_layers_d0s(d0s, n_el, n_pairwise, n_sh, n_ph, n_layers):
     d0s['s0'] = jnp.zeros((n_el, n_sh))
     d0s['p0'] = jnp.zeros((n_pairwise, n_ph))
 
-    for i in range(1, n_layers+1):
+    for i in range(1, n_layers):
         d0s['split%i' % i] = jnp.zeros((1, n_sh))
         d0s['s%i' % i] = jnp.zeros((n_el, n_sh))
-        if not (i == n_layers): d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph))  # final network layer doesn't have pairwise layer
+        d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph))  # final network layer doesn't have pairwise layer
+
+    i+=1
+    d0s['split%i' % i] = jnp.zeros((1, n_sh//2))
+    d0s['s%i' % i] = jnp.zeros((n_el, n_sh//2))
+    d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph//2))  # final network layer doesn't have pairwise layer
 
     return d0s
 

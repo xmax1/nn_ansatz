@@ -103,22 +103,22 @@ def wf_orbitals(params: dict,
     single_stream_vectors = _compute_single_stream_vectors(walkers)  # (n_el, n_atom, 3)
 
     single, pairwise = _compute_inputs(walkers, single_stream_vectors)  # (n_el, 3), (n_pairwise, 4)
-
     single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *masks[0])
-    # single_mixed, split = _mixer(single, pairwise, *masks[0])
 
-    split = linear_split(params['split0'], split, activations, d0s['split0'])
-    single = _linear(params['s0'], single_mixed, split, activations, d0s['s0'])
-    pairwise = _linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
-
-    for i, mask in enumerate(masks[1:-1], 1):
+    for i, mask in enumerate(masks[1:], 0):
+    
+        split = linear_split(params['split%i'%i], split, activations, d0s['split%i'%i])
+        single_tmp = _linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i])
+        pairwise_tmp = _linear_pairwise(params['p%i'%i], pairwise, activations, d0s['p%i'%i])
+        if not ((i == 0) or (i == (len(masks[1:]))-1)): 
+            single = single_tmp + single
+            pairwise = pairwise_tmp + pairwise
+        else:
+            single = single_tmp
+            pairwise = pairwise_tmp
         single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *mask)
 
-        split = linear_split(params['split%i'%i], split, activations, d0s['split%i'%i])
-        single = _linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i]) + single
-
-        if not (i + 1) == len(masks): pairwise = _linear_pairwise(params['p%i'%i], pairwise, activations, d0s['p%i'%i]) + pairwise
-
+    single = jnp.concatenate([single_mixed, split.repeat(n_el, axis=0)], axis=-1)
     data_up, data_down = jnp.split(single, [n_up], axis=0)
 
     factor_up = env_linear_i(params['env_lin_up'], data_up, activations, d0s['env_lin_up'])

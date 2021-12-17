@@ -49,6 +49,7 @@ def check_and_save(args, names):
 
 def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
     keys = rnd.PRNGKey(cfg['seed'])
+    
     if bool(os.environ.get('DISTRIBUTE')) is True:
         keys = rnd.split(keys, cfg['n_devices']).reshape(cfg['n_devices'], 2)
 
@@ -80,7 +81,7 @@ def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
 
 
     if load_params is not None:
-        params = load_pk('load_params')
+        params = load_pk(load_params)
         walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=50)
 
     
