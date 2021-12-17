@@ -111,7 +111,7 @@ def wf_orbitals(params: dict,
     single = _linear(params['s0'], single_mixed, split, activations, d0s['s0'])
     pairwise = _linear_pairwise(params['p0'], pairwise, activations, d0s['p0'])
 
-    for i, mask in enumerate(masks[1:], 1):
+    for i, mask in enumerate(masks[1:-1], 1):
         single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *mask)
 
         split = linear_split(params['split%i'%i], split, activations, d0s['split%i'%i])

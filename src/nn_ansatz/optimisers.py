@@ -8,7 +8,6 @@ import numpy as np
 import os
 from functools import partial
 
-from .vmc import create_grad_function
 from .ansatz import create_wf
 
 
@@ -49,8 +48,14 @@ def create_natural_gradients_fn(mol, params, walkers):
 
         aas, sss = [], []
         for a, s in zip(activations, sensitivities):
+            # a -= a.mean(1, keepdims=True)
+            # s -= s.mean(1, keepdims=True)
+
             a = a.reshape(-1, a.shape[-1])
             s = s.reshape(-1, s.shape[-1])
+
+            # a -= a.mean(0, keepdims=True)
+            # s -= s.mean(0, keepdims=True)
 
             aa = (jnp.transpose(a) @ a) / float(a.shape[0])
             ss = (jnp.transpose(s) @ s) / float(s.shape[0])
@@ -62,15 +67,19 @@ def create_natural_gradients_fn(mol, params, walkers):
 
     compute_sensitivities = grad(sum_log_psi, argnums=2, has_aux=True)
 
+    sl_factor_idx = 1
     if bool(os.environ.get('DISTRIBUTE')) is True:
         compute_sensitivities = pmap(compute_sensitivities, in_axes=(None, 0, 0))
         compute_covariances = pmap(compute_covariances, in_axes=(0, 0))
+        sl_factor_idx += 1
     
     sensitivities, activations = compute_sensitivities(params, walkers, d0s)
     activations, _ = tree_flatten(activations)
     sensitivities, _ = tree_flatten(sensitivities)
     maas = [jnp.zeros((a.shape[-1], a.shape[-1])) for a in activations]
     msss = [jnp.zeros((s.shape[-1], s.shape[-1])) for s in sensitivities]
+    sl_factors = [a.shape[sl_factor_idx] if len(a.shape) > (sl_factor_idx + 1) else 1. for a in activations]
+    print('sl_factors: \n', sl_factors)
     substate = (params, maas, msss)
 
     @jit
@@ -81,17 +90,21 @@ def create_natural_gradients_fn(mol, params, walkers):
             sss = [ss.mean(0) for ss in sss]
 
             # lr = decay_variable(lr, step)
-        damping = decay_variable(damping, step)
-        norm_constraint = decay_variable(norm_constraint, step)
+        damping_current = decay_variable(damping, step, decay=1e-2, floor=1e-6)
+        norm_constraint_current = decay_variable(norm_constraint, step, decay=1e-4, floor=1e-6)
 
         gradients, _ = tree_flatten(gradients)
         
         ngs, new_maas, new_msss = [], [], []
-        for g, aa, ss, maa, mss in zip(gradients, aas, sss, maas, msss):
+        for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
+            sl_factor = 1.
 
-            maa, mss = update_maa_and_mss(step, maa, aa, mss, ss)
+            maa, mss = update_maa_and_mss(step, maa, aa, mss, ss, sl_factor)
 
-            dmaa, dmss = damp(maa, mss, 1., damping)
+            dmaa, dmss = damp(maa, mss, sl_factor, damping_current)
+
+            # dmaa = maa + (jnp.eye(maa.shape[0]) * damping_current)
+            # dmss = mss + (jnp.eye(mss.shape[0]) * damping_current)
 
             dmaa = (dmaa + jnp.transpose(dmaa)) / 2.
             dmss = (dmss + jnp.transpose(dmss)) / 2.
@@ -99,8 +112,8 @@ def create_natural_gradients_fn(mol, params, walkers):
             chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
             chol_dmss = jax.scipy.linalg.cho_factor(dmss)
 
-            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
-            inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
+            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]), check_finite=False)  # , check_finite=False for performance
+            inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]), check_finite=False)
 
             ng = inv_dmaa @ g @ inv_dmss 
 
@@ -108,7 +121,7 @@ def create_natural_gradients_fn(mol, params, walkers):
             new_maas.append(maa)
             new_msss.append(mss)
 
-        eta = compute_norm_constraint(ngs, gradients, lr, norm_constraint)
+        eta = compute_norm_constraint(ngs, gradients, lr, norm_constraint_current)
 
         return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
 
@@ -181,7 +194,7 @@ def get_sl_factors(activations):
     return sl_factors
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss, cov_moving_weight=0.9):
+def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.8):
 
     cov_moving_weight = jnp.min(jnp.array([step, cov_moving_weight]))
 
@@ -189,6 +202,8 @@ def update_maa_and_mss(step, maa, aa, mss, ss, cov_moving_weight=0.9):
     total = cov_moving_weight + cov_instantaneous_weight
 
     maa = (cov_moving_weight * maa + cov_instantaneous_weight * aa) / total
+
+    ss /= sl_factor
     mss = (cov_moving_weight * mss + cov_instantaneous_weight * ss) / total
 
     return maa, mss
@@ -252,8 +267,8 @@ def compute_natural_gradients(step, grads, state, walkers, d0s, sl_factors, kfac
 def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, norm_constraint):
 
     # lr = decay_variable(lr, step)
-    damping = decay_variable(damping, step)
-    norm_constraint = decay_variable(norm_constraint, step)
+    damping = decay_variable(damping, step, decay=1e-2, floor=1e-6)
+    norm_constraint = decay_variable(norm_constraint, step, decay=1e-4, floor=1e-6)
 
     gradients, _ = tree_flatten(gradients)
     ngs = []
@@ -278,8 +293,8 @@ def kfac_step(step, gradients, aas, sss, maas, msss, sl_factors, lr, damping, no
         chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
         chol_dmss = jax.scipy.linalg.cho_factor(dmss)
 
-        inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]))  # , check_finite=False for performance
-        inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]))
+        inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]), check_finite=False)  # , check_finite=False for performance
+        inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]), check_finite=False)
 
         # the zero index takes the values on device 0
         ng = inv_dmaa @ g @ inv_dmss / sl_factor
@@ -338,7 +353,7 @@ def damp(maa, mss, sl_factor, damping):
 
 def get_tr_norm(x):
     trace = jnp.diagonal(x).sum(-1)
-    return jnp.max(jnp.array([1e-5, trace]))
+    return jnp.max(jnp.array([1e-6, trace]))
 
 
 

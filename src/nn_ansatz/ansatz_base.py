@@ -73,6 +73,7 @@ def create_jastrow_factor(n_el: int,
     n_down = n_el - n_up
 
     A = (density_parameter / 3.)**0.5 # factor of 2 for adjusting to the sin inputs
+    # A = drop_diagonal_i(A)
 
     mask_up = jnp.concatenate([jnp.ones((n_up, n_up)), jnp.zeros((n_down, n_up))], axis=0)
     mask_down = jnp.concatenate([jnp.zeros((n_up, n_down)), jnp.ones((n_down, n_down))], axis=0)
@@ -137,7 +138,7 @@ def compute_ee_vectors_i(walkers):
 def bowl(walkers_transformed: jnp.array, walkers: Optional[jnp.array]=None):
     if walkers is None:
         walkers = walkers_transformed
-    return walkers**2 / jnp.exp(4. * jnp.abs(walkers_transformed))
+    return (walkers**2 / jnp.exp(4. * jnp.abs(walkers_transformed))) * (jnp.exp(2) / (2 * 0.5**2))
 
 
 def input_activation(inputs: jnp.array, 
@@ -147,10 +148,6 @@ def input_activation(inputs: jnp.array,
                      single_stream: bool = False):
     inputs_transformed = transform_vector_space(inputs, inv_basis)
     split = nonlinearity.split('+')
-    if 'bowl' in nonlinearity:
-        bowl_features = [bowl(inputs_transformed, inputs)]
-    else:
-        bowl_features = []
     
     if 'sin' in nonlinearity:
         sin_desc = [x for x in split if 'sin' in x][0]
@@ -176,7 +173,7 @@ def input_activation(inputs: jnp.array,
     else:
         rho_k = []
     
-    return jnp.concatenate([*sin_features, *cos_features, *bowl_features, *rho_k], axis=-1)
+    return jnp.concatenate([*sin_features, *cos_features, *rho_k], axis=-1)
     
 
 def apply_minimum_image_convention(displacement_vectors, basis, inv_basis):
@@ -204,23 +201,25 @@ def compute_inputs_i(walkers: jnp.array,
 
     n_el, n_features = single_stream_vectors.shape[:2]
 
-    single_distances = jnp.linalg.norm(single_stream_vectors, axis=-1, keepdims=True)
+    single_distances = [jnp.linalg.norm(single_stream_vectors, axis=-1, keepdims=True)]
     if pbc: 
-        single_distances = jnp.linalg.norm(jnp.sin(jnp.pi*single_stream_vectors)/2., axis=-1, keepdims=True)
+        # single_distances = [jnp.linalg.norm(jnp.sin(jnp.pi*single_stream_vectors/2.), axis=-1, keepdims=True)]
+        single_distances = []
         single_stream_vectors = input_activation(single_stream_vectors, inv_basis, nonlinearity=input_activation_nonlinearity, kpoints=kpoints, single_stream=True)
 
-    single_inputs = jnp.concatenate([single_stream_vectors, single_distances], axis=-1)
+    single_inputs = jnp.concatenate([single_stream_vectors, *single_distances], axis=-1)
     single_inputs = single_inputs.reshape(n_el, -1)
 
     ee_vectors = compute_ee_vectors_i(walkers)
     ee_vectors = drop_diagonal_i(ee_vectors)
-    ee_distances = jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)
+    ee_distances = [jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)]
     if pbc: 
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
-        ee_distances = jnp.linalg.norm(jnp.sin(jnp.pi*ee_vectors)/2., axis=-1, keepdims=True)
+        ee_distances = [jnp.linalg.norm(jnp.sin(jnp.pi*ee_vectors)/2., axis=-1, keepdims=True)]
+        # ee_distances = []
         ee_vectors = input_activation(ee_vectors, inv_basis, nonlinearity=input_activation_nonlinearity, kpoints=kpoints)
 
-    pairwise_inputs = jnp.concatenate([ee_vectors, ee_distances], axis=-1)
+    pairwise_inputs = jnp.concatenate([ee_vectors, *ee_distances], axis=-1)
 
     return single_inputs, pairwise_inputs
 

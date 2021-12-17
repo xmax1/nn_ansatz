@@ -209,11 +209,11 @@ class SystemAnsatz():
         self.n_det = n_det
 
         nfunc_in = get_nfunc_in(input_activation_nonlinearity)
-        self.n_in = 4 if not pbc else 3 * nfunc_in + 1
+        self.n_in = 4 if not pbc else 3 * nfunc_in
         self.n_sh_in = self.n_in * self.n_atoms if not self.n_atoms == 0 else self.n_in
         if 'kpoints' in input_activation_nonlinearity: 
             self.n_sh_in += int([x for x in input_activation_nonlinearity.split('+') if 'kpoints' in x][0][:-7]) - 1
-        self.n_ph_in = self.n_in
+        self.n_ph_in = self.n_in + 1
         self.orbitals = orbitals
         self.einsum = einsum
         self.nonlinearity = nonlinearity

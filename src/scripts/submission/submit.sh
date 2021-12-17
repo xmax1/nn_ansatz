@@ -26,7 +26,7 @@ then
                 -n_sh 128 \
                 -n_ph 32 \
                 -nl 3 \
-                -n_det 1 \
+                -n_det 16 \
                 -orb real_plane_waves \
                 -n_el 7 \
                 -inact $hypam \
@@ -83,21 +83,22 @@ if [ "$1" == "single" ]; then
     cmd="-s HEG \
             -sim 1 1 1 \
             -nw 2048 \
-            -n_sh 128 \
+            -n_sh 64 \
             -n_ph 32 \
             -nl 2 \
             -n_det 1 \
             -orb real_plane_waves \
             -n_el 14 \
             -n_up 7 \
-            -inact 4cos+4sin \
+            -inact 3cos+3sin \
             -dp 1 \
-            -name jastrow_compare/j \
+            -name 1712/baseline \
             -lr 0.001 \
+            -npre 1000 \
             -n_it 100000 \
             --sweep"
     echo $cmd
-    sbatch --gres=gpu:RTX3090:$ngpu --job-name=sampler_test $submission_path $cmd
+    sbatch --gres=gpu:RTX3090:$ngpu --job-name=1bl_100 $submission_path $cmd
 fi
 
 
