@@ -172,10 +172,10 @@ def create_orbitals(orbitals='anisotropic',
                           activations: list,
                           spin: str,
                           d0s):
-            
+            print(factor.shape, orbital.shape)
             # orbital (n_spin_i, n_spin_j, 1)
             # factor (n_det, n_spin_i, n_spin_j)
-            return factor * jnp.squeeze(orbital, axis=-1)[None, ...]
+            return factor * orbital
 
     return _compute_orbitals, _sum_orbitals
 
@@ -268,14 +268,14 @@ def real_plane_wave_orbitals(sigma,
 
     n_el = orb_vector.shape[0]
     args = orb_vector @ kpoints[:n_el, :].T  # (n_el_j, n_el_i)
-    args = jnp.split(args, n_el, axis=1)
+    args = split_and_squeeze(args, axis=1)
     pf = [jnp.cos, jnp.sin]
     dets = []
     for i, arg in enumerate(args):
         column = pf[i%2](arg)
         dets.append(column)
-    dets = jnp.concatenate(dets, axis=-1) # (n_el_j, n_el_i)
-    return jnp.transpose(dets) # (n_el_i, n_el_j)
+    dets = jnp.stack(dets, axis=-1) # (n_el_j, n_el_i)
+    return jnp.transpose(dets)[None, ...] # (n_el_i, n_el_j)
 
 
 def env_pi_i(params: jnp.array,

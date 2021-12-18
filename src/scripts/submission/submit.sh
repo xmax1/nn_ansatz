@@ -92,13 +92,13 @@ if [ "$1" == "single" ]; then
             -n_up 7 \
             -inact 3cos+3sin \
             -dp 1 \
-            -name 1712/baseline \
-            -lr 0.001 \
+            -name 1712/highlr \
+            -lr 0.005 \
             -npre 1000 \
             -n_it 100000 \
             --sweep"
     echo $cmd
-    sbatch --gres=gpu:RTX3090:$ngpu --job-name=1bl_100 $submission_path $cmd
+    sbatch --gres=gpu:RTX3090:$ngpu --job-name=orbs_wrk $submission_path $cmd
 fi
 
 
