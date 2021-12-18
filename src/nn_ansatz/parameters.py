@@ -94,10 +94,14 @@ def initialise_params(mol, key):
 
     params, key = initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers)
 
+    if mol.backflow_coords:
+        params['bf'] = init_linear(key, ((n_sh_split + n_sh_mix)//2, 3), bias=False)
+
     # env_linear
-    key, *subkeys = rnd.split(key, num=3)
-    params['env_lin_up'] = init_linear(subkeys[0], ((n_sh_split + n_sh_mix)//2, n_det * n_up), bias=True)
-    if not n_down == 0: params['env_lin_down'] = init_linear(subkeys[1], ((n_sh_split + n_sh_mix)//2, n_det * n_down), bias=True)
+    for k in range(n_det):
+        key, *subkeys = rnd.split(key, num=3)
+        params['env_lin_up_k%i' % k] = init_linear(subkeys[0], ((n_sh_split + n_sh_mix)//2, n_up), bias=True)
+        if not n_down == 0: params['env_lin_down_k%i' % k] = init_linear(subkeys[1], ((n_sh_split + n_sh_mix)//2, n_down), bias=True)
 
     # if not mol.einsum:
         
@@ -183,12 +187,15 @@ def initialise_d0s(mol, expand=False):
 
     d0s = initialise_linear_layers_d0s(d0s, n_el, n_pairwise, n_sh, n_ph, n_layers)
 
-    d0s['env_lin_up'] = jnp.zeros((n_up, n_det * n_up))
-    if not n_down == 0: d0s['env_lin_down'] = jnp.zeros((n_down, n_det * n_down))
+    if mol.backflow_coords:
+        d0s['bf'] = jnp.zeros((n_el, 3))
+
+    for k in range(n_det):
+        d0s['env_lin_up_k%i' % k] = jnp.zeros((n_up, n_up))
+        if not n_down == 0: d0s['env_lin_down_k%i' % k] = jnp.zeros((n_down, n_down))
 
     if not mol.einsum:
         
-        # SIGMA BROADCAST
         if not mol.system == 'HEG':
             n_exponent_dim = 3 if mol.orbitals == 'anisotropic' else 1
 
@@ -205,7 +212,6 @@ def initialise_d0s(mol, expand=False):
 
     else:
 
-        # SIGMA BROADCAST
         if not mol.system == 'HEG':
             n_exponent_dim = 3 if mol.orbitals == 'anisotropic' else 1
 

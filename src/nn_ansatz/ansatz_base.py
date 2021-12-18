@@ -84,7 +84,7 @@ def create_jastrow_factor(n_el: int,
     F_opp = jnp.sqrt(jnp.pi * A / 2.)
     F = mask_same * F_same + mask_opp * F_opp
 
-    eye_shift = 0.1 * jnp.eye(n_el)[..., None]
+    eye_shift = jnp.eye(n_el)[..., None]
     eye_mask = ((jnp.eye(n_el) -1. ) * -1.)
 
     def _compute_jastrow_factor_i(walkers: jnp.array):
@@ -259,11 +259,11 @@ def create_masks_layer(n_sh, n_ph, n_electrons, n_up):
     tmp1 = jnp.ones((n_up, n_sh))
     tmp2 = jnp.zeros((n_down, n_sh))
     single_up_mask = jnp.concatenate((tmp1, tmp2), axis=0)
-    single_down_mask = (jnp.concatenate((tmp1, tmp2), axis=0) - 1.) * -1.
+    single_down_mask = (single_up_mask -1.) * -1.
 
     # pairwise spin masks
     ups = np.ones(n_electrons)
-    ups[n_up:] = 0
+    ups[n_up:] = 0.
     downs = (ups - 1.) * -1.
 
     pairwise_up_mask = []
@@ -393,9 +393,8 @@ def env_linear_i(params: jnp.array,
     bias = jnp.ones((n_spins, 1))
     activation = jnp.concatenate((data, bias), axis=1)
     activations.append(activation)
-    pre_activations = jnp.matmul(activation, params) + d0  # (j, k * i)
-    pre_activations = pre_activations.reshape(n_spins, -1, n_spins, order='F')  # (j, k, i), ### originally order='C' env_pi reshapes the same way so k -> k
-    pre_activations = jnp.transpose(pre_activations, (1, 2, 0)) # (k i j)
+    pre_activations = jnp.matmul(activation, params) + d0  # (j, i)
+    pre_activations = jnp.transpose(pre_activations) # (i j)
     return pre_activations
 
 

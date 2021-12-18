@@ -19,11 +19,10 @@ def create_grad_function(mol, vwf):
 
     def _forward_pass(params, walkers):
         e_locs = compute_energy(params, walkers)
-
-        e_locs_centered = lax.stop_gradient(clip_and_center(e_locs)) # takes the mean of the data on each device and does not distribute
+        e_locs_clipped = clip(e_locs)
+        e_locs_centered = e_locs_clipped - jnp.mean(e_locs_clipped) # takes the mean of the data on each device and does not distribute
         log_psi = vwf(params, walkers)
-
-        return jnp.mean(e_locs_centered * log_psi), e_locs
+        return jnp.mean(lax.stop_gradient(e_locs_centered) * log_psi), e_locs
 
     _param_grad_fn = grad(_forward_pass, has_aux=True)  # has_aux indicates the number of outputs is greater than 1
     
@@ -405,11 +404,17 @@ def sgd(params, grads, lr=1e-4):
 
 def clip_and_center(e_locs):
     # pmean the center ?????
+    e_locs = clip(e_locs)
+    return e_locs - jnp.mean(e_locs)  #  - jax.lax.pmean(e_locs, 'n')
+
+
+def clip(e_locs):
     median = jnp.median(e_locs)
     total_var = jnp.mean(jnp.abs(e_locs - median))
-    lower, upper = median - 5 * total_var, median + 5 * total_var
+    lower, upper = median - 10 * total_var, median + 10 * total_var
     e_locs = jnp.clip(e_locs, a_min=lower, a_max=upper)
-    return e_locs - jnp.mean(e_locs)  #  - jax.lax.pmean(e_locs, 'n')
+    return e_locs
+
 
 
 def fast_generate_lattice(basis, cut):

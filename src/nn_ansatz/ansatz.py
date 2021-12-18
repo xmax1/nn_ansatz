@@ -26,6 +26,8 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
                            n_el=mol.n_el,
                            n_up=mol.n_up,
                            n_down=mol.n_down,
+                           n_det=mol.n_det,
+                           backflow_coords=mol.backflow_coords,
                            _compute_single_stream_vectors=_compute_single_stream_vectors,
                            _compute_inputs=_compute_inputs,
                            _compute_orbitals=_compute_orbitals,
@@ -88,6 +90,8 @@ def wf_orbitals(params: dict,
                 n_up: int,
                 n_down: int,
                 n_el: int,
+                n_det: int,
+                backflow_coords: bool,
             
                 _compute_single_stream_vectors: Callable,
                 _compute_inputs: Callable,
@@ -121,8 +125,19 @@ def wf_orbitals(params: dict,
     single = jnp.concatenate([single_mixed, split.repeat(n_el, axis=0)], axis=-1)
     data_up, data_down = jnp.split(single, [n_up], axis=0)
 
-    factor_up = env_linear_i(params['env_lin_up'], data_up, activations, d0s['env_lin_up'])
-    if not n_up == n_el: factor_down = env_linear_i(params['env_lin_down'], data_down, activations, d0s['env_lin_down'])
+    if backflow_coords:
+        single_stream_vectors = jnp.expand_dims(linear_split(params['bf'], single, activations, d0s['bf']), axis=1)
+    
+    factors_up, factors_down = [], []
+    for k in range(n_det):
+        factor_up = env_linear_i(params['env_lin_up_k%i' % k], data_up, activations, d0s['env_lin_up_k%i' % k])
+        factors_up.append(factor_up)
+        if not n_up == n_el: 
+            factor_down = env_linear_i(params['env_lin_down_k%i' % k], data_down, activations, d0s['env_lin_down_k%i' % k])
+            factors_down.append(factor_down)
+
+    factor_up = jnp.stack(factors_up, axis=0)
+    factor_down = jnp.stack(factors_down, axis=0)
 
     single_stream_vectors = split_and_squeeze(single_stream_vectors, axis=1)  # [n_atom * (n_el, 3)]
 
@@ -172,10 +187,11 @@ def create_orbitals(orbitals='anisotropic',
                           activations: list,
                           spin: str,
                           d0s):
-            print(factor.shape, orbital.shape)
             # orbital (n_spin_i, n_spin_j, 1)
             # factor (n_det, n_spin_i, n_spin_j)
-            return factor * orbital
+
+            # orbital squeeze to remove the atom dimension -1
+            return factor * jnp.squeeze(orbital, axis=-1)
 
     return _compute_orbitals, _sum_orbitals
 
@@ -402,8 +418,6 @@ def mixer_i(single: jnp.array,
         # down
         sum_pairwise_down = pairwise_down_mask * sum_pairwise
         sum_pairwise_down = jnp.sum(sum_pairwise_down, axis=1) / float(n_down)
-    #     sum_spin_down = jnp.repeat(sum_spin_down, n_el, axis=1) # not needed in split
-
     
         single = jnp.concatenate((single, sum_pairwise_up, sum_pairwise_down), axis=1)
         split = jnp.concatenate((sum_spin_up, sum_spin_down), axis=1)

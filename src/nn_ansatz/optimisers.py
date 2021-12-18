@@ -346,14 +346,14 @@ def damp(maa, mss, sl_factor, damping):
     m_aa_damping = jnp.sqrt((pi * damping / sl_factor))
     m_ss_damping = jnp.sqrt((damping / (pi * sl_factor)))
 
-    maa += eye_a * m_aa_damping
-    mss += eye_s * m_ss_damping
+    maa += eye_a * jnp.clip(m_aa_damping, a_min=1e-6, a_max=1e-1)
+    mss += eye_s * jnp.clip(m_ss_damping, a_min=1e-6, a_max=1e-1)
     return maa, mss
 
 
 def get_tr_norm(x):
     trace = jnp.diagonal(x).sum(-1)
-    return jnp.max(jnp.array([1e-6, trace]))
+    return trace
 
 
 

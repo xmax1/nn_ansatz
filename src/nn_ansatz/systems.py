@@ -94,6 +94,7 @@ class SystemAnsatz():
                  nonlinearity: str = 'tanh',
                  input_activation_nonlinearity: str = 'sin',
                  jastrow: bool = False,
+                 backflow_coords: bool = False,
                  n_layers=2,
                  n_sh=64,
                  n_ph=16,
@@ -180,6 +181,7 @@ class SystemAnsatz():
         self.basis = basis
         self.inv_basis = inv_basis 
         self.kpoints = kpoints
+        self.backflow_coords = backflow_coords
 
         # ATOMS
         self.n_atoms = r_atoms.shape[0] if r_atoms is not None else 0

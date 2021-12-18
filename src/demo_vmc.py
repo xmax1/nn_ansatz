@@ -8,12 +8,14 @@ cfg = setup(system='HEG',
                     n_el=14,
                     n_up=7,
                     density_parameter=1.,
-                    n_walkers=64,
+                    n_walkers=512,
                     n_layers=2,
-                    n_sh=32,
-                    n_ph=8,
+                    n_sh=64,
+                    n_ph=16,
                     orbitals='real_plane_waves',
-                    n_it=10)
+                    name='runs2/damping_clip',
+                    lr=0.01,
+                    n_it=1000)
 
 # mol = SystemAnsatz(**cfg)
 
