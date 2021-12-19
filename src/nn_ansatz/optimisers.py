@@ -48,17 +48,20 @@ def create_natural_gradients_fn(mol, params, walkers):
 
         aas, sss = [], []
         for a, s in zip(activations, sensitivities):
-            # a -= a.mean(1, keepdims=True)
-            # s -= s.mean(1, keepdims=True)
+            n = a.shape[0]
+            sl_factor = 1
+            if len(a) > 3: 
+                sl_factor = a.shape[1]
 
             a = a.reshape(-1, a.shape[-1])
             s = s.reshape(-1, s.shape[-1])
+            
+            # if len(a.shape) > 2:
+            #     a = a.mean(1)
+            #     s = s.mean(1)
 
-            # a -= a.mean(0, keepdims=True)
-            # s -= s.mean(0, keepdims=True)
-
-            aa = (jnp.transpose(a) @ a) / float(a.shape[0])
-            ss = (jnp.transpose(s) @ s) / float(s.shape[0])
+            aa = (jnp.transpose(a) @ a) / float(n)
+            ss = (jnp.transpose(s) @ s) / float(n)
 
             aas.append(aa)
             sss.append(ss)
@@ -89,22 +92,19 @@ def create_natural_gradients_fn(mol, params, walkers):
             aas = [aa.mean(0) for aa in aas]
             sss = [ss.mean(0) for ss in sss]
 
-            # lr = decay_variable(lr, step)
-        damping_current = decay_variable(damping, step, decay=1e-2, floor=1e-6)
+        lr_current = decay_variable(lr, step, decay=1e-4, floor=1e-4)
+        damping_current = decay_variable(damping, step, decay=1e-2, floor=None)
         norm_constraint_current = decay_variable(norm_constraint, step, decay=1e-4, floor=1e-6)
 
         gradients, _ = tree_flatten(gradients)
         
         ngs, new_maas, new_msss = [], [], []
         for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
-            sl_factor = 1.
+            # sl_factor = sl_factor**2
 
             maa, mss = update_maa_and_mss(step, maa, aa, mss, ss, sl_factor)
 
             dmaa, dmss = damp(maa, mss, sl_factor, damping_current)
-
-            # dmaa = maa + (jnp.eye(maa.shape[0]) * damping_current)
-            # dmss = mss + (jnp.eye(mss.shape[0]) * damping_current)
 
             dmaa = (dmaa + jnp.transpose(dmaa)) / 2.
             dmss = (dmss + jnp.transpose(dmss)) / 2.
@@ -112,19 +112,18 @@ def create_natural_gradients_fn(mol, params, walkers):
             chol_dmaa = jax.scipy.linalg.cho_factor(dmaa)
             chol_dmss = jax.scipy.linalg.cho_factor(dmss)
 
-            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]), check_finite=False)  # , check_finite=False for performance
+            inv_dmaa = jax.scipy.linalg.cho_solve(chol_dmaa, jnp.eye(maa.shape[0]), check_finite=False)
             inv_dmss = jax.scipy.linalg.cho_solve(chol_dmss, jnp.eye(mss.shape[0]), check_finite=False)
 
-            ng = inv_dmaa @ g @ inv_dmss 
+            ng = inv_dmaa @ g @ inv_dmss * sl_factor
 
             ngs.append(ng)
             new_maas.append(maa)
             new_msss.append(mss)
 
-        eta = compute_norm_constraint(ngs, gradients, lr, norm_constraint_current)
+        eta = compute_norm_constraint(ngs, gradients, lr_current, norm_constraint_current)
 
-        return [lr * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
-
+        return [lr_current * eta * ng for ng in ngs], (new_maas, new_msss, lr, damping, norm_constraint)
 
     def compute_natural_gradients(step, grads, state, walkers):
 
@@ -138,6 +137,46 @@ def create_natural_gradients_fn(mol, params, walkers):
         return grads, (params, *state)
     
     return compute_natural_gradients, substate
+
+
+def damp(maa, mss, sl_factor, damping):
+
+    dim_a = maa.shape[-1]
+    dim_s = mss.shape[-1]
+
+    tr_a = get_tr_norm(maa)
+    tr_s = get_tr_norm(mss)
+
+    pi = ((tr_a * dim_s) / (tr_s * dim_a))
+
+    eye_a = jnp.eye(dim_a, dtype=maa.dtype)
+    eye_s = jnp.eye(dim_s, dtype=maa.dtype)
+
+    m_aa_damping = jnp.sqrt((pi * damping / sl_factor))
+    m_ss_damping = jnp.sqrt((damping / (pi * sl_factor)))
+
+    maa += eye_a * jnp.clip(m_aa_damping, a_min=1e-7, a_max=1e-1)
+    mss += eye_s * jnp.clip(m_ss_damping, a_min=1e-7, a_max=1e-1)
+    return maa, mss
+
+
+def get_tr_norm(x):
+    trace = jnp.diagonal(x).sum(-1)
+    return trace
+
+
+def compute_norm_constraint(nat_grads, grads, lr, norm_constraint):
+    sq_fisher_norm = 0.
+    for ng, g in zip(nat_grads, grads):
+        sq_fisher_norm += (ng * g).sum()
+    eta = jnp.min(jnp.array([1., jnp.sqrt(norm_constraint / (lr**2 * sq_fisher_norm))]))
+    return eta
+
+
+def decay_variable(variable, iteration, decay=1e-2, floor=1e-6):
+    if floor is not None:
+        return jnp.clip(variable / (1. + decay * iteration), a_min=floor)
+    return variable / (1. + decay * iteration)
 
 
 def create_natural_gradients_fn2(mol, params, walkers):
@@ -159,8 +198,8 @@ def create_natural_gradients_fn2(mol, params, walkers):
     # can be done with shapes but requires thinking and we don't do thinking
     _, activations = kfac_wf(params, walkers, d0s)
     sensitivities = _sensitivities_fn(params, walkers, d0s)
-    activations, activations_tree_map = tree_flatten(activations)
-    sensitivities, sensitivities_tree_map = tree_flatten(sensitivities)
+    activations, _ = tree_flatten(activations)
+    sensitivities, _ = tree_flatten(sensitivities)
     maas = [jnp.zeros((a.shape[-1], a.shape[-1])) for a in activations]
     msss = [jnp.zeros((s.shape[-1], s.shape[-1])) for s in sensitivities]
     substate = (params, maas, msss)
@@ -176,6 +215,9 @@ def create_natural_gradients_fn2(mol, params, walkers):
     
 
     return jit(_compute_natural_gradients), substate
+
+
+
 
 
 def get_sl_factors(activations):
@@ -194,7 +236,7 @@ def get_sl_factors(activations):
     return sl_factors
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.8):
+def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.7):
 
     cov_moving_weight = jnp.min(jnp.array([step, cov_moving_weight]))
 
@@ -202,8 +244,6 @@ def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.8)
     total = cov_moving_weight + cov_instantaneous_weight
 
     maa = (cov_moving_weight * maa + cov_instantaneous_weight * aa) / total
-
-    ss /= sl_factor
     mss = (cov_moving_weight * mss + cov_instantaneous_weight * ss) / total
 
     return maa, mss
@@ -318,42 +358,10 @@ def check_symmetric(x):
     x = x - x.transpose(-1, -2)
 
 
-def compute_norm_constraint(nat_grads, grads, lr, norm_constraint):
-    sq_fisher_norm = 0.
-    for ng, g in zip(nat_grads, grads):
-        sq_fisher_norm += (ng * g).sum()
-    eta = jnp.min(jnp.array([1., jnp.sqrt(norm_constraint / (lr**2 * sq_fisher_norm))]))
-    return eta
 
 
-def decay_variable(variable, iteration, decay=1e-2, floor=1e-6):
-    return jnp.clip(variable / (1. + decay * iteration), a_min=floor)
 
 
-def damp(maa, mss, sl_factor, damping):
-
-    dim_a = maa.shape[-1]
-    dim_s = mss.shape[-1]
-
-    tr_a = get_tr_norm(maa)
-    tr_s = get_tr_norm(mss)
-
-    pi = ((tr_a * dim_s) / (tr_s * dim_a))
-
-    eye_a = jnp.eye(dim_a, dtype=maa.dtype)
-    eye_s = jnp.eye(dim_s, dtype=maa.dtype)
-
-    m_aa_damping = jnp.sqrt((pi * damping / sl_factor))
-    m_ss_damping = jnp.sqrt((damping / (pi * sl_factor)))
-
-    maa += eye_a * jnp.clip(m_aa_damping, a_min=1e-6, a_max=1e-1)
-    mss += eye_s * jnp.clip(m_ss_damping, a_min=1e-6, a_max=1e-1)
-    return maa, mss
-
-
-def get_tr_norm(x):
-    trace = jnp.diagonal(x).sum(-1)
-    return trace
 
 
 

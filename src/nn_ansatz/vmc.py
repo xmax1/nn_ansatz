@@ -18,8 +18,9 @@ def create_grad_function(mol, vwf):
     compute_energy = create_energy_fn(mol, vwf)
 
     def _forward_pass(params, walkers):
-        e_locs = compute_energy(params, walkers)
-        e_locs_clipped = clip(e_locs)
+        e_locs = compute_energy(params, walkers) 
+        e_locs_g = e_locs * mol.n_atoms if not mol.n_atoms == 0 else e_locs * mol.n_el
+        e_locs_clipped = clip(e_locs_g)
         e_locs_centered = e_locs_clipped - jnp.mean(e_locs_clipped) # takes the mean of the data on each device and does not distribute
         log_psi = vwf(params, walkers)
         return jnp.mean(lax.stop_gradient(e_locs_centered) * log_psi), e_locs
@@ -411,7 +412,7 @@ def clip_and_center(e_locs):
 def clip(e_locs):
     median = jnp.median(e_locs)
     total_var = jnp.mean(jnp.abs(e_locs - median))
-    lower, upper = median - 10 * total_var, median + 10 * total_var
+    lower, upper = median - 5 * total_var, median + 5 * total_var
     e_locs = jnp.clip(e_locs, a_min=lower, a_max=upper)
     return e_locs
 

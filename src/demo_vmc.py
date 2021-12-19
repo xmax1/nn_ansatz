@@ -12,10 +12,12 @@ cfg = setup(system='HEG',
                     n_layers=2,
                     n_sh=64,
                     n_ph=16,
+                    correlation_length=10,
+                    input_activation_nonlinearity='5cos+5sin+7kpoints',
                     orbitals='real_plane_waves',
-                    name='runs2/damping_clip',
-                    lr=0.01,
-                    n_it=1000)
+                    name='runs3/demo_kfc_nopair',
+                    lr=0.001,
+                    n_it=10000)
 
 # mol = SystemAnsatz(**cfg)
 

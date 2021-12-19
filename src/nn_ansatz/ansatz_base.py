@@ -1,5 +1,5 @@
 
-from typing import Optional
+from typing import Optional, Tuple
 from .python_helpers import flatten
 
 import jax.numpy as jnp
@@ -94,6 +94,9 @@ def create_jastrow_factor(n_el: int,
         ee_vectors = jnp.sin(jnp.pi * ee_vectors) / 2.
         ee_distances = jnp.linalg.norm(ee_vectors, axis=-1) # (n_el, n_el)
         jastrow = compute_jastrow_arr(ee_distances, A, F) * eye_mask  # (n_el, n_el)
+        
+        # jastrow = compute_jastrow_arr(params['A'], params[])
+        
         return 0.5 * jastrow.sum() # scalar
 
     return _compute_jastrow_factor_i
@@ -123,7 +126,8 @@ def compute_single_stream_vectors_i(walkers: jnp.array,
     if not r_atoms is None:
         r_atoms = jnp.expand_dims(r_atoms, axis=0)
         single_stream_vectors = r_atoms - single_stream_vectors
-        if pbc: single_stream_vectors = apply_minimum_image_convention(single_stream_vectors, basis, inv_basis)
+        if pbc: 
+            single_stream_vectors = apply_minimum_image_convention(single_stream_vectors, basis, inv_basis)
     return single_stream_vectors  # (n_el, n_atoms, 3)
 
 
@@ -215,8 +219,8 @@ def compute_inputs_i(walkers: jnp.array,
     ee_distances = [jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)]
     if pbc: 
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
-        ee_distances = [jnp.linalg.norm(jnp.sin(jnp.pi*ee_vectors)/2., axis=-1, keepdims=True)]
-        # ee_distances = []
+        # ee_distances = [jnp.linalg.norm(jnp.sin(jnp.pi*ee_vectors)/2., axis=-1, keepdims=True)]
+        ee_distances = []
         ee_vectors = input_activation(ee_vectors, inv_basis, nonlinearity=input_activation_nonlinearity, kpoints=kpoints)
 
     pairwise_inputs = jnp.concatenate([ee_vectors, *ee_distances], axis=-1)
@@ -335,19 +339,55 @@ def linear(p: jnp.array,
     activation = jnp.concatenate([data, bias], axis=-1)
     activations.append(activation)
 
-    pre_activation = jnp.dot(activation, p) + d0
+    pre_activation = jnp.dot(activation, p) + split + d0
+    return layer_activation(pre_activation, nonlinearity=nonlinearity)
+    
+    
+    
+def layer_activation(pre_activation, nonlinearity='cos'):
     if nonlinearity == 'tanh':
-        return jnp.tanh(pre_activation + split)
+        return jnp.tanh(pre_activation)
     elif nonlinearity == 'sin':
-        return jnp.sin(pre_activation + split)
+        return jnp.sin(pre_activation)
     elif nonlinearity == 'cos':
-        return jnp.cos(pre_activation + split)
+        return jnp.cos(pre_activation)
     elif nonlinearity == 'silu':
-        return silu(pre_activation + split)
+        return silu(pre_activation)
     elif nonlinearity == 'snake':
-        return snake(pre_activation + split)
+        return snake(pre_activation)
     else:
         exit('nonlinearity not available')
+
+
+def linear_pairwise_v2(p_same: jnp.array,
+                       p_diff: jnp.array,
+                       data: Tuple[jnp.array, jnp.array],
+                       activations: list,
+                       d0_same: jnp.array,
+                       d0_diff: jnp.array,
+                       residual: Tuple[jnp.array, jnp.array],
+                       nonlinearity: str = 'tanh') -> jnp.array:
+
+    res_same, res_diff = residual
+    data_same, data_diff = data
+
+    bias = jnp.ones((*data_same.shape[:-1], 1))
+    a_same = jnp.concatenate([data_same, bias], axis=-1)
+    activations.append(a_same)
+    
+    bias = jnp.ones((*data_diff.shape[:-1], 1))
+    a_diff = jnp.concatenate([data_diff, bias], axis=-1)
+    activations.append(a_diff)
+    
+    pre_same = layer_activation(jnp.dot(a_same, p_same) + d0_same, nonlinearity=nonlinearity)
+    if pre_same.shape == res_same.shape:
+        pre_same += res_same
+    
+    pre_diff = layer_activation(jnp.dot(a_diff, p_diff) + d0_diff, nonlinearity=nonlinearity)
+    if pre_diff.shape == res_diff.shape:
+        pre_diff += res_diff
+
+    return (pre_same, pre_diff)
 
 
 def linear_pairwise(p: jnp.array,
@@ -361,18 +401,7 @@ def linear_pairwise(p: jnp.array,
     activations.append(activation)
 
     pre_activation = jnp.dot(activation, p) + d0
-    if nonlinearity == 'tanh':
-        return jnp.tanh(pre_activation)
-    elif nonlinearity == 'sin':
-        return jnp.sin(pre_activation)
-    elif nonlinearity == 'cos':
-        return jnp.cos(pre_activation)
-    elif nonlinearity == 'silu':
-        return silu(pre_activation)
-    elif nonlinearity == 'snake':
-        return snake(pre_activation)
-    else:
-        exit('nonlinearity not available')
+    return layer_activation(pre_activation, nonlinearity=nonlinearity)
 
 
 def env_linear_i(params: jnp.array,
