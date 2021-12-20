@@ -43,24 +43,27 @@ def count_mixed_features(n_sh, n_ph, n_down):
 def initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers):
 
     # initial layers
-    key, *subkeys = rnd.split(key, num=4)
+    key, *subkeys = rnd.split(key, num=5)
     params['split0'] = init_linear(subkeys[0], (n_sh_in * (2 - int(n_down==0)), n_sh), bias=False)  # n_down==0 modifies the input when n_down is zero
     params['s0'] = init_linear(subkeys[1], (count_mixed_features(n_sh_in, n_ph_in, n_down), n_sh), bias=True)
-    params['p0'] = init_linear(subkeys[2], (n_ph_in, n_ph), bias=True)
+    params['ps0'] = init_linear(subkeys[2], (n_ph_in, n_ph), bias=True)
+    params['pd0'] = init_linear(subkeys[3], (n_ph_in, n_ph), bias=True)
 
     # intermediate layers
-    key, *subkeys = rnd.split(key, num=((n_layers-1) * 3 + 1))
+    key, *subkeys = rnd.split(key, num=((n_layers-1) * 4 + 1))
 
-    for i, (sk1, sk2, sk3) in enumerate(zip(*([iter(subkeys)] * 3)), 1):  # idiom for iterating in sets of 2/3/...
+    for i, (sk1, sk2, sk3, sk4) in enumerate(zip(*([iter(subkeys)] * 4)), 1):  # idiom for iterating in sets of 2/3/...
         params['split%i' % i] = init_linear(sk1, (n_sh_split, n_sh), bias=False)
         params['s%i' % i] = init_linear(sk2, (n_sh_mix, n_sh), bias=True)
-        params['p%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
+        params['ps%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
+        params['pd%i' % i] = init_linear(sk4, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
 
     i += 1
-    key, *subkeys = rnd.split(key, num=4)
+    key, *subkeys = rnd.split(key, num=5)
     params['split%i' % i] = init_linear(subkeys[0], (n_sh_split, n_sh//2), bias=False)
     params['s%i' % i] = init_linear(subkeys[1], (n_sh_mix, n_sh//2), bias=True)
-    params['p%i' % i] = init_linear(subkeys[2], (n_ph, n_ph//2), bias=True)  # final network layer doesn't have pairwise layer
+    params['ps%i' % i] = init_linear(subkeys[2], (n_ph, n_ph//2), bias=True)  # final network layer doesn't have pairwise layer
+    params['pd%i' % i] = init_linear(subkeys[3], (n_ph, n_ph//2), bias=True)  # final network layer doesn't have pairwise layer
 
     return params, key
 
@@ -160,21 +163,28 @@ def initialise_params(mol, key):
     return params
 
 
-def initialise_linear_layers_d0s(d0s, n_el, n_pairwise, n_sh, n_ph, n_layers):
+def initialise_linear_layers_d0s(d0s, n_up, n_down, n_sh, n_ph, n_layers):
+    n_el = n_up + n_down
+    n_same = n_up**2 + n_down**2
+    n_diff = 2 * n_up * n_down
+
     # initial layers
     d0s['split0'] = jnp.zeros((1, n_sh))
     d0s['s0'] = jnp.zeros((n_el, n_sh))
-    d0s['p0'] = jnp.zeros((n_pairwise, n_ph))
+    d0s['ps0'] = jnp.zeros((n_same, n_ph))
+    d0s['pd0'] = jnp.zeros((n_diff, n_ph))
 
     for i in range(1, n_layers):
         d0s['split%i' % i] = jnp.zeros((1, n_sh))
         d0s['s%i' % i] = jnp.zeros((n_el, n_sh))
-        d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph))  # final network layer doesn't have pairwise layer
+        d0s['ps%i' % i] = jnp.zeros((n_same, n_ph))  # final network layer doesn't have pairwise layer
+        d0s['pd%i' % i] = jnp.zeros((n_diff, n_ph))  # final network layer doesn't have pairwise layer
 
     i+=1
     d0s['split%i' % i] = jnp.zeros((1, n_sh//2))
     d0s['s%i' % i] = jnp.zeros((n_el, n_sh//2))
-    d0s['p%i' % i] = jnp.zeros((n_pairwise, n_ph//2))  # final network layer doesn't have pairwise layer
+    d0s['ps%i' % i] = jnp.zeros((n_same, n_ph//2))  # final network layer doesn't have pairwise layer
+    d0s['pd%i' % i] = jnp.zeros((n_diff, n_ph//2))  # final network layer doesn't have pairwise layer
 
     return d0s
 
@@ -185,7 +195,7 @@ def initialise_d0s(mol, expand=False):
 
     d0s = OrderedDict()
 
-    d0s = initialise_linear_layers_d0s(d0s, n_el, n_pairwise, n_sh, n_ph, n_layers)
+    d0s = initialise_linear_layers_d0s(d0s, n_up, n_down, n_sh, n_ph, n_layers)
 
     if mol.backflow_coords:
         d0s['bf'] = jnp.zeros((n_el, 3))

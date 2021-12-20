@@ -17,10 +17,10 @@ def create_grad_function(mol, vwf):
     
     compute_energy = create_energy_fn(mol, vwf)
 
-    def _forward_pass(params, walkers):
+    def _forward_pass(params, walkers, step):
         e_locs = compute_energy(params, walkers) 
         e_locs_g = e_locs * mol.n_atoms if not mol.n_atoms == 0 else e_locs * mol.n_el
-        e_locs_clipped = clip(e_locs_g)
+        e_locs_clipped = clip(e_locs_g, step)
         e_locs_centered = e_locs_clipped - jnp.mean(e_locs_clipped) # takes the mean of the data on each device and does not distribute
         log_psi = vwf(params, walkers)
         return jnp.mean(lax.stop_gradient(e_locs_centered) * log_psi), e_locs
@@ -28,20 +28,19 @@ def create_grad_function(mol, vwf):
     _param_grad_fn = grad(_forward_pass, has_aux=True)  # has_aux indicates the number of outputs is greater than 1
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
-        _param_grad_fn = pmap(_param_grad_fn, in_axes=(None, 0), axis_name='n')
+        _param_grad_fn = pmap(_param_grad_fn, in_axes=(None, 0, None), axis_name='n')
 
     '''nb: it is not possible to undevice variables within a pmap'''
 
     @jit
     def _grad_fn(grads, e_locs):
-        grads = jax.device_put(grads, jax.devices()[0])
         grads, tree = tree_flatten(grads)
         grads = [g.mean(0) for g in grads]
         grads = tree_unflatten(tree, grads)
         return grads, jax.device_put(e_locs, jax.devices()[0]).reshape(-1)
 
-    def __grad_fn(params, walkers):  # doing it this way avoids jit of a pmap, is it ugly? yes. 
-        grads, e_locs = _param_grad_fn(params, walkers)
+    def __grad_fn(params, walkers, step):  # doing it this way avoids jit of a pmap, is it ugly? yes. 
+        grads, e_locs = _param_grad_fn(params, walkers, step)
         return _grad_fn(grads, e_locs)
 
     return __grad_fn
@@ -409,10 +408,11 @@ def clip_and_center(e_locs):
     return e_locs - jnp.mean(e_locs)  #  - jax.lax.pmean(e_locs, 'n')
 
 
-def clip(e_locs):
+def clip(e_locs, step):
     median = jnp.median(e_locs)
     total_var = jnp.mean(jnp.abs(e_locs - median))
-    lower, upper = median - 5 * total_var, median + 5 * total_var
+    scale = jnp.clip(step / 100, a_min=5, a_max=10)
+    lower, upper = median - scale * total_var, median + scale * total_var
     e_locs = jnp.clip(e_locs, a_min=lower, a_max=upper)
     return e_locs
 

@@ -112,14 +112,17 @@ def wf_orbitals(params: dict,
     for i, mask in enumerate(masks[1:], 0):
     
         split = linear_split(params['split%i'%i], split, activations, d0s['split%i'%i])
-        single_tmp = _linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i])
-        pairwise_tmp = _linear_pairwise(params['p%i'%i], pairwise, activations, d0s['p%i'%i])
-        if not ((i == 0) or (i == (len(masks[1:]))-1)): 
-            single = single_tmp + single
-            pairwise = pairwise_tmp + pairwise
-        else:
-            single = single_tmp
-            pairwise = pairwise_tmp
+        single = _linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i], single)
+        pairwise = _linear_pairwise(params['ps%i'%i], 
+                                    params['pd%i'%i], 
+                                    pairwise, 
+                                    activations, 
+                                    d0s['ps%i'%i], 
+                                    d0s['pd%i'%i],
+                                    pairwise,
+                                    n_up, 
+                                    n_down)
+
         single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *mask)
 
     single = jnp.concatenate([single_mixed, split.repeat(n_el, axis=0)], axis=-1)
@@ -408,7 +411,7 @@ def mixer_i(single: jnp.array,
 
     # up
     sum_pairwise_up = pairwise_up_mask * sum_pairwise
-    sum_pairwise_up = jnp.sum(sum_pairwise_up, axis=1) / float(n_up)
+    sum_pairwise_up = sum_pairwise_up.sum((1, 2)) / float(n_up)
 
     # down
     if n_down > 0:
@@ -417,7 +420,7 @@ def mixer_i(single: jnp.array,
 
         # down
         sum_pairwise_down = pairwise_down_mask * sum_pairwise
-        sum_pairwise_down = jnp.sum(sum_pairwise_down, axis=1) / float(n_down)
+        sum_pairwise_down = sum_pairwise_down.sum((1, 2)) / float(n_down)
     
         single = jnp.concatenate((single, sum_pairwise_up, sum_pairwise_down), axis=1)
         split = jnp.concatenate((sum_spin_up, sum_spin_down), axis=1)

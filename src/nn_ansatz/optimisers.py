@@ -99,6 +99,8 @@ def create_natural_gradients_fn(mol, params, walkers):
         gradients, _ = tree_flatten(gradients)
         
         ngs, new_maas, new_msss = [], [], []
+
+        assert len(gradients) == len(aas) == len(sss) == len(maas) == len(msss) == len(sl_factors)
         for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
             # sl_factor = sl_factor**2
 

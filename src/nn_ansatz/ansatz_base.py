@@ -170,10 +170,14 @@ def input_activation(inputs: jnp.array,
     if 'kpoints' in nonlinearity and single_stream:
         kpoints_desc = [x for x in split if 'kpoints' in x][0]
         nkpoints = int(kpoints_desc[:-7])
-        iterator = iter(kpoints[1:nkpoints, :])
-        rho_k = [[jnp.cos(inputs @ k1), jnp.sin(inputs @ k2)] for (k1, k2) in list(zip(iterator, iterator))]
-        rho_k = flatten(rho_k)
-        rho_k = [jnp.stack(rho_k, axis=-1)]
+        # iterator = iter(kpoints[1:nkpoints, :])
+        # rho_k = [[jnp.cos(inputs @ k1), jnp.sin(inputs @ k2)] for (k1, k2) in list(zip(iterator, iterator))]
+        # rho_k = flatten(rho_k)
+        # rho_k = [jnp.stack(rho_k, axis=-1)]
+        # x = inputs @ kpoints.T
+        sink = jnp.sin(inputs @ kpoints[1:nkpoints:2, :].T).mean(axis=0, keepdims=True).repeat(inputs.shape[0], axis=0)
+        cosk = jnp.cos(inputs @ kpoints[2:nkpoints:2, :].T).mean(axis=0, keepdims=True).repeat(inputs.shape[0], axis=0)
+        rho_k = [sink, cosk]
     else:
         rho_k = []
     
@@ -214,15 +218,17 @@ def compute_inputs_i(walkers: jnp.array,
     single_inputs = jnp.concatenate([single_stream_vectors, *single_distances], axis=-1)
     single_inputs = single_inputs.reshape(n_el, -1)
 
-    ee_vectors = compute_ee_vectors_i(walkers)
-    ee_vectors = drop_diagonal_i(ee_vectors)
-    ee_distances = [jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)]
     if pbc: 
+        ee_vectors = compute_ee_vectors_i(walkers)
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
         # ee_distances = [jnp.linalg.norm(jnp.sin(jnp.pi*ee_vectors)/2., axis=-1, keepdims=True)]
         ee_distances = []
         ee_vectors = input_activation(ee_vectors, inv_basis, nonlinearity=input_activation_nonlinearity, kpoints=kpoints)
-
+    else:
+        ee_vectors = compute_ee_vectors_i(walkers)
+        ee_vectors = drop_diagonal_i(ee_vectors)
+        ee_distances = [jnp.linalg.norm(ee_vectors, axis=-1, keepdims=True)]
+    
     pairwise_inputs = jnp.concatenate([ee_vectors, *ee_distances], axis=-1)
 
     return single_inputs, pairwise_inputs
@@ -255,6 +261,40 @@ def create_masks(n_electrons, n_up, n_layers, n_sh, n_ph, n_sh_in, n_ph_in):
 
 
 def create_masks_layer(n_sh, n_ph, n_electrons, n_up):
+    # single spin masks
+    n_down = n_electrons - n_up
+
+    tmp1 = jnp.ones((n_up, n_sh))
+    tmp2 = jnp.zeros((n_down, n_sh))
+    single_up_mask = jnp.concatenate((tmp1, tmp2), axis=0)
+    single_down_mask = (single_up_mask -1.) * -1.
+
+    # pairwise spin masks
+    ups = np.ones(n_electrons)
+    ups[n_up:] = 0.
+    downs = (ups - 1.) * -1.
+
+    pairwise_up_mask = []
+    pairwise_down_mask = []
+    mask = np.zeros((n_electrons, n_electrons))
+
+    for electron in range(n_electrons):
+        mask_up = np.copy(mask)
+        mask_up[electron, :] = ups
+
+        mask_down = np.copy(mask)
+        mask_down[electron, :] = downs
+
+        pairwise_up_mask.append(mask_up)
+        pairwise_down_mask.append(mask_down)
+
+    pairwise_up_mask = jnp.stack(pairwise_up_mask, axis=0)[..., None]
+    pairwise_down_mask = jnp.stack(pairwise_down_mask, axis=0)[..., None]
+
+    return single_up_mask, single_down_mask, pairwise_up_mask, pairwise_down_mask
+
+
+def create_masks_layer_dep(n_sh, n_ph, n_electrons, n_up):
     # single spin masks
     eye_mask = ~np.eye(n_electrons, dtype=bool)
     n_down = n_electrons - n_up
@@ -333,6 +373,7 @@ def linear(p: jnp.array,
            split: jnp.array,
            activations: list,
            d0: jnp.array,
+           residual: jnp.array,
            nonlinearity: str = 'tanh') -> jnp.array:
 
     bias = jnp.ones((*data.shape[:-1], 1))
@@ -340,8 +381,11 @@ def linear(p: jnp.array,
     activations.append(activation)
 
     pre_activation = jnp.dot(activation, p) + split + d0
-    return layer_activation(pre_activation, nonlinearity=nonlinearity)
-    
+    data = layer_activation(pre_activation, nonlinearity=nonlinearity)
+
+    if residual.shape == pre_activation.shape:
+        data += residual
+    return data
     
     
 def layer_activation(pre_activation, nonlinearity='cos'):
@@ -359,17 +403,50 @@ def layer_activation(pre_activation, nonlinearity='cos'):
         exit('nonlinearity not available')
 
 
-def linear_pairwise_v2(p_same: jnp.array,
-                       p_diff: jnp.array,
-                       data: Tuple[jnp.array, jnp.array],
-                       activations: list,
-                       d0_same: jnp.array,
-                       d0_diff: jnp.array,
-                       residual: Tuple[jnp.array, jnp.array],
-                       nonlinearity: str = 'tanh') -> jnp.array:
+def separate_same_and_diff(data, n_up, n_down):
+    n_el = n_up + n_down
+    if n_down == 0:
+        return data, None
+    else:
+        data = data.reshape(n_el, n_el, -1)
+        data_t, data_b = data.split([n_up], axis=0)
+        data_tl, data_tr = data_t.split([n_up], axis=1)
+        data_bl, data_br = data_b.split([n_up], axis=1)
+        data_same = jnp.concatenate([data_tl.reshape(n_up**2, -1), data_br.reshape(n_down**2, -1)], axis=0)
+        data_diff = jnp.concatenate([data_tr.reshape(n_up*n_down, -1), data_bl.reshape(n_up*n_down, -1)], axis=0)
+        return data_same, data_diff
 
-    res_same, res_diff = residual
-    data_same, data_diff = data
+
+def join_same_and_diff(same, diff, n_up, n_down):
+    if n_down == 0:
+        return same
+    else:
+        data_tl, data_br = same.split([n_up**2], axis=0)
+        data_tl = data_tl.reshape(n_up, n_up, -1)
+        data_br = data_br.reshape(n_down, n_down, -1)
+
+        data_tr, data_bl = diff.split([n_up*n_down], axis=0)
+        data_tr = data_tr.reshape(n_up, n_down, -1)
+        data_bl = data_bl.reshape(n_down, n_up, -1)
+
+        data_t = jnp.concatenate([data_tl, data_tr], axis=1)
+        data_b = jnp.concatenate([data_bl, data_br], axis=1)
+        return jnp.concatenate([data_t, data_b], axis=0)
+
+
+
+def linear_pairwise(p_same: jnp.array,
+                    p_diff: jnp.array,
+                    data: Tuple[jnp.array, jnp.array],
+                    activations: list,
+                    d0_same: jnp.array,
+                    d0_diff: jnp.array,
+                    residual: Tuple[jnp.array, jnp.array],
+                    n_up: int,
+                    n_down: int,
+                    nonlinearity: str = 'tanh') -> jnp.array:
+
+    data_same, data_diff = separate_same_and_diff(data, n_up, n_down)
 
     bias = jnp.ones((*data_same.shape[:-1], 1))
     a_same = jnp.concatenate([data_same, bias], axis=-1)
@@ -380,17 +457,17 @@ def linear_pairwise_v2(p_same: jnp.array,
     activations.append(a_diff)
     
     pre_same = layer_activation(jnp.dot(a_same, p_same) + d0_same, nonlinearity=nonlinearity)
-    if pre_same.shape == res_same.shape:
-        pre_same += res_same
-    
     pre_diff = layer_activation(jnp.dot(a_diff, p_diff) + d0_diff, nonlinearity=nonlinearity)
-    if pre_diff.shape == res_diff.shape:
-        pre_diff += res_diff
 
-    return (pre_same, pre_diff)
+    pairwise = join_same_and_diff(pre_same, pre_diff, n_up, n_down)
+    
+    if pairwise.shape == residual.shape:
+        pairwise += residual
+    
+    return pairwise
 
 
-def linear_pairwise(p: jnp.array,
+def linear_pairwise_dep(p: jnp.array,
                     data: jnp.array,
                     activations: list,
                     d0: jnp.array,

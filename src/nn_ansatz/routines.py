@@ -113,7 +113,7 @@ def run_vmc(cfg, walkers=None):
 
         walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
         
-        grads, e_locs = grad_fn(params, walkers)
+        grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
 
         if cfg['opt'] == 'kfac':
             grads, state = kfac_update(step, grads, state, walkers)
