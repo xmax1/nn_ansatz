@@ -21,7 +21,7 @@ from .ansatz import create_wf
 from .parameters import initialise_params
 from .systems import SystemAnsatz
 from .pretraining import pretrain_wf
-from .vmc import compute_potential_energy_i, create_energy_fn, create_grad_function, create_potential_energy
+from .vmc import compute_potential_energy_i, create_energy_fn, create_grad_function, create_local_momentum_operator, create_potential_energy
 from .optimisers import kfac
 from .utils import Logging, compare, load_pk, key_gen, save_config_csv_and_pickle, split_variables_for_pmap, write_summary_to_cfg
 
@@ -46,6 +46,37 @@ def check_and_save(args, names):
                 save_pk(arg, '%s.pk' % name)
             sys.exit('found nans')
 
+
+def confirm_antisymmetric(mol, params, walkers):
+    swf = create_wf(mol, signed=True)
+    idx = 1
+    if bool(os.environ['DISTRIBUTE']) == True:
+        idx += 1
+        swf = pmap(swf, in_axes=(None, 0))
+
+    bl, bs = swf(params, walkers)
+    nw_up, nw_down = walkers.split([mol.n_up], axis=idx)
+    
+    idxs = [1, 0]
+    idxs.extend(list(range(2, mol.n_up)))
+    nw_up = nw_up[..., idxs, :]
+    walkers = jnp.concatenate([nw_up, nw_down], axis=idx)
+    tl1, ts1 = swf(params, walkers)
+
+    idxs = [1, 0]
+    idxs.extend(list(range(2, mol.n_down)))
+    nw_down = nw_down[..., idxs, :]
+    walkers = jnp.concatenate([nw_up, nw_down], axis=idx)
+    tl2, ts2 = swf(params, walkers)
+
+    up_swap_mean = float(jnp.abs(bl-tl1).mean())
+    up_swap_smean =  float(jnp.abs(bs - ts1).mean())
+    down_swap_mean = float(jnp.abs(tl2-tl1).mean())
+    down_swap_smean =  float(jnp.abs(ts2-ts1).mean())
+    
+    print('antisymmetry check:')
+    print('swap ups || difference %.2f sign difference %.2f' % (up_swap_mean, up_swap_smean))
+    print('swap downs || difference %.2f sign difference %.2f' % (down_swap_mean, down_swap_smean))
 
 def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
     keys = rnd.PRNGKey(cfg['seed'])
@@ -88,7 +119,6 @@ def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
     return mol, vwf, walkers, params, sampler, keys
 
 def run_vmc(cfg, walkers=None):
-    
 
     logger = Logging(**cfg)
 
@@ -105,6 +135,9 @@ def run_vmc(cfg, walkers=None):
     else:
         exit('Optimiser not available')
 
+    compute_mom = create_local_momentum_operator(mol, vwf)
+    confirm_antisymmetric(mol, params, walkers)
+
     steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='training', disable=None)
     step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
 
@@ -115,6 +148,8 @@ def run_vmc(cfg, walkers=None):
         
         grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
 
+        gs = grads.copy()
+
         if cfg['opt'] == 'kfac':
             grads, state = kfac_update(step, grads, state, walkers)
 
@@ -124,11 +159,29 @@ def run_vmc(cfg, walkers=None):
         steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
         steps.refresh()
 
+        # kgs, tree = tree_flatten(grads)
+
         logger.log(step,
                    opt_state=state,
                    params=params,
                    e_locs=e_locs,
                    acceptance=acceptance)
+
+        for key, g in gs.items():
+            g = jnp.mean(jnp.abs(g))
+            logger.writer('grads/g_%s' % key, float(g), step)
+
+
+        for i, kg in enumerate(grads):
+            kg = jnp.mean(jnp.abs(kg))
+            logger.writer('kfac_grads/kg_%i' % i, float(kg), step)
+
+        up_mom, down_mom = compute_mom(params, walkers)
+
+        logger.writer('mom/up_mom_mean', float(up_mom.mean()), step)
+        logger.writer('mom/down_mom_mean', float(down_mom.mean()), step)
+        logger.writer('mom/up_mom_std', float(up_mom.std()), step)
+        logger.writer('mom/down_mom_std', float(down_mom.std()), step)
 
     write_summary_to_cfg(cfg, logger.summary)
     logger.walkers = walkers

@@ -13,6 +13,23 @@ import math
 from jax.scipy.special import erfc
 
 
+def create_local_momentum_operator(mol, vwf):
+
+    if bool(os.environ['DISTRIBUTE']) == True:
+        vwf = pmap(vwf, in_axes=(None, 0))
+    # P_\alpha = \sum_i <\partial \ln \Psi / \partial {\rm r}_{i,\alpha}>
+
+    ''' kinetic energy function which works on a vmapped wave function '''
+    def _compute_mom(params, walkers):
+        wf_new = lambda walkers: vwf(params, walkers).sum()
+        grad_f = jax.grad(wf_new)
+        grads = grad_f(walkers)
+        up_mom, down_mom = grads.split([mol.n_up], axis=1)
+        return up_mom, down_mom
+
+    return _compute_mom
+
+
 def create_grad_function(mol, vwf):
     
     compute_energy = create_energy_fn(mol, vwf)

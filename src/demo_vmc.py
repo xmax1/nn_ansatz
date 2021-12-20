@@ -6,8 +6,8 @@ from nn_ansatz import approximate_energy
 
 n_it = 100000
 cfg = setup(system='HEG',
-            n_pre_it=100,
-            pretrain=True,
+            n_pre_it=0,
+            pretrain=False,
             n_el=14,
             n_up=7,
             density_parameter=1.,
@@ -18,8 +18,9 @@ cfg = setup(system='HEG',
             n_det=1,
             correlation_length=10,
             input_activation_nonlinearity='3cos+3sin+7kpoints',
+            nonlinearity='silu',
             orbitals='real_plane_waves',
-            name='runs4/demo_newkpoint_var',
+            name='mom_and_grad/silu',
             lr=0.001,
             n_it=n_it)
 

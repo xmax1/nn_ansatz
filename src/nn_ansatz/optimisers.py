@@ -93,8 +93,8 @@ def create_natural_gradients_fn(mol, params, walkers):
             sss = [ss.mean(0) for ss in sss]
 
         lr_current = decay_variable(lr, step, decay=1e-4, floor=1e-4)
-        damping_current = decay_variable(damping, step, decay=1e-2, floor=None)
-        norm_constraint_current = decay_variable(norm_constraint, step, decay=1e-4, floor=1e-6)
+        damping_current = decay_variable(damping, step, decay=1e-3, floor=None)
+        norm_constraint_current = decay_variable(norm_constraint, step, decay=1e-3, floor=1e-6)
 
         gradients, _ = tree_flatten(gradients)
         
