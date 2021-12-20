@@ -3,32 +3,35 @@ from nn_ansatz import setup, run_vmc, compare_einsum, run_vmc_debug, check_inf_n
 import jax.numpy as jnp
 from nn_ansatz import approximate_energy
 
+
+n_it = 100000
 cfg = setup(system='HEG',
-                    n_pre_it=0,
-                    n_el=14,
-                    n_up=7,
-                    density_parameter=1.,
-                    n_walkers=1024,
-                    n_layers=2,
-                    n_sh=64,
-                    n_ph=32,
-                    n_det=1,
-                    correlation_length=10,
-                    input_activation_nonlinearity='3cos+3sin+7kpoints',
-                    orbitals='real_plane_waves',
-                    name='runs4/demo_newkpoint_var',
-                    lr=0.001,
-                    n_it=100000)
+            n_pre_it=100,
+            pretrain=True,
+            n_el=14,
+            n_up=7,
+            density_parameter=1.,
+            n_walkers=512,
+            n_layers=2,
+            n_sh=64,
+            n_ph=32,
+            n_det=1,
+            correlation_length=10,
+            input_activation_nonlinearity='3cos+3sin+7kpoints',
+            orbitals='real_plane_waves',
+            name='runs4/demo_newkpoint_var',
+            lr=0.001,
+            n_it=n_it)
 
 # mol = SystemAnsatz(**cfg)
 
 log = run_vmc(cfg)
 
 if True == True:
-    for load_it in range(10000, args.n_it+1, 10000):
+    for load_it in range(10000, n_it+1, 10000):
         approximate_energy(cfg, load_it=load_it)
 else:
-    approximate_energy(cfg, load_it=args.n_it)
+    approximate_energy(cfg, load_it=n_it)
 
 
 

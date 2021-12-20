@@ -99,8 +99,8 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
                     orb_down = None
                 else:
                     walkers_up, walkers_down = jnp.split(walkers, [mol.n_up], axis=0)
-                    orb_up = real_plane_wave_orbitals(None, walkers_up, None)  # expects (n_k, n_el, n_el)
-                    orb_down = real_plane_wave_orbitals(None, walkers_down, None)  # expects (n_k, n_el, n_el)
+                    orb_up = real_plane_wave_orbitals(None, walkers_up, None).squeeze(axis=0)  # expects (n_k, n_el, n_el)
+                    orb_down = real_plane_wave_orbitals(None, walkers_down, None).squeeze(axis=0)  # expects (n_k, n_el, n_el)
 
                 return orb_up, orb_down
             _hf_orbitals = vmap(_hf_orbitals, in_axes=(0,))
