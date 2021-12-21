@@ -233,6 +233,7 @@ def setup(system: str = 'Be',
           nonlinearity: str = 'cos',
           input_activation_nonlinearity: str = 'cos',
           no_jastrow: bool = False,
+          backflow_coords: bool = False,
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 500,
@@ -321,6 +322,7 @@ def setup(system: str = 'Be',
               'nonlinearity': nonlinearity,
               'input_activation_nonlinearity': input_activation_nonlinearity,
               'jastrow': jastrow,
+              'backflow_coords': backflow_coords,
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,

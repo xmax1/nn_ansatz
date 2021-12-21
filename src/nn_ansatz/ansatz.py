@@ -4,8 +4,18 @@ from functools import partial, reduce
 import jax.numpy as jnp
 from jax import vmap
 
+
 from .parameters import initialise_d0s
 from .ansatz_base import *
+
+
+def keep_in_boundary(walkers, basis, inv_basis):
+    talkers = transform_vector_space(walkers, inv_basis)
+    talkers = jnp.fmod(talkers, 1.)
+    talkers = jnp.where(talkers < 0., talkers + 1., talkers)
+    talkers = transform_vector_space(talkers, basis)
+    return talkers
+
 
 def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, distribute=False):
     ''' initializes the wave function ansatz for various applications '''
@@ -35,7 +45,8 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
                            _mixer=_mixer,
                            _linear = partial(linear, nonlinearity=mol.nonlinearity),
                            _linear_pairwise = partial(linear_pairwise, nonlinearity=mol.nonlinearity),
-                           inv_basis=mol.inv_basis)
+                           inv_basis=mol.inv_basis,
+                           basis=mol.basis)
 
     def _wf(params, walkers, d0s):
 
@@ -100,7 +111,8 @@ def wf_orbitals(params: dict,
                 _mixer: Callable,
                 _linear: Callable = partial(linear, nonlinearity='tanh'),
                 _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh'),
-                inv_basis = None):
+                inv_basis=None,
+                basis=None):
 
     activations = []
 
@@ -129,7 +141,10 @@ def wf_orbitals(params: dict,
     data_up, data_down = jnp.split(single, [n_up], axis=0)
 
     if backflow_coords:
-        single_stream_vectors = jnp.expand_dims(linear_split(params['bf'], single, activations, d0s['bf']), axis=1)
+        new_coords_up = linear_split(params['bf_up'], data_up, activations, d0s['bf_up'])
+        new_coords_down = linear_split(params['bf_down'], data_down, activations, d0s['bf_down'])
+        single_stream_vectors = jnp.concatenate([new_coords_up, new_coords_down], axis=0)[:, None, :]
+        # single_stream_vectors = keep_in_boundary(new_coords, basis, inv_basis)[:, None, :]
     
     factors_up, factors_down = [], []
     for k in range(n_det):

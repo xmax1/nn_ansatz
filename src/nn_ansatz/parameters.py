@@ -98,7 +98,8 @@ def initialise_params(mol, key):
     params, key = initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers)
 
     if mol.backflow_coords:
-        params['bf'] = init_linear(key, ((n_sh_split + n_sh_mix)//2, 3), bias=False)
+        params['bf_up'] = init_linear(key, ((n_sh_split + n_sh_mix)//2, 3), bias=False)
+        params['bf_down'] = init_linear(key, ((n_sh_split + n_sh_mix)//2, 3), bias=False)
 
     # env_linear
     for k in range(n_det):
@@ -198,7 +199,8 @@ def initialise_d0s(mol, expand=False):
     d0s = initialise_linear_layers_d0s(d0s, n_up, n_down, n_sh, n_ph, n_layers)
 
     if mol.backflow_coords:
-        d0s['bf'] = jnp.zeros((n_el, 3))
+        d0s['bf_up'] = jnp.zeros((n_up, 3))
+        d0s['bf_down'] = jnp.zeros((n_down, 3))
 
     for k in range(n_det):
         d0s['env_lin_up_k%i' % k] = jnp.zeros((n_up, n_up))

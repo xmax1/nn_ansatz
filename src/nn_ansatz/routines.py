@@ -138,7 +138,7 @@ def run_vmc(cfg, walkers=None):
     compute_mom = create_local_momentum_operator(mol, vwf)
     confirm_antisymmetric(mol, params, walkers)
 
-    steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='training', disable=None)
+    steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='%s/training' % cfg['name'], disable=None)
     step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
 
     for step in steps:
