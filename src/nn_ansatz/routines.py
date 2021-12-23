@@ -139,7 +139,7 @@ def run_vmc(cfg, walkers=None):
     else:
         exit('Optimiser not available')
 
-    compute_mom = create_local_momentum_operator(mol, vwf)
+    # compute_mom = create_local_momentum_operator(mol, vwf)
     confirm_antisymmetric(mol, params, walkers)
 
     steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='%s/training' % cfg['name'], disable=None)
@@ -180,15 +180,15 @@ def run_vmc(cfg, walkers=None):
         #     kg = jnp.mean(jnp.abs(kg))
         #     logger.writer('kfac_grads/kg_%i' % i, float(kg), step)
 
-        up_mom, down_mom = compute_mom(params, walkers)
+        # up_mom, down_mom = compute_mom(params, walkers)
 
-        logger.writer('mom/up_mom_mean', float(up_mom.mean()), step)
-        logger.writer('mom/up_mom_std', float(up_mom.std()), step)
+        # logger.writer('mom/up_mom_mean', float(up_mom.mean()), step)
+        # logger.writer('mom/up_mom_std', float(up_mom.std()), step)
 
-        if not mol.n_down == 0:
-            logger.writer('mom/down_mom_std', float(down_mom.std()), step)
-            logger.writer('mom/down_mom_mean', float(down_mom.mean()), step)
-            logger.writer('mom/sum_mum', float(up_mom.mean()) + float(down_mom.mean()), step)
+        # if not mol.n_down == 0:
+        #     logger.writer('mom/down_mom_std', float(down_mom.std()), step)
+        #     logger.writer('mom/down_mom_mean', float(down_mom.mean()), step)
+        #     logger.writer('mom/sum_mum', float(up_mom.mean()) + float(down_mom.mean()), step)
 
 
     write_summary_to_cfg(cfg, logger.summary)
