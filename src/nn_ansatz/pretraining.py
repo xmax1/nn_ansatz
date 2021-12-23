@@ -56,16 +56,15 @@ def pretrain_wf(mol,
     step_size = split_variables_for_pmap(walkers.shape[0], pre_step_size)
     steps = trange(0, n_pre_it, initial=0, total=n_pre_it, desc='pretraining', disable=None)
 
-
     for step in steps:
         pre_key, pre_subkey = rnd.split(pre_key)
-        # keys, subkey = key_gen(keys)
+        keys, subkey = key_gen(keys)
 
         loss_value, grads = loss_function(params, pre_walkers)
         state = update(step, grads, state)
         params = get_params(state)
 
-        # walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
+        walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
         # e_locs = compute_local_energy(params, walkers)
 
         pre_walkers, mix_acceptance = pre_sampler(params, pre_walkers, pre_subkey, pre_step_size)

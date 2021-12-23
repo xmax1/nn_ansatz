@@ -218,11 +218,6 @@ def input_activation(inputs: jnp.array,
     if 'kpoints' in nonlinearity and single_stream:
         kpoints_desc = [x for x in split if 'kpoints' in x][0]
         nkpoints = int(kpoints_desc[:-7])
-        # iterator = iter(kpoints[1:nkpoints, :])
-        # rho_k = [[jnp.cos(inputs @ k1), jnp.sin(inputs @ k2)] for (k1, k2) in list(zip(iterator, iterator))]
-        # rho_k = flatten(rho_k)
-        # rho_k = [jnp.stack(rho_k, axis=-1)]
-        # x = inputs @ kpoints.T
         sink = jnp.sin(inputs @ kpoints[1:nkpoints:2, :].T).mean(axis=0, keepdims=True).repeat(inputs.shape[0], axis=0)
         cosk = jnp.cos(inputs @ kpoints[2:nkpoints:2, :].T).mean(axis=0, keepdims=True).repeat(inputs.shape[0], axis=0)
         rho_k = [sink, cosk]
@@ -259,7 +254,6 @@ def compute_inputs_i(walkers: jnp.array,
 
     single_distances = [jnp.linalg.norm(single_stream_vectors, axis=-1, keepdims=True)]
     if pbc: 
-        # single_distances = [jnp.linalg.norm(jnp.sin(jnp.pi*single_stream_vectors/2.), axis=-1, keepdims=True)]
         single_distances = []
         single_stream_vectors = input_activation(single_stream_vectors, inv_basis, nonlinearity=input_activation_nonlinearity, kpoints=kpoints, single_stream=True)
 
@@ -271,8 +265,7 @@ def compute_inputs_i(walkers: jnp.array,
         ee_vectors = apply_minimum_image_convention(ee_vectors, basis, inv_basis)
         ee_transformed = jnp.sin(jnp.pi*ee_vectors)/2. + jnp.eye(n_el)[..., None]
         ee_distances = [jnp.linalg.norm(ee_transformed, axis=-1, keepdims=True) * eye_mask(n_el)[..., None]]
-        # ee_distances = []
-        ee_vectors = input_activation(ee_vectors, inv_basis, nonlinearity=input_activation_nonlinearity, kpoints=kpoints)
+        ee_vectors = input_activation(ee_vectors, inv_basis, nonlinearity=input_activation_nonlinearity)
     else:
         ee_vectors = compute_ee_vectors_i(walkers)
         ee_vectors = drop_diagonal_i(ee_vectors)
@@ -323,6 +316,7 @@ def create_masks_layer(n_electrons, n_up):
         mask_up = mask.copy()
         mask_up[electron, :] = ups
         pairwise_up_mask.append(mask_up)
+        # mask_up = mask_up[eye_mask].reshape(-1) # for when drop diagonal enforced
 
         mask_down = mask.copy()
         mask_down[electron, :] = downs
@@ -333,46 +327,6 @@ def create_masks_layer(n_electrons, n_up):
 
     return pairwise_up_mask, pairwise_down_mask
 
-
-def create_masks_layer_dep(n_sh, n_ph, n_electrons, n_up):
-    # single spin masks
-    eye_mask = ~np.eye(n_electrons, dtype=bool)
-    n_down = n_electrons - n_up
-    n_pairwise = n_electrons ** 2 - n_electrons
-
-    tmp1 = jnp.ones((n_up, n_sh))
-    tmp2 = jnp.zeros((n_down, n_sh))
-    single_up_mask = jnp.concatenate((tmp1, tmp2), axis=0)
-    single_down_mask = (single_up_mask -1.) * -1.
-
-    # pairwise spin masks
-    ups = np.ones(n_electrons)
-    ups[n_up:] = 0.
-    downs = (ups - 1.) * -1.
-
-    pairwise_up_mask = []
-    pairwise_down_mask = []
-    mask = np.zeros((n_electrons, n_electrons))
-
-    for electron in range(n_electrons):
-        mask_up = np.copy(mask)
-        mask_up[electron, :] = ups
-        mask_up = mask_up[eye_mask].reshape(-1)
-
-        mask_down = np.copy(mask)
-        mask_down[electron, :] = downs
-        mask_down = mask_down[eye_mask].reshape(-1)
-
-        pairwise_up_mask.append(mask_up)
-        pairwise_down_mask.append(mask_down)
-
-    pairwise_up_mask = jnp.array(pairwise_up_mask).reshape((n_electrons, n_pairwise, 1))
-    pairwise_up_mask = jnp.repeat(pairwise_up_mask, n_ph, axis=-1)
-
-    pairwise_down_mask = jnp.array(pairwise_down_mask).reshape((n_electrons, n_pairwise, 1))
-    pairwise_down_mask = jnp.repeat(pairwise_down_mask, n_ph, axis=-1)
-    return single_up_mask, single_down_mask, pairwise_up_mask, pairwise_down_mask
-        
 
 def drop_diagonal_i(square):
     """
@@ -517,20 +471,6 @@ def linear_pairwise(params,
         pairwise += residual
     
     return pairwise
-
-
-def linear_pairwise_dep(p: jnp.array,
-                    data: jnp.array,
-                    activations: list,
-                    d0: jnp.array,
-                    nonlinearity: str = 'tanh') -> jnp.array:
-
-    bias = jnp.ones((*data.shape[:-1], 1))
-    activation = jnp.concatenate([data, bias], axis=-1)
-    activations.append(activation)
-
-    pre_activation = jnp.dot(activation, p) + d0
-    return layer_activation(pre_activation, nonlinearity=nonlinearity)
 
 
 def env_linear_i(params: jnp.array,

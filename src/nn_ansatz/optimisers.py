@@ -93,15 +93,13 @@ def create_natural_gradients_fn(mol, params, walkers):
             sss = [ss.mean(0) for ss in sss]
 
         lr_current = decay_variable(lr, step, decay=1e-4, floor=1e-4)
-        damping_current = decay_variable(damping, step, decay=1e-3, floor=None)
+        damping_current = decay_variable(damping, step, decay=1e-3, floor=1e-6)
         norm_constraint_current = decay_variable(norm_constraint, step, decay=1e-3, floor=1e-6)
 
         gradients, _ = tree_flatten(gradients)
         
         ngs, new_maas, new_msss = [], [], []
 
-        print(len(gradients), len(aas), len(sss), len(maas), len(msss), len(sl_factors))
-        assert len(gradients) == len(aas) == len(sss) == len(maas) == len(msss) == len(sl_factors)
         for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
             # sl_factor = sl_factor**2
 

@@ -28,7 +28,6 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity, kpoints=mol.kpoints)
     _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum, kpoints=mol.kpoints)
     _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, mol.density_parameter, mol.basis, mol.inv_basis) if mol.jastrow else None
-    # _logabssumdet = partial(logabssumdet, jastrow=_compute_jastrow)
     _backflow_block = partial(backflow_block,
                               masks=masks,
                               n_up=mol.n_up,
@@ -143,11 +142,11 @@ def backflow_block(params: dict,
     data_up, data_down = jnp.split(single, [n_up], axis=0)
 
     if backflow_coords:
-        new_coords = linear_split(params['bf_up'], data_up, activations, d0s['bf_up'])
+        new_coords = linear_split(params['bf_up'], data_up, activations, d0s['bf_up'])[:, None, :]
         if not n_down == 0:
-            new_coords_down = linear_split(params['bf_down'], data_down, activations, d0s['bf_down'])
-            new_coords = layer_activation(jnp.concatenate([new_coords, new_coords_down], axis=0)[:, None, :], nonlinearity='tanh')
-        single_stream_vectors += new_coords[:, None, :]
+            new_coords_down = linear_split(params['bf_down'], data_down, activations, d0s['bf_down'])[:, None, :]
+            new_coords = layer_activation(jnp.concatenate([new_coords, new_coords_down], axis=0), nonlinearity='tanh')
+        single_stream_vectors += new_coords
     return data_up, data_down, single_stream_vectors
 
 
