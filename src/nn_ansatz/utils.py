@@ -238,7 +238,7 @@ def setup(system: str = 'Be',
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 500,
-          pretrain: bool = False,
+          pretrain: bool = True,
 
           load_it: int = 0,
 

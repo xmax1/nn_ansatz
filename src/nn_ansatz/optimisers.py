@@ -237,7 +237,7 @@ def get_sl_factors(activations):
     return sl_factors
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.7):
+def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.8):
 
     cov_moving_weight = jnp.min(jnp.array([step, cov_moving_weight]))
 

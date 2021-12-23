@@ -43,7 +43,7 @@ fi
 
 if [ "$1" == "oneloop" ]; then 
     echo Calling single loop
-    myArray=(1 ) # 0.5 1 2 5 
+    myArray=(1 1) # 0.5 1 2 5 
     # myArray=(512 1024 2048 4096)
     # myArray=(1 2 3 4 5)
     # myArray=(0 1 2 3 4 5)
@@ -55,23 +55,27 @@ if [ "$1" == "oneloop" ]; then
         hypam=${myArray[i]}
         # ngpu=${ngpus[i]}
         # n_sh=$(( $hypam*16 ))
-        # n_ph=$(( $hypam*4 ))
+        # n_ph=$(( $hypam*8 ))
         cmd="-s HEG \
-            -sim 1 1 1 \
-            -nw 2048 \
-            -n_sh 128 \
+            -nw 512 \
+            -n_sh 64 \
             -n_ph 32 \
-            -nl 2 \
+            -nl 3 \
             -n_det 1 \
             -orb real_plane_waves \
-            -n_el 7 \
-            -inact 3cos+3sin+19kpoints \
+            -n_el 14 \
+            -n_up 7 \
+            -inact 3cos+3sin \
             -dp 1 \
-            -name dp_7_tests/base_4in \
+            -name baselines/jastow_2 \
             -lr 0.001 \
-            -n_it 100000 \
+            -cl 10 \
+            -n_it 30000 \
+            -backflow True \
+            -jastrow False \
+            -psplit_spins True \
             --sweep"
-        sbatch --gres=gpu:RTX3090:$ngpu --job-name=dp$hypam $submission_path $cmd
+        sbatch --gres=gpu:RTX3090:$ngpu --job-name=xj2 $submission_path $cmd
         echo $cmd
         echo ngpu $ngpu
     done
@@ -79,26 +83,28 @@ fi
 
 if [ "$1" == "single" ]; then 
     echo Calling single submission
-
     cmd="-s HEG \
-            -sim 1 1 1 \
-            -nw 2048 \
-            -n_sh 64 \
-            -n_ph 32 \
-            -nl 2 \
-            -n_det 1 \
-            -orb real_plane_waves \
-            -n_el 14 \
-            -n_up 7 \
-            -inact 3cos+3sin \
-            -dp 1 \
-            -name 1712/highlr \
-            -lr 0.005 \
-            -npre 1000 \
-            -n_it 100000 \
-            --sweep"
+        -nw 1024 \
+        -n_sh 64 \
+        -n_ph 32 \
+        -nl 2 \
+        -n_det 1 \
+        -orb real_plane_waves \
+        -n_el 14 \
+        -n_up 7 \
+        -inact 3cos+3sin+19kpoints \
+        -dp 1 \
+        -name junk/1024_14el \
+        -lr 0.001 \
+        -cl 10 \
+        -n_it 100 \
+        -backflow True \
+        -jastrow True \
+        -psplit_spins True \
+        -pretrain False \
+        --sweep"
     echo $cmd
-    sbatch --gres=gpu:RTX3090:$ngpu --job-name=orbs_wrk $submission_path $cmd
+    sbatch --gres=gpu:RTX3090:$ngpu --job-name=bl $submission_path $cmd
 fi
 
 

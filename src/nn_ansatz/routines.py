@@ -119,7 +119,6 @@ def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
         params = load_pk(load_params)
         walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=50)
 
-    
     return mol, vwf, walkers, params, sampler, keys
 
 def run_vmc(cfg, walkers=None):
