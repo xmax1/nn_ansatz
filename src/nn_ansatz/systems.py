@@ -94,7 +94,8 @@ class SystemAnsatz():
                  nonlinearity: str = 'tanh',
                  input_activation_nonlinearity: str = 'sin',
                  jastrow: bool = False,
-                 backflow_coords: bool = False,
+                 backflow_coords: bool = True,
+                 psplit_spins: bool = True,
                  n_layers=2,
                  n_sh=64,
                  n_ph=16,
@@ -113,6 +114,7 @@ class SystemAnsatz():
 
         self.system = system
         self.jastrow = jastrow
+        self.psplit_spins = psplit_spins
 
         self.device, self.dtype = device, dtype
         self.n_walkers_per_device = kwargs['n_walkers_per_device']
@@ -215,7 +217,7 @@ class SystemAnsatz():
         self.n_sh_in = self.n_in * self.n_atoms if not self.n_atoms == 0 else self.n_in
         if 'kpoints' in input_activation_nonlinearity: 
             self.n_sh_in += int([x for x in input_activation_nonlinearity.split('+') if 'kpoints' in x][0][:-7]) - 1
-        self.n_ph_in = self.n_in 
+        self.n_ph_in = self.n_in + 1
         self.orbitals = orbitals
         self.einsum = einsum
         self.nonlinearity = nonlinearity

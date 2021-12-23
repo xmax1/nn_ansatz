@@ -4,23 +4,25 @@ import jax.numpy as jnp
 from nn_ansatz import approximate_energy
 
 
-n_it = 100000
+n_it = 50000
 cfg = setup(system='HEG',
             n_pre_it=0,
             pretrain=False,
-            n_el=14,
+            n_el=7,
             n_up=7,
-            density_parameter=2.,
+            density_parameter=1.,
             n_walkers=1024,
-            n_layers=2,
+            n_layers=3,
             n_sh=64,
             n_ph=32,
             n_det=1,
             correlation_length=10,
-            input_activation_nonlinearity='3cos+3sin+19kpoints',
+            input_activation_nonlinearity='3cos+3sin+7kpoints',
             orbitals='real_plane_waves',
-            name='bf2/dp2',
-            # backflow_coords=True,
+            name='mo_tests/spin_pol',
+            psplit_spins=True,
+            backflow_coords=True,
+            jastrow=True,
             lr=0.001,
             n_it=n_it)
 

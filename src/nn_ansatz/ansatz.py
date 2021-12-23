@@ -21,34 +21,37 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     ''' initializes the wave function ansatz for various applications '''
 
     print('creating wf')
-  
-    masks = create_masks(mol.n_el, mol.n_up, mol.n_layers, mol.n_sh, mol.n_ph, mol.n_sh_in, mol.n_ph_in)
+    
+    masks = create_masks(mol.n_el, mol.n_up, mol.n_layers)
 
     _compute_single_stream_vectors = partial(compute_single_stream_vectors_i, r_atoms=mol.r_atoms, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis)
     _compute_inputs = partial(compute_inputs_i, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, input_activation_nonlinearity=mol.input_activation_nonlinearity, kpoints=mol.kpoints)
     _compute_orbitals, _sum_orbitals = create_orbitals(orbitals=mol.orbitals, n_el=mol.n_el, pbc=mol.pbc, basis=mol.basis, inv_basis=mol.inv_basis, einsum=mol.einsum, kpoints=mol.kpoints)
-    _mixer = partial(mixer_i, n_el=mol.n_el, n_up=mol.n_up, n_down=mol.n_down)
     _compute_jastrow = create_jastrow_factor(mol.n_el, mol.n_up, mol.volume, mol.density_parameter, mol.basis, mol.inv_basis) if mol.jastrow else None
     # _logabssumdet = partial(logabssumdet, jastrow=_compute_jastrow)
+    _backflow_block = partial(backflow_block,
+                              masks=masks,
+                              n_up=mol.n_up,
+                              n_down=mol.n_down,
+                              n_el=mol.n_el,
+                              backflow_coords=mol.backflow_coords,
+                    
+                              _compute_single_stream_vectors=_compute_single_stream_vectors,
+                              _compute_inputs=_compute_inputs,
+                              _linear= partial(linear, nonlinearity=mol.nonlinearity),
+                              _linear_pairwise=partial(linear_pairwise, nonlinearity=mol.nonlinearity, psplit_spins=mol.psplit_spins))
 
     _wf_orbitals = partial(wf_orbitals, 
-                           masks=masks,
                            n_el=mol.n_el,
                            n_up=mol.n_up,
                            n_down=mol.n_down,
                            n_det=mol.n_det,
-                           backflow_coords=mol.backflow_coords,
-                           _compute_single_stream_vectors=_compute_single_stream_vectors,
-                           _compute_inputs=_compute_inputs,
                            _compute_orbitals=_compute_orbitals,
-                           _sum_orbitals=_sum_orbitals,
-                           _mixer=_mixer,
-                           _linear = partial(linear, nonlinearity=mol.nonlinearity),
-                           _linear_pairwise = partial(linear_pairwise, nonlinearity=mol.nonlinearity),
-                           inv_basis=mol.inv_basis,
-                           basis=mol.basis)
+                           _sum_orbitals=_sum_orbitals)
 
     def _wf(params, walkers, d0s):
+        
+        activations = []
 
         if len(walkers.shape) == 1:  # this is a hack to get around the jvp
             walkers = walkers.reshape(mol.n_el, 3)
@@ -56,12 +59,15 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
         if mol.inv_basis is not None:
             walkers = transform_vector_space(walkers, mol.inv_basis, on=True)
 
-        orb_up, orb_down, activations = _wf_orbitals(params, walkers, d0s)
+        data_up, data_down, single_stream_vectors = _backflow_block(params, walkers, activations, d0s)
+        
+        orb_up, orb_down, activations = _wf_orbitals(params, data_up, data_down, single_stream_vectors, activations, d0s)
+        
         log_psi, sign = logabssumdet(orb_up, orb_down)
 
         if _compute_jastrow is not None:
     
-            jastrow_factor = _compute_jastrow(walkers)
+            jastrow_factor = _compute_jastrow(params, walkers, activations, d0s)
             sign *= jnp.sign(jastrow_factor)
             log_psi += jastrow_factor
         
@@ -76,13 +82,17 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
 
     if orbitals:
         def _orbs(params, walkers):
+            activations = []
+
             if len(walkers.shape) == 1:  # this is a hack to get around the jvp
                 walkers = walkers.reshape(mol.n_el, 3)
 
             if mol.inv_basis is not None:
                 walkers = transform_vector_space(walkers, mol.inv_basis, on=True)
 
-            orb_up, orb_down, _ = _wf_orbitals(params, walkers, d0s)
+            data_up, data_down, single_stream_vectors = _backflow_block(params, walkers, activations, d0s)
+        
+            orb_up, orb_down, _ = _wf_orbitals(params, data_up, data_down, single_stream_vectors, activations, d0s)
             return orb_up, orb_down
         return vmap(_orbs, in_axes=(None, 0))
 
@@ -94,30 +104,23 @@ def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, d
     
     return _vwf
 
-def wf_orbitals(params: dict, 
-                walkers: jnp.array, 
-                d0s: dict, 
-                masks: list,
-                n_up: int,
-                n_down: int,
-                n_el: int,
-                n_det: int,
-                backflow_coords: bool,
-            
-                _compute_single_stream_vectors: Callable,
-                _compute_inputs: Callable,
-                _compute_orbitals: Callable,
-                _sum_orbitals: Callable,
-                _mixer: Callable,
-                _linear: Callable = partial(linear, nonlinearity='tanh'),
-                _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh'),
-                inv_basis=None,
-                basis=None):
 
-    activations = []
+def backflow_block(params: dict, 
+                   walkers: jnp.array, 
+                   activations: list,
+                   d0s: dict, 
+                   masks: list,
+                   n_up: int,
+                   n_down: int,
+                   n_el: int,
+                   backflow_coords: bool,
+                
+                   _compute_single_stream_vectors: Callable,
+                   _compute_inputs: Callable,
+                   _linear: Callable = partial(linear, nonlinearity='tanh'),
+                   _linear_pairwise: Callable = partial(linear_pairwise, nonlinearity='tanh')):
 
     single_stream_vectors = _compute_single_stream_vectors(walkers)  # (n_el, n_atom, 3)
-
     single, pairwise = _compute_inputs(walkers, single_stream_vectors)  # (n_el, 3), (n_pairwise, 4)
     single_mixed, split = mixer_i(single, pairwise, n_el, n_up, n_down, *masks[0])
 
@@ -125,12 +128,11 @@ def wf_orbitals(params: dict,
     
         split = linear_split(params['split%i'%i], split, activations, d0s['split%i'%i])
         single = _linear(params['s%i'%i], single_mixed, split, activations, d0s['s%i'%i], single)
-        pairwise = _linear_pairwise(params['ps%i'%i], 
-                                    params['pd%i'%i], 
+        pairwise = _linear_pairwise(params, 
+                                    i,
                                     pairwise, 
                                     activations, 
-                                    d0s['ps%i'%i], 
-                                    d0s['pd%i'%i],
+                                    d0s,
                                     pairwise,
                                     n_up, 
                                     n_down)
@@ -141,11 +143,29 @@ def wf_orbitals(params: dict,
     data_up, data_down = jnp.split(single, [n_up], axis=0)
 
     if backflow_coords:
-        new_coords_up = linear_split(params['bf_up'], data_up, activations, d0s['bf_up'])
-        new_coords_down = linear_split(params['bf_down'], data_down, activations, d0s['bf_down'])
-        single_stream_vectors = jnp.concatenate([new_coords_up, new_coords_down], axis=0)[:, None, :]
-        # single_stream_vectors = keep_in_boundary(new_coords, basis, inv_basis)[:, None, :]
-    
+        new_coords = linear_split(params['bf_up'], data_up, activations, d0s['bf_up'])
+        if not n_down == 0:
+            new_coords_down = linear_split(params['bf_down'], data_down, activations, d0s['bf_down'])
+            new_coords = layer_activation(jnp.concatenate([new_coords, new_coords_down], axis=0)[:, None, :], nonlinearity='tanh')
+        single_stream_vectors += new_coords[:, None, :]
+    return data_up, data_down, single_stream_vectors
+
+
+def wf_orbitals(params: dict, 
+                data_up: jnp.array, 
+                data_down: jnp.array,
+                single_stream_vectors: jnp.array,
+                activations: list,
+                d0s: dict, 
+
+                n_up: int,
+                n_down: int,
+                n_el: int,
+                n_det: int,
+            
+                _compute_orbitals: Callable,
+                _sum_orbitals: Callable):
+
     factors_up, factors_down = [], []
     for k in range(n_det):
         factor_up = env_linear_i(params['env_lin_up_k%i' % k], data_up, activations, d0s['env_lin_up_k%i' % k])
@@ -155,8 +175,7 @@ def wf_orbitals(params: dict,
             factors_down.append(factor_down)
 
     factor_up = jnp.stack(factors_up, axis=0)
-    factor_down = jnp.stack(factors_down, axis=0)
-
+    factor_down = jnp.stack(factors_down, axis=0) if not n_up == n_el else None
     single_stream_vectors = split_and_squeeze(single_stream_vectors, axis=1)  # [n_atom * (n_el, 3)]
 
     exp_up = []
@@ -299,7 +318,6 @@ def real_plane_wave_orbitals(sigma,
     # sigma (n_det, n_spin_i, n_atom, 3, 3)
     # orb_vector (n_spin_j, 3)
     # k_points (n_spin_i, 3)
-
     n_el = orb_vector.shape[0]
     args = orb_vector @ kpoints[:n_el, :].T  # (n_el_j, n_el_i)
     args = split_and_squeeze(args, axis=1)
@@ -408,8 +426,6 @@ def mixer_i(single: jnp.array,
             n_el: int,
             n_up: int,
             n_down: int,
-            single_up_mask,
-            single_down_mask,
             pairwise_up_mask,
             pairwise_down_mask):
     # single (n_samples, n_el, n_single_features)
@@ -417,9 +433,8 @@ def mixer_i(single: jnp.array,
 
     # --- Single summations
     # up
-    sum_spin_up = single_up_mask * single
-    sum_spin_up = jnp.sum(sum_spin_up, axis=0, keepdims=True) / float(n_up)
-    #     sum_spin_up = jnp.repeat(sum_spin_up, n_el, axis=1)  # not needed in split
+    data_up, data_down = single.split([n_up], axis=0)
+    mean_spin_up = jnp.mean(data_up, axis=0, keepdims=True)
 
     # --- Pairwise summations
     sum_pairwise = jnp.repeat(jnp.expand_dims(pairwise, axis=0), n_el, axis=0)
@@ -430,18 +445,18 @@ def mixer_i(single: jnp.array,
 
     # down
     if n_down > 0:
-        sum_spin_down = single_down_mask * single
-        sum_spin_down = jnp.sum(sum_spin_down, axis=0, keepdims=True) / float(n_down)
+        # sum_spin_down = single_down_mask * single
+        # sum_spin_down = jnp.sum(sum_spin_down, axis=0, keepdims=True) / float(n_down)
+        mean_spin_down = jnp.mean(data_down, axis=0, keepdims=True)
 
         # down
         sum_pairwise_down = pairwise_down_mask * sum_pairwise
         sum_pairwise_down = sum_pairwise_down.sum((1, 2)) / float(n_down)
     
         single = jnp.concatenate((single, sum_pairwise_up, sum_pairwise_down), axis=1)
-        split = jnp.concatenate((sum_spin_up, sum_spin_down), axis=1)
+        split = jnp.concatenate((mean_spin_up, mean_spin_down), axis=1)
         return single, split
     else:
         single = jnp.concatenate((single, sum_pairwise_up), axis=1)
-        split = sum_spin_up
-        return single, split
+        return single, mean_spin_up
 

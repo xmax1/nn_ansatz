@@ -218,7 +218,7 @@ def setup(system: str = 'Be',
           damping: float = 1e-4,
           norm_constraint: float = 1e-4,
           n_it: int = 1000,
-          n_walkers: int = 512,
+          n_walkers: int = 1024,
 
           step_size: float = 0.05,
           correlation_length: int = 10,
@@ -232,8 +232,9 @@ def setup(system: str = 'Be',
           einsum: bool = False, 
           nonlinearity: str = 'cos',
           input_activation_nonlinearity: str = 'cos',
-          no_jastrow: bool = False,
-          backflow_coords: bool = False,
+          jastrow: bool = True,
+          backflow_coords: bool = True,
+          psplit_spins: bool = True,
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 500,
@@ -247,9 +248,6 @@ def setup(system: str = 'Be',
           seed: int = 369,
           **kwargs):
     tf.config.experimental.set_visible_devices([], "GPU")
-
-    if no_jastrow: jastrow = False
-    else: jastrow = True
 
     n_devices = get_n_devices()
     assert n_walkers % n_devices == 0
@@ -323,6 +321,7 @@ def setup(system: str = 'Be',
               'input_activation_nonlinearity': input_activation_nonlinearity,
               'jastrow': jastrow,
               'backflow_coords': backflow_coords,
+              'psplit_spins': psplit_spins and (not (n_el == n_up)),
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,

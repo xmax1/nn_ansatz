@@ -3,6 +3,12 @@
 
 import argparse
 from nn_ansatz import setup, run_vmc, approximate_energy
+from distutils.util import strtobool
+
+def input_bool(x):
+    x = strtobool(x)
+    if x: return True
+    else: return False
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -27,7 +33,9 @@ def get_args():
     parser.add_argument('-npre', '--n_pre_it', type=int, default=500)
     parser.add_argument('--nopretrain',  dest='pretrain', action='store_false')
     parser.add_argument('--sweep', dest='sweep', action='store_true')
-    parser.add_argument('--no_jastrow', dest='no_jastrow', default=False, action='store_true')
+    parser.add_argument('-backflow_coords', default=True, type=input_bool)
+    parser.add_argument('-jastrow', default=True, type=input_bool)
+    parser.add_argument('-psplit_spins', default=True, type=input_bool)
     args = parser.parse_args()
     return args
 

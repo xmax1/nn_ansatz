@@ -63,20 +63,24 @@ def confirm_antisymmetric(mol, params, walkers):
     walkers = jnp.concatenate([nw_up, nw_down], axis=idx)
     tl1, ts1 = swf(params, walkers)
 
-    idxs = [1, 0]
-    idxs.extend(list(range(2, mol.n_down)))
-    nw_down = nw_down[..., idxs, :]
-    walkers = jnp.concatenate([nw_up, nw_down], axis=idx)
-    tl2, ts2 = swf(params, walkers)
-
     up_swap_mean = float(jnp.abs(bl-tl1).mean())
-    up_swap_smean =  float(jnp.abs(bs - ts1).mean())
-    down_swap_mean = float(jnp.abs(tl2-tl1).mean())
-    down_swap_smean =  float(jnp.abs(ts2-ts1).mean())
+    up_swap_smean =  float(jnp.abs(bs-ts1).mean())
     
     print('antisymmetry check:')
     print('swap ups || difference %.2f sign difference %.2f' % (up_swap_mean, up_swap_smean))
-    print('swap downs || difference %.2f sign difference %.2f' % (down_swap_mean, down_swap_smean))
+
+    
+    if not mol.n_down == 0:
+        idxs = [1, 0]
+        idxs.extend(list(range(2, mol.n_down)))
+        nw_down = nw_down[..., idxs, :]
+        walkers = jnp.concatenate([nw_up, nw_down], axis=idx)
+        tl2, ts2 = swf(params, walkers)
+
+        down_swap_mean = float(jnp.abs(tl2-tl1).mean())
+        down_swap_smean =  float(jnp.abs(ts2-ts1).mean())
+        
+        print('swap downs || difference %.2f sign difference %.2f' % (down_swap_mean, down_swap_smean))
 
 def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
     keys = rnd.PRNGKey(cfg['seed'])
@@ -148,7 +152,7 @@ def run_vmc(cfg, walkers=None):
         
         grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
 
-        gs = grads.copy()
+        # gs = grads.copy()
 
         if cfg['opt'] == 'kfac':
             grads, state = kfac_update(step, grads, state, walkers)
@@ -167,21 +171,25 @@ def run_vmc(cfg, walkers=None):
                    e_locs=e_locs,
                    acceptance=acceptance)
 
-        for key, g in gs.items():
-            g = jnp.mean(jnp.abs(g))
-            logger.writer('grads/g_%s' % key, float(g), step)
+        # for key, g in gs.items():
+        #     g = jnp.mean(jnp.abs(g))
+        #     logger.writer('grads/g_%s' % key, float(g), step)
 
 
-        for i, kg in enumerate(grads):
-            kg = jnp.mean(jnp.abs(kg))
-            logger.writer('kfac_grads/kg_%i' % i, float(kg), step)
+        # for i, kg in enumerate(grads):
+        #     kg = jnp.mean(jnp.abs(kg))
+        #     logger.writer('kfac_grads/kg_%i' % i, float(kg), step)
 
         up_mom, down_mom = compute_mom(params, walkers)
 
         logger.writer('mom/up_mom_mean', float(up_mom.mean()), step)
-        logger.writer('mom/down_mom_mean', float(down_mom.mean()), step)
         logger.writer('mom/up_mom_std', float(up_mom.std()), step)
-        logger.writer('mom/down_mom_std', float(down_mom.std()), step)
+
+        if not mol.n_down == 0:
+            logger.writer('mom/down_mom_std', float(down_mom.std()), step)
+            logger.writer('mom/down_mom_mean', float(down_mom.mean()), step)
+            logger.writer('mom/sum_mum', float(up_mom.mean()) + float(down_mom.mean()), step)
+
 
     write_summary_to_cfg(cfg, logger.summary)
     logger.walkers = walkers

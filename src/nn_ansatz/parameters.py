@@ -40,14 +40,14 @@ def count_mixed_features(n_sh, n_ph, n_down):
     return n_sh + n_ph * (2 - int(n_down==0))
 
 
-def initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers):
+def initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers, psplit_spins):
 
     # initial layers
     key, *subkeys = rnd.split(key, num=5)
     params['split0'] = init_linear(subkeys[0], (n_sh_in * (2 - int(n_down==0)), n_sh), bias=False)  # n_down==0 modifies the input when n_down is zero
     params['s0'] = init_linear(subkeys[1], (count_mixed_features(n_sh_in, n_ph_in, n_down), n_sh), bias=True)
     params['ps0'] = init_linear(subkeys[2], (n_ph_in, n_ph), bias=True)
-    params['pd0'] = init_linear(subkeys[3], (n_ph_in, n_ph), bias=True)
+    if psplit_spins: params['pd0'] = init_linear(subkeys[3], (n_ph_in, n_ph), bias=True)
 
     # intermediate layers
     key, *subkeys = rnd.split(key, num=((n_layers-1) * 4 + 1))
@@ -56,14 +56,14 @@ def initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_
         params['split%i' % i] = init_linear(sk1, (n_sh_split, n_sh), bias=False)
         params['s%i' % i] = init_linear(sk2, (n_sh_mix, n_sh), bias=True)
         params['ps%i' % i] = init_linear(sk3, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
-        params['pd%i' % i] = init_linear(sk4, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
+        if psplit_spins: params['pd%i' % i] = init_linear(sk4, (n_ph, n_ph), bias=True)  # final network layer doesn't have pairwise layer
 
     i += 1
     key, *subkeys = rnd.split(key, num=5)
     params['split%i' % i] = init_linear(subkeys[0], (n_sh_split, n_sh//2), bias=False)
     params['s%i' % i] = init_linear(subkeys[1], (n_sh_mix, n_sh//2), bias=True)
     params['ps%i' % i] = init_linear(subkeys[2], (n_ph, n_ph//2), bias=True)  # final network layer doesn't have pairwise layer
-    params['pd%i' % i] = init_linear(subkeys[3], (n_ph, n_ph//2), bias=True)  # final network layer doesn't have pairwise layer
+    if psplit_spins: params['pd%i' % i] = init_linear(subkeys[3], (n_ph, n_ph//2), bias=True)  # final network layer doesn't have pairwise layer
 
     return params, key
 
@@ -89,17 +89,18 @@ def initialise_params(mol, key):
     n_layers, n_sh, n_ph, n_det, n_in, n_sh_in, n_ph_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in, mol.n_sh_in, mol.n_ph_in
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
     orbitals = mol.orbitals
+    psplit_spins = mol.psplit_spins
 
     n_sh_mix = count_mixed_features(n_sh, n_ph, n_down)
     n_sh_split = n_sh * (2 - int(n_down==0)) # n_down==0 reduces the hidden dimension when n_down is zero
     
     params = OrderedDict()
 
-    params, key = initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers)
+    params, key = initialise_linear_layers(params, key, n_sh_split, n_sh_mix, n_down, n_sh, n_ph, n_sh_in, n_ph_in, n_layers, psplit_spins)
 
     if mol.backflow_coords:
         params['bf_up'] = init_linear(key, ((n_sh_split + n_sh_mix)//2, 3), bias=False)
-        params['bf_down'] = init_linear(key, ((n_sh_split + n_sh_mix)//2, 3), bias=False)
+        if not mol.n_down == 0: params['bf_down'] = init_linear(key, ((n_sh_split + n_sh_mix)//2, 3), bias=False)
 
     # env_linear
     for k in range(n_det):
@@ -107,7 +108,6 @@ def initialise_params(mol, key):
         params['env_lin_up_k%i' % k] = init_linear(subkeys[0], ((n_sh_split + n_sh_mix)//2, n_up), bias=True)
         if not n_down == 0: params['env_lin_down_k%i' % k] = init_linear(subkeys[1], ((n_sh_split + n_sh_mix)//2, n_down), bias=True)
 
-    # if not mol.einsum:
         
     # env_sigma
     if not mol.orbitals == 'real_plane_waves':
@@ -153,7 +153,10 @@ def initialise_params(mol, key):
             #     params['env_pi_down'] = jnp.squeeze(init_einsum(subkeys[1], (n_atoms, 1, n_det, n_down)), axis=1)
             
             
-            
+    
+    # if mol.jastrow:
+    #     if mol.backflow_coords:
+    #         params['jf_bf'] = init_linear(key, (5, 1), bias=False)
 
 
             # # env_pi
@@ -164,28 +167,32 @@ def initialise_params(mol, key):
     return params
 
 
-def initialise_linear_layers_d0s(d0s, n_up, n_down, n_sh, n_ph, n_layers):
+def initialise_linear_layers_d0s(d0s, n_up, n_down, n_sh, n_ph, n_layers, psplit_spins):
     n_el = n_up + n_down
-    n_same = n_up**2 + n_down**2
-    n_diff = 2 * n_up * n_down
+    if psplit_spins:
+        n_same = n_up**2 + n_down**2
+        n_diff = 2 * n_up * n_down
+    else:
+        n_same = n_el**2
+        n_diff = 0
 
     # initial layers
     d0s['split0'] = jnp.zeros((1, n_sh))
     d0s['s0'] = jnp.zeros((n_el, n_sh))
     d0s['ps0'] = jnp.zeros((n_same, n_ph))
-    d0s['pd0'] = jnp.zeros((n_diff, n_ph))
+    if psplit_spins: d0s['pd0'] = jnp.zeros((n_diff, n_ph))
 
     for i in range(1, n_layers):
         d0s['split%i' % i] = jnp.zeros((1, n_sh))
         d0s['s%i' % i] = jnp.zeros((n_el, n_sh))
         d0s['ps%i' % i] = jnp.zeros((n_same, n_ph))  # final network layer doesn't have pairwise layer
-        d0s['pd%i' % i] = jnp.zeros((n_diff, n_ph))  # final network layer doesn't have pairwise layer
+        if psplit_spins: d0s['pd%i' % i] = jnp.zeros((n_diff, n_ph))  # final network layer doesn't have pairwise layer
 
     i+=1
     d0s['split%i' % i] = jnp.zeros((1, n_sh//2))
     d0s['s%i' % i] = jnp.zeros((n_el, n_sh//2))
     d0s['ps%i' % i] = jnp.zeros((n_same, n_ph//2))  # final network layer doesn't have pairwise layer
-    d0s['pd%i' % i] = jnp.zeros((n_diff, n_ph//2))  # final network layer doesn't have pairwise layer
+    if psplit_spins: d0s['pd%i' % i] = jnp.zeros((n_diff, n_ph//2))  # final network layer doesn't have pairwise layer
 
     return d0s
 
@@ -196,11 +203,11 @@ def initialise_d0s(mol, expand=False):
 
     d0s = OrderedDict()
 
-    d0s = initialise_linear_layers_d0s(d0s, n_up, n_down, n_sh, n_ph, n_layers)
+    d0s = initialise_linear_layers_d0s(d0s, n_up, n_down, n_sh, n_ph, n_layers, mol.psplit_spins)
 
     if mol.backflow_coords:
         d0s['bf_up'] = jnp.zeros((n_up, 3))
-        d0s['bf_down'] = jnp.zeros((n_down, 3))
+        if not mol.n_down == 0: d0s['bf_down'] = jnp.zeros((n_down, 3))
 
     for k in range(n_det):
         d0s['env_lin_up_k%i' % k] = jnp.zeros((n_up, n_up))
@@ -235,6 +242,10 @@ def initialise_d0s(mol, expand=False):
             
             if not n_down == 0:
                 d0s['env_pi_down'] = jnp.zeros((n_det, n_down, n_down))
+
+    # if mol.jastrow:
+    #     if mol.backflow_coords:
+    #         d0s['jf_bf'] = jnp.zeros((n_el**2, 1))
 
     if expand: # distinguish between the cases 1- used to create a partial function (don't expand) 2- used to find the sensitivities (expand)
         d0s = expand_d0s(d0s, mol.n_devices, mol.n_walkers_per_device)

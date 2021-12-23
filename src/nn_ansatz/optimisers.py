@@ -100,6 +100,7 @@ def create_natural_gradients_fn(mol, params, walkers):
         
         ngs, new_maas, new_msss = [], [], []
 
+        print(len(gradients), len(aas), len(sss), len(maas), len(msss), len(sl_factors))
         assert len(gradients) == len(aas) == len(sss) == len(maas) == len(msss) == len(sl_factors)
         for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
             # sl_factor = sl_factor**2
