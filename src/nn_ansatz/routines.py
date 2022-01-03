@@ -142,7 +142,7 @@ def run_vmc(cfg, walkers=None):
     confirm_antisymmetric(mol, params, walkers)
 
     steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='%s/training' % cfg['name'], disable=None)
-    step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
+    step_size = get_step_size(walkers, params, sampler, keys)
 
     for step in steps:
         keys, subkeys = key_gen(keys)
@@ -169,6 +169,8 @@ def run_vmc(cfg, walkers=None):
                    params=params,
                    e_locs=e_locs,
                    acceptance=acceptance)
+
+        logger.writer('acceptance/step_size', float(jnp.mean(step_size)), step)
 
         # for key, g in gs.items():
         #     g = jnp.mean(jnp.abs(g))
@@ -294,6 +296,23 @@ def compute_per_particle(values, n_particles):
         new_dict[k + '_per_particle'] = v / float(n_particles)
     return new_dict
 
+
+def get_step_size(walkers, params, sampler, keys):
+    n_devices = walkers.shape[0]
+    step_sizes = [0.5, 0.1, 0.05, 0.01, 0.005]
+    acceptances = []
+    for step_size in step_sizes:
+        step_size = split_variables_for_pmap(n_devices, step_size)
+        keys, subkeys = key_gen(keys)
+        walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
+        acceptance = float(jnp.mean(acceptance))
+        acceptances.append(acceptance)
+    acceptances = np.abs(np.array(acceptances) - 0.5)
+    idx = np.argmin(acceptances)
+    step_size = step_sizes[idx]
+    return split_variables_for_pmap(n_devices, step_size)
+
+
 def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     cfg['pretrain'] = False
     
@@ -309,7 +328,7 @@ def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     if bool(os.environ.get('DISTRIBUTE')) is True:
         energy_function = pmap(energy_function, in_axes=(None, 0))
     
-    step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
+    step_size = get_step_size(walkers, params, sampler, keys)
     values = {}
     for i in range(n_it):
         keys, subkeys = key_gen(keys)

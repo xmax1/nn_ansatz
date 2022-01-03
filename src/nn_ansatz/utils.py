@@ -220,7 +220,7 @@ def setup(system: str = 'Be',
           n_it: int = 1000,
           n_walkers: int = 1024,
 
-          step_size: float = 0.05,
+          step_size: float = 0.02,
           correlation_length: int = 10,
 
           n_layers: int = 2,
@@ -321,7 +321,7 @@ def setup(system: str = 'Be',
               'input_activation_nonlinearity': input_activation_nonlinearity,
               'jastrow': jastrow,
               'backflow_coords': backflow_coords,
-              'psplit_spins': psplit_spins and (not (n_el == n_up)),
+              'psplit_spins': psplit_spins and (not (n_el == system_config['n_up'])),
 
               # TRAINING HYPERPARAMETERS
               'opt': opt,

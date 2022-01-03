@@ -219,8 +219,8 @@ def get_data(target_dir, groupby=None, data_filename='config1.pk', dicts=[]):
         data = load_pk(data_path)
         dicts.append(data)
     df = pd.DataFrame(dicts)    # .filter(regex='energy')
-    columns = [x for x in df.columns if not ('dir' in x) and not ('path' in x)]
-    df = df[columns]
+    # columns = [x for x in df.columns if not ('dir' in x) and not ('path' in x)]
+    # df = df[columns]
     
     try:
         columns = [c for c in df.columns if 'equilibrated_energy_mean_' in c]

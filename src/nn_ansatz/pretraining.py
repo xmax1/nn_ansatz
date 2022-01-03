@@ -94,7 +94,7 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
             @jit
             def _hf_orbitals(walkers):
                 if mol.n_up == mol.n_el:
-                    orb_up = real_plane_wave_orbitals(None, walkers, None) 
+                    orb_up = real_plane_wave_orbitals(None, walkers, None).squeeze(axis=0) 
                     orb_down = None
                 else:
                     walkers_up, walkers_down = jnp.split(walkers, [mol.n_up], axis=0)

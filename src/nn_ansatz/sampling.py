@@ -135,7 +135,7 @@ def sample_metropolis_hastings(params,
     step_size = jnp.where(jnp.abs(acceptance - target_acceptance) < jnp.abs(new_acceptance - target_acceptance), \
                                     step_size, new_step_size)
 
-    return curr_walkers, acceptance, step_size
+    return curr_walkers, (acceptance + new_acceptance) / 2, step_size
 
 
 def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, step_size, step_walkers):
@@ -160,9 +160,9 @@ def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, 
 #     return jnp.clip(step_size + delta, 0.005, 0.2)
 
 
-def adjust_step_size(step_size, acceptance, key, target_acceptance=0.5, std=0.005):
+def adjust_step_size(step_size, acceptance, key, target_acceptance=0.5, std=0.01):
     step_size += std * rnd.normal(key, step_size.shape)
-    return jnp.clip(step_size, 0.0005, 0.5)
+    return jnp.clip(step_size, 0.0001, 1.)
 
 
 def adjust_step_size_with_controlflow(step_size, acceptance, target_acceptance=0.5):

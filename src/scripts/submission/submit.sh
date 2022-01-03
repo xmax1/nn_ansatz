@@ -43,7 +43,7 @@ fi
 
 if [ "$1" == "oneloop" ]; then 
     echo Calling single loop
-    myArray=(1 1) # 0.5 1 2 5 
+    myArray=(1 2 5 10 20 50 100) 
     # myArray=(512 1024 2048 4096)
     # myArray=(1 2 3 4 5)
     # myArray=(0 1 2 3 4 5)
@@ -57,7 +57,7 @@ if [ "$1" == "oneloop" ]; then
         # n_sh=$(( $hypam*16 ))
         # n_ph=$(( $hypam*8 ))
         cmd="-s HEG \
-            -nw 512 \
+            -nw 1024 \
             -n_sh 64 \
             -n_ph 32 \
             -nl 3 \
@@ -65,17 +65,16 @@ if [ "$1" == "oneloop" ]; then
             -orb real_plane_waves \
             -n_el 14 \
             -n_up 7 \
-            -inact 3cos+3sin \
-            -dp 1 \
-            -name baselines/jastow_2 \
+            -inact 4cos+4sin+7kpoints \
+            -dp $hypam \
+            -name final2/14el_1det_3 \
             -lr 0.001 \
-            -cl 10 \
-            -n_it 30000 \
+            -n_it 100000 \
             -backflow True \
-            -jastrow False \
+            -jastrow True \
             -psplit_spins True \
             --sweep"
-        sbatch --gres=gpu:RTX3090:$ngpu --job-name=xj2 $submission_path $cmd
+        sbatch --gres=gpu:RTX3090:$ngpu --job-name=14d1p$hypam $submission_path $cmd
         echo $cmd
         echo ngpu $ngpu
     done
@@ -87,24 +86,22 @@ if [ "$1" == "single" ]; then
         -nw 1024 \
         -n_sh 64 \
         -n_ph 32 \
-        -nl 2 \
+        -nl 3 \
         -n_det 1 \
         -orb real_plane_waves \
-        -n_el 14 \
+        -n_el 7 \
         -n_up 7 \
-        -inact 3cos+3sin+19kpoints \
-        -dp 1 \
-        -name junk/1024_14el \
+        -inact 4cos+4sin+7kpoints \
+        -dp 100 \
+        -name final2/7el_nobf_dp100 \
         -lr 0.001 \
-        -cl 10 \
-        -n_it 100 \
-        -backflow True \
+        -n_it 100000 \
+        -backflow False \
         -jastrow True \
         -psplit_spins True \
-        -pretrain False \
         --sweep"
     echo $cmd
-    sbatch --gres=gpu:RTX3090:$ngpu --job-name=bl $submission_path $cmd
+    sbatch --gres=gpu:RTX3090:$ngpu --job-name=100dptest $submission_path $cmd
 fi
 
 
