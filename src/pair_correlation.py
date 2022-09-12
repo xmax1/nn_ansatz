@@ -10,21 +10,22 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import seaborn as sns
-from nn_ansatz.plot import plot_lines
+from nn_ansatz.plot import plot
+from nn_ansatz.ansatz_base import apply_minimum_image_convention
 
 
-def compute_distances(walkers, rj=None):
+def compute_distances(walkers, mol, rj=None):
     if walkers is None:
         return jnp.array([])
 
     if rj is None:
-        rj_walkers = walkers
+        rj_walkers = jnp.copy(walkers)
     else:
         rj_walkers = rj
 
     displacement = walkers[..., None, :] - jnp.expand_dims(rj_walkers, axis=-3)
+    displacement = apply_minimum_image_convention(displacement, mol.basis, mol.inv_basis)
     distances = jnp.linalg.norm(displacement, axis=-1)
-
     return distances  # (n_walkers, n_i, n_j)
 
 
@@ -41,10 +42,11 @@ def split_spin_walkers(walkers, n_up):
 def compute_gr(distances, n_bins=100):
         n_walkers = len(distances)
         distances = distances.reshape(-1)
+        max_distance = max(distances)
         n_el_target = jnp.prod(jnp.array(distances.shape[1:]))
 
-        dr = max(distances)/float(n_bins)
-        rs = np.linspace(0.0000001, distances, n_bins)  # 0.000001 cuts off zeros
+        dr = max_distance/float(n_bins)
+        rs = np.linspace(0.000001, max_distance, n_bins)  # 0.000001 cuts off zeros
         
         pdfs = []
         for r in rs:
@@ -76,17 +78,8 @@ def compute_pair_correlation(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/se
     cfg['n_devices'] = 1
     print('n_devices = ', n_devices)
 
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg | {'load_it': 100000}, walkers=None)
-
-    dist = compute_distances(walkers)
-    print('walker stats:', jnp.max(dist), jnp.min(dist))
-    disp = walkers[:, None, ...] - walkers[..., None, :]
-    print(jnp.max(disp), jnp.min(disp))
-
-    disp  = disp.reshape(-1, 3)
-    print(disp[:20])
-
-    exit()
+    params_path = oj(models_path, f'i{load_it}.pk')
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, params_path=params_path)
     
     n_walkers = walkers.shape[0] // n_devices
     walkers = walkers[:n_walkers]
@@ -113,9 +106,9 @@ def compute_pair_correlation(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/se
 
         walkers_up, walkers_down = split_spin_walkers(walkers, n_up)
         
-        up_d = compute_distances(walkers_up)  # (n_walkers,)
-        down_d = compute_distances(walkers_down)
-        up_down_d = compute_distances(walkers_up, rj=walkers_down)
+        up_d = compute_distances(walkers_up, mol)  # (n_walkers,)
+        down_d = compute_distances(walkers_down, mol)
+        up_down_d = compute_distances(walkers_up, mol, rj=walkers_down)
 
         exp_stat = {
             'up_d': np.squeeze(np.array(up_d)),
@@ -139,16 +132,17 @@ def compute_pair_correlation(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/se
     ylabels = ['electron density g(r)'] * 3
     xlabels = ['r'] * 3
     
-    fig = plot_lines(xs, 
-                     ys, 
-                     xlabels=xlabels, 
-                     ylabels=ylabels, 
-                     titles=titles,
-                     marker=None,
-                     linestyle='-',
-                     fig_title='gr',
-                     fig_path=oj(plot_dir, 'gr.png')
-                     )
+    plot(
+        xs, 
+        ys, 
+        xlabels=xlabels, 
+        ylabels=ylabels, 
+        titles=titles,
+        marker=None,
+        linestyle='-',
+        fig_title='gr',
+        fig_path=oj(plot_dir, 'gr.png')
+    )
     
     exp_stats = exp_stats | {'r_up_up': rs_uu, 'r_down_down': rs_dd, 'r_up_down': rs_ud}
 

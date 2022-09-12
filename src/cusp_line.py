@@ -16,7 +16,8 @@ from matplotlib.ticker import LinearLocator
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from nn_ansatz.plot import plot_lines
+from nn_ansatz.plot import plot
+from nn_ansatz.vmc import create_energy_fn
 
 
 def split_given_size(a, size):
@@ -40,8 +41,15 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
     cfg = load_pk(oj(run_dir, 'config1.pk'))
     n_el, n_up = cfg['n_el'], cfg['n_up']
 
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg | {'load_it': 100000}, walkers=None)
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg | {'load_it': 90000}, walkers=None)
     swf = create_wf(mol, signed=True)
+    energy_function = create_energy_fn(mol, vwf, separate=True)
+    pe, ke = energy_function(params, walkers)
+    print('es', jnp.mean(pe), jnp.mean(ke))
+
+    log_psi = vwf(params, walkers)
+    xs = [np.squeeze(np.array(log_psi))]
+    plot(xs, xlabels=['log psi'], plot_type='hist', fig_title='histogram log psi initial walkers')
     
     walkers = walkers[0, :, :][None, ...]  # (1, n_el, 3)
 
@@ -80,6 +88,8 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
 
             gf_psi = grad(lambda w: jnp.sum(jnp.exp(vwf(params, w))))
             gx_psi = gf_psi(walkers_coalesce)[:, e1_idx, 0]
+
+            pe, ke = energy_function(params, walkers_coalesce)
             
             exp_stats = append_dict_to_dict(exp_stats, 
             {k: np.squeeze(np.array(v)) for k, v in 
@@ -88,7 +98,9 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
                         'log_psi': log_psi_c,
                         'gx_log_psi': gx_log_psi,
                         'psi': psi_c,
-                        'gx_psi': gx_psi
+                        'gx_psi': gx_psi,
+                        'pe': pe,
+                        'ke': ke
                 }.items()
             })
 
@@ -100,17 +112,19 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
         pretty_results_file = exp_stats_name[:exp_stats_name.rindex('.')]+'.txt'
         save_pretty_table(exp_stats.copy(), path=pretty_results_file)
 
-        ylabels = ['log_psi', 'gx_log_psi', 'psi', 'gx_psi']
+        ylabels = ['log_psi', 'gx_log_psi', 'psi', 'gx_psi', 'pe', 'ke']
         xs = [exp_stats['dx']] * len(ylabels)
         ys = [exp_stats[y] for y in ylabels]
-        fig = plot_lines(xs, 
-                         ys, 
-                         xlabels=['dx']*len(ylabels), 
-                         ylabels=ylabels,
-                         marker=None, 
-                         linestyle='-',
-                         fig_title=result_string,
-                         fig_path=oj(plot_dir, result_string + '.png'))
+        fig = plot(
+            xs, 
+            ys, 
+            xlabels=['dx']*len(ylabels), 
+            ylabels=ylabels,
+            marker='.', 
+            linestyle=None,
+            fig_title=result_string,
+            fig_path=oj(plot_dir, result_string + '.png')
+        )
         
         
 

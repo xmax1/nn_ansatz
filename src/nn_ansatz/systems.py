@@ -170,7 +170,7 @@ class SystemAnsatz():
 
             if print_ansatz:
                 print('Cell: \n',
-                'pbc': pbc, '\n',
+                'pbc', pbc, '\n',
                 'basis:', '\n', self.basis, '\n',
                 'inv_basis:', '\n', self.inv_basis, '\n',
                 'scale_cell: ', '\n', self.scale_cell, '\n',

@@ -18,21 +18,27 @@ import csv
 # plt.rcParams.update(params)
 
 
-def plot_lines(xs: list, 
-               ys: list, 
-               xlabels: list=None, 
-               ylabels: list=None, 
-               titles: list=None,
-               fig_title: str=None,
-               fig_path: str=None,
-               marker: str='x',
-               linestyle: str=None):
+def plot(
+    xs: list, 
+    ys: list=None, 
+    xlabels: list=None, 
+    ylabels: list=None, 
+    titles: list=None,
+    fig_title: str=None,
+    fig_path: str=None,
+    marker: str='x',
+    linestyle: str=None,
+    plot_type: str='line',
+    **kwargs
+):
     
+    if ys is None: ys = [None] * len(xs)  # for histogram case
     assert len(xs) == len(ys)
 
     n_plots = len(xs)
     n_side = int(np.ceil(np.sqrt(n_plots)))
     fig, axs = plt.subplots(n_side, n_side)
+    if n_side == 1: axs = [[axs],]
     axs = [ax for sub in axs for ax in sub]
 
     format_elements = [xlabels, ylabels, titles]
@@ -41,13 +47,22 @@ def plot_lines(xs: list,
         assert len(f) == n_plots
 
     for ax, x, y, xl, yl, ti in zip(axs, xs, ys, *format_elements):
-
-        ax.plot(x, y, 
+        
+        if plot_type is 'line':
+            ax.plot(
+                x, y, 
                 color = 'blue',
                 linestyle = linestyle,  # solid, dotted
                 marker = marker,
                 markerfacecolor = 'purple', 
-                markersize = 5)
+                markersize = 5
+            )
+
+        if plot_type is 'hist':
+            ax.hist(
+                x,
+                **kwargs
+            )
 
         ax.set_xlabel(xl)
         ax.set_ylabel(yl)
@@ -56,7 +71,6 @@ def plot_lines(xs: list,
     fig.suptitle(fig_title)
     fig.tight_layout()
     if fig_path is not None: fig.savefig(fig_path)
-    
 
     return fig
 

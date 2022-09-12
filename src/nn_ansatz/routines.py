@@ -84,28 +84,25 @@ def confirm_antisymmetric(mol, params, walkers):
         print('swap downs || difference %.2f sign difference %.2f' % (down_swap_mean, down_swap_smean))
 
 
-def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
+def initialise_system_wf_and_sampler(cfg, params_path=None):
     keys = rnd.PRNGKey(cfg['seed'])
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         keys = rnd.split(keys, cfg['n_devices']).reshape(cfg['n_devices'], 2)
 
     mol = SystemAnsatz(**cfg)
-
     vwf = create_wf(mol)
-    params = initialise_params(mol, keys)
-
     sampler = create_sampler(mol, vwf)
 
-    if walkers is None:
-        walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
-    
-    if cfg['load_it'] > 0:
-        load_path = os.path.join(cfg['models_dir'], 'i%i.pk' % cfg['load_it'])
-        print('loading params ', load_path)
-        params = load_pk(load_path)
-        walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=1000)
-    elif cfg['pretrain']:
+    if params_path is None:
+        params = initialise_params(mol, keys)
+    else:
+        params = load_pk(params_path)
+
+    walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
+    walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=100)
+
+    if (params_path is None) and cfg['pretrain']:
         params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
     
     return mol, vwf, walkers, params, sampler, keys
