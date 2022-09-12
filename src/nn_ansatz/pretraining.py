@@ -14,7 +14,7 @@ from .vmc import create_energy_fn
 from .sampling import to_prob, create_sampler, equilibrate
 from .parameters import initialise_d0s, expand_d0s, initialise_params
 from .utils import save_pk, split_variables_for_pmap, key_gen
-from .ansatz import create_wf, create_orbitals
+from .ansatz import create_wf, create_orbitals, transform_vector_space
 
 def mia(arr):
     if type(arr) is float:
@@ -47,7 +47,9 @@ def pretrain_wf(mol,
     loss_function, pre_sampler = create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals)
     loss_function = value_and_grad(loss_function)
 
-    pre_walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=True, n_it=n_eq_it)
+    print('starting pretrain equilibration')
+
+    pre_walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=n_eq_it)
     walkers = jnp.array(pre_walkers, copy=True)
 
     init, update, get_params = adam(lr)
@@ -55,6 +57,8 @@ def pretrain_wf(mol,
 
     step_size = split_variables_for_pmap(walkers.shape[0], pre_step_size)
     steps = trange(0, n_pre_it, initial=0, total=n_pre_it, desc='pretraining', disable=None)
+
+    print('starting pretraining')
 
     for step in steps:
         pre_key, pre_subkey = rnd.split(pre_key)
@@ -93,6 +97,7 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
                                                           kpoints=mol.kpoints)
             @jit
             def _hf_orbitals(walkers):
+                walkers = transform_vector_space(walkers, mol.inv_basis, on=True)
                 if mol.n_up == mol.n_el:
                     orb_up = real_plane_wave_orbitals(None, walkers, None).squeeze(axis=0) 
                     orb_down = None

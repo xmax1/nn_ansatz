@@ -9,6 +9,11 @@ from jax.nn import silu
 
 eye_mask = lambda n_dim: (jnp.eye(n_dim)*-1)+1.
 
+
+def no_af(x):
+    return x
+
+
 def snake(x):
     return jnp.sin(x)**2 + x
 
@@ -220,6 +225,10 @@ def input_activation(inputs: jnp.array,
         nkpoints = int(kpoints_desc[:-7])
         sink = jnp.sin(inputs @ kpoints[1:nkpoints:2, :].T).mean(axis=0, keepdims=True).repeat(inputs.shape[0], axis=0)
         cosk = jnp.cos(inputs @ kpoints[2:nkpoints:2, :].T).mean(axis=0, keepdims=True).repeat(inputs.shape[0], axis=0)
+        
+        # cosk = jnp.cos(inputs @ kpoints[7:nkpoints:2, :].T)
+        # sink = jnp.sin(inputs @ kpoints[8:nkpoints:2, :].T)
+
         rho_k = [sink, cosk]
     else:
         rho_k = []
@@ -395,6 +404,8 @@ def layer_activation(pre_activation, nonlinearity='cos'):
         return silu(pre_activation)
     elif nonlinearity == 'snake':
         return snake(pre_activation)
+    elif nonlinearity == 'no_af':
+        return pre_activation
     else:
         exit('nonlinearity not available')
 

@@ -11,7 +11,7 @@ source ~/.bashrc
 # # #SBATCH -o junk.out
 # nvidia-smi
 # nvcc --version
-conda activate base
+conda activate sparkle
 
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1

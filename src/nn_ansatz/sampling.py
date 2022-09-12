@@ -13,9 +13,16 @@ from .ansatz import create_wf
 
 def create_sampler(mol, vwf, nan_safe=False):
 
+    print(mol.pbc, mol.basis, mol.inv_basis)
+    
     _step = step if not mol.pbc else partial(pbc_step, basis=mol.basis, inv_basis=mol.inv_basis)
 
-    _sampler = partial(sample_metropolis_hastings, vwf=vwf, step_walkers=_step, correlation_length=mol.correlation_length, nan_safe=nan_safe)
+    _sampler = partial(sample_metropolis_hastings, 
+                        vwf=vwf, 
+                        step_walkers=_step, 
+                        correlation_length=mol.correlation_length, 
+                        nan_safe=nan_safe,
+                        target_acceptance=mol.target_acceptance)
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         _sampler = pmap(_sampler, in_axes=(None, 0, 0, 0))
@@ -160,9 +167,9 @@ def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, 
 #     return jnp.clip(step_size + delta, 0.005, 0.2)
 
 
-def adjust_step_size(step_size, acceptance, key, target_acceptance=0.5, std=0.01):
+def adjust_step_size(step_size, acceptance, key, target_acceptance=0.5, std=0.001):
     step_size += std * rnd.normal(key, step_size.shape)
-    return jnp.clip(step_size, 0.0001, 1.)
+    return jnp.clip(step_size, 0.001, 1.)
 
 
 def adjust_step_size_with_controlflow(step_size, acceptance, target_acceptance=0.5):
@@ -288,7 +295,6 @@ def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute
     if compute_energy:
         if vwf is None:
             vwf = create_wf(mol)
-            
         compute_energy = create_energy_fn(mol, vwf)
         compute_energy = pmap(compute_energy, in_axes=(None, 0)) if bool(os.environ.get('DISTRIBUTE')) is True else compute_energy
 

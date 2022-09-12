@@ -1,0 +1,2 @@
+/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/experimental/optimizers.py:28: FutureWarning: jax.experimental.optimizers is deprecated, import jax.example_libraries.optimizers instead
+  warnings.warn('jax.experimental.optimizers is deprecated, '

@@ -43,7 +43,7 @@ fi
 
 if [ "$1" == "oneloop" ]; then 
     echo Calling single loop
-    myArray=(1 2 5 10 20 50 100) 
+    myArray=(1 50 100) 
     # myArray=(512 1024 2048 4096)
     # myArray=(1 2 3 4 5)
     # myArray=(0 1 2 3 4 5)
@@ -57,24 +57,27 @@ if [ "$1" == "oneloop" ]; then
         # n_sh=$(( $hypam*16 ))
         # n_ph=$(( $hypam*8 ))
         cmd="-s HEG \
-            -nw 1024 \
-            -n_sh 64 \
-            -n_ph 32 \
-            -nl 3 \
-            -n_det 1 \
-            -orb real_plane_waves \
-            -n_el 14 \
-            -n_up 7 \
-            -inact 4cos+4sin+7kpoints \
-            -dp $hypam \
-            -name final2/14el_1det_3 \
-            -lr 0.001 \
-            -n_it 100000 \
-            -backflow True \
-            -jastrow True \
-            -psplit_spins True \
-            --sweep"
-        sbatch --gres=gpu:RTX3090:$ngpu --job-name=14d1p$hypam $submission_path $cmd
+        -nw 2048 \
+        -n_sh 128 \
+        -n_ph 32 \
+        -nl 3 \
+        -n_det 8 \
+        -orb real_plane_waves \
+        -n_el 7 \
+        -n_up 7 \
+        -inact 5cos+5sin+19kpoints \
+        -dp $hypam \
+        -name sumlogdet_8det/7el \
+        -n_it 100000 \
+        -backflow_coords True \
+        -jastrow False \
+        -psplit_spins True \
+        -lr 0.001 \
+        -cl 20 \
+        -ta 0.5"
+        # 
+        # -atol 0.001 \
+        sbatch --gres=gpu:RTX3090:$ngpu --job-name=e7dp$hypam $submission_path $cmd
         echo $cmd
         echo ngpu $ngpu
     done
@@ -83,25 +86,27 @@ fi
 if [ "$1" == "single" ]; then 
     echo Calling single submission
     cmd="-s HEG \
-        -nw 1024 \
-        -n_sh 64 \
+        -nw 2048 \
+        -n_sh 128 \
         -n_ph 32 \
         -nl 3 \
         -n_det 1 \
         -orb real_plane_waves \
         -n_el 7 \
         -n_up 7 \
-        -inact 4cos+4sin+7kpoints \
-        -dp 100 \
-        -name final2/7el_nobf_dp100 \
-        -lr 0.001 \
+        -inact 5cos+5sin+19kpoints \
+        -dp 1 \
+        -name logdetsum/test/1 \
         -n_it 100000 \
-        -backflow False \
-        -jastrow True \
+        -backflow_coords True \
+        -jastrow False \
         -psplit_spins True \
-        --sweep"
+        -lr 0.001 \
+        -cl 20 \
+        -ta 0.5"
+
     echo $cmd
-    sbatch --gres=gpu:RTX3090:$ngpu --job-name=100dptest $submission_path $cmd
+    sbatch --gres=gpu:RTX3090:$ngpu --job-name=logdettest $submission_path $cmd
 fi
 
 

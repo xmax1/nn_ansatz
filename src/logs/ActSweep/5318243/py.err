@@ -1,0 +1,352 @@
+/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/experimental/optimizers.py:28: FutureWarning: jax.experimental.optimizers is deprecated, import jax.example_libraries.optimizers instead
+  warnings.warn('jax.experimental.optimizers is deprecated, '
+2022-08-29 11:18:24.566460: W external/org_tensorflow/tensorflow/core/common_runtime/bfc_allocator.cc:462] Allocator (GPU_0_bfc) ran out of memory trying to allocate 28.66GiB (rounded to 30778626816)requested by op 
+2022-08-29 11:18:24.567485: W external/org_tensorflow/tensorflow/core/common_runtime/bfc_allocator.cc:474] **__________________________________________________________________________________________________
+2022-08-29 11:18:24.575947: E external/org_tensorflow/tensorflow/compiler/xla/pjrt/pjrt_stream_executor_client.cc:2086] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 30778626584 bytes.
+BufferAssignment OOM Debugging.
+BufferAssignment stats:
+             parameter allocation:   546.0KiB
+              constant allocation:    79.0KiB
+        maybe_live_out allocation:   382.1KiB
+     preallocated temp allocation:   28.66GiB
+  preallocated temp fragmentation:   784.0KiB (0.00%)
+                 total allocation:   28.67GiB
+              total fragmentation:   951.6KiB (0.00%)
+Peak buffers:
+	Buffer 1:
+		Size: 1.04GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,33]
+		==========================
+
+	Buffer 2:
+		Size: 1.04GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,33]
+		==========================
+
+	Buffer 3:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 4:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 5:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 6:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 7:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 8:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 9:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 10:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 11:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 12:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 13:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 14:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 15:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+
+Traceback (most recent call last):
+  File "/home/energy/amawi/projects/nn_ansatz/src/run_with_args.py", line 50, in <module>
+    log = run_vmc(cfg)
+  File "/home/energy/amawi/projects/nn_ansatz/src/nn_ansatz/routines.py", line 263, in run_vmc
+    grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
+  File "/home/energy/amawi/projects/nn_ansatz/src/nn_ansatz/vmc.py", line 63, in __grad_fn
+    grads, e_locs = _param_grad_fn(params, walkers, step)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 165, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/_src/api.py", line 2065, in cache_miss
+    out_tree, out_flat = f_pmapped_(*args, **kwargs)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/_src/api.py", line 1941, in f_pmapped
+    out = pxla.xla_pmap(
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/core.py", line 1759, in bind
+    return map_bind(self, fun, *args, **params)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/core.py", line 1791, in map_bind
+    outs = primitive.process(top_trace, fun, tracers, params)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/core.py", line 1762, in process
+    return trace.process_map(self, fun, tracers, params)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/core.py", line 596, in process_call
+    return primitive.impl(f, *tracers, **params)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/interpreters/pxla.py", line 780, in xla_pmap_impl
+    return compiled_fun(*args)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/_src/profiler.py", line 206, in wrapper
+    return func(*args, **kwargs)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/interpreters/pxla.py", line 1522, in execute_replicated
+    out_bufs = compiled.execute_sharded_on_local_devices(input_bufs)
+jax._src.traceback_util.UnfilteredStackTrace: RuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 30778626584 bytes.
+BufferAssignment OOM Debugging.
+BufferAssignment stats:
+             parameter allocation:   546.0KiB
+              constant allocation:    79.0KiB
+        maybe_live_out allocation:   382.1KiB
+     preallocated temp allocation:   28.66GiB
+  preallocated temp fragmentation:   784.0KiB (0.00%)
+                 total allocation:   28.67GiB
+              total fragmentation:   951.6KiB (0.00%)
+Peak buffers:
+	Buffer 1:
+		Size: 1.04GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,33]
+		==========================
+
+	Buffer 2:
+		Size: 1.04GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,33]
+		==========================
+
+	Buffer 3:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 4:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 5:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 6:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 7:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 8:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 9:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 10:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 11:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 12:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 13:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 14:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 15:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+The stack trace below excludes JAX-internal frames.
+The preceding is the original exception that occurred, unmodified.
+
+--------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/energy/amawi/projects/nn_ansatz/src/run_with_args.py", line 50, in <module>
+    log = run_vmc(cfg)
+  File "/home/energy/amawi/projects/nn_ansatz/src/nn_ansatz/routines.py", line 263, in run_vmc
+    grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
+  File "/home/energy/amawi/projects/nn_ansatz/src/nn_ansatz/vmc.py", line 63, in __grad_fn
+    grads, e_locs = _param_grad_fn(params, walkers, step)
+  File "/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/interpreters/pxla.py", line 1522, in execute_replicated
+    out_bufs = compiled.execute_sharded_on_local_devices(input_bufs)
+RuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 30778626584 bytes.
+BufferAssignment OOM Debugging.
+BufferAssignment stats:
+             parameter allocation:   546.0KiB
+              constant allocation:    79.0KiB
+        maybe_live_out allocation:   382.1KiB
+     preallocated temp allocation:   28.66GiB
+  preallocated temp fragmentation:   784.0KiB (0.00%)
+                 total allocation:   28.67GiB
+              total fragmentation:   951.6KiB (0.00%)
+Peak buffers:
+	Buffer 1:
+		Size: 1.04GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,33]
+		==========================
+
+	Buffer 2:
+		Size: 1.04GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,33]
+		==========================
+
+	Buffer 3:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 4:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 5:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 6:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 7:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 8:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 9:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 10:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 11:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 12:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 13:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 14:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+	Buffer 15:
+		Size: 1.00GiB
+		XLA Label: parameter
+		Shape: f32[42,1024,196,32]
+		==========================
+
+

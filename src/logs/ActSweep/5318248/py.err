@@ -1,0 +1,12 @@
+/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/experimental/optimizers.py:28: FutureWarning: jax.experimental.optimizers is deprecated, import jax.example_libraries.optimizers instead
+  warnings.warn('jax.experimental.optimizers is deprecated, '
+Traceback (most recent call last):
+  File "/home/energy/amawi/projects/nn_ansatz/src/run_with_args.py", line 56, in <module>
+    approximate_energy(cfg, load_it=args.n_it)
+  File "/home/energy/amawi/projects/nn_ansatz/src/nn_ansatz/routines.py", line 477, in approximate_energy
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
+  File "/home/energy/amawi/projects/nn_ansatz/src/nn_ansatz/routines.py", line 116, in initialise_system_wf_and_sampler
+    params = load_pk(load_path)
+  File "/home/energy/amawi/projects/nn_ansatz/src/nn_ansatz/python_helpers.py", line 89, in load_pk
+    with open(path, 'rb') as f:
+FileNotFoundError: [Errno 2] No such file or directory: '/home/energy/amawi/projects/nn_ansatz/src/experiments/HEG/ActSweep/kfac_1lr-3_1d-4_1nc-4_m512_el14_s64_p32_l2_det1/run307680/models/i10.pk'

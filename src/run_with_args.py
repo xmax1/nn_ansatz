@@ -25,18 +25,23 @@ def get_args():
     parser.add_argument('-dp', '--density_parameter', type=float, default=1.0)
     parser.add_argument('-lr', '--lr', type=float, default=1e-3)
     parser.add_argument('-atol', '--atol', type=float, default=1e-6)
-    parser.add_argument('-name', '--name', type=str, default='junk')
     parser.add_argument('-n_it', '--n_it', type=int, default=10000)
     parser.add_argument('-act', '--nonlinearity', type=str, default='cos')
     parser.add_argument('-sim', '--simulation_cell', nargs='+', type=int, default=(1, 1, 1))
     parser.add_argument('-nl', '--n_layers', type=int, default=2)
     parser.add_argument('-cl', '--correlation_length', type=int, default=10)
     parser.add_argument('-npre', '--n_pre_it', type=int, default=500)
-    parser.add_argument('-pretrain',  default=True, type=input_bool)
-    parser.add_argument('--sweep', dest='sweep', action='store_true')
-    parser.add_argument('-backflow_coords', default=True, type=input_bool)
-    parser.add_argument('-jastrow', default=True, type=input_bool)
-    parser.add_argument('-psplit_spins', default=True, type=input_bool)
+    parser.add_argument('-pretrain',  '--pretrain', default=True, type=input_bool)
+    parser.add_argument('-sweep', '--sweep', default=False, type=input_bool)
+    parser.add_argument('-backflow_coords', '--backflow_coords', default=True, type=input_bool)
+    parser.add_argument('-jastrow', '--jastrow', default=True, type=input_bool)
+    parser.add_argument('-psplit_spins', '--psplit_spins', default=True, type=input_bool)
+    parser.add_argument('-ta', '--target_acceptance', default=0.5, type=float)
+    parser.add_argument('-seed', '--seed', default=0, type=int)
+    parser.add_argument('-run_dir', '--run_dir', default=None, type=str)
+    parser.add_argument('-exp_name', '--exp_name', default=None, type=str)
+    parser.add_argument('-save_every', '--save_every', default=10000, type=int)
+    parser.add_argument('-bf_af', '--bf_af', default='cos', type=str)
     args = parser.parse_args()
     return args
 
@@ -47,9 +52,8 @@ cfg = setup(**vars(args))
 
 log = run_vmc(cfg)
 
-
 if args.sweep == True:
-    for load_it in range(10000, args.n_it+1, 10000):
+    for load_it in range(args.save_every, args.n_it+1, args.save_every):
         approximate_energy(cfg, load_it=load_it)
 else:
     approximate_energy(cfg, load_it=args.n_it)

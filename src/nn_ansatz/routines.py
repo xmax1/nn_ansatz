@@ -11,6 +11,7 @@ from tqdm import trange
 import sys
 import numpy as np
 import tensorflow as tf
+import time
 
 from .ansatz_base import apply_minimum_image_convention, drop_diagonal_i, split_and_squeeze
 
@@ -82,6 +83,7 @@ def confirm_antisymmetric(mol, params, walkers):
         
         print('swap downs || difference %.2f sign difference %.2f' % (down_swap_mean, down_swap_smean))
 
+
 def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
     keys = rnd.PRNGKey(cfg['seed'])
     
@@ -97,29 +99,123 @@ def initialise_system_wf_and_sampler(cfg, walkers=None, load_params=None):
 
     if walkers is None:
         walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
-
-    # if os.path.exists(cfg['pre_path']):
-    #     print('loading pretrain wf %s' % cfg['pre_path'])
-    #     params, walkers = load_pk(cfg['pre_path'])
-    #     cfg['pretrain'] = False
-
-    if cfg['pretrain']:
-        params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
     
     if cfg['load_it'] > 0:
         load_path = os.path.join(cfg['models_dir'], 'i%i.pk' % cfg['load_it'])
-        if not os.path.exists(load_path):
-            files = os.listdir(cfg['models_dir'])
-            load_it = max([int(x.split('.')[0][1:]) for x in files])
-            load_path = os.path.join(cfg['models_dir'], 'i%i.pk' % load_it)
+        print('loading params ', load_path)
         params = load_pk(load_path)
-
-
-    if load_params is not None:
-        params = load_pk(load_params)
-        walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=50)
-
+        walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=1000)
+    elif cfg['pretrain']:
+        params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
+    
     return mol, vwf, walkers, params, sampler, keys
+
+
+def time_sample(cfg, walkers=None):
+    
+    print('executing measure time')
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
+
+    step_size = get_step_size(walkers, params, sampler, keys)
+
+    times = []
+    for step in range(cfg['n_it']*10 + 10):
+        t0 = time.time()
+        keys, subkeys = key_gen(keys)
+        walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
+        t1 = time.time()
+        times.append(t1 - t0)
+    return times
+
+
+def time_grads(cfg, walkers=None):
+    
+    print('executing measure time')
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
+
+    # grad_fn = create_grad_function(mol, vwf)
+
+    update, get_params, kfac_update, state = kfac(mol, params, walkers, cfg['lr'], cfg['damping'], cfg['norm_constraint'])
+
+    energy_function = create_energy_fn(mol, vwf, separate=True)
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        energy_function = pmap(energy_function, in_axes=(None, 0))
+
+    step_size = get_step_size(walkers, params, sampler, keys)
+
+    ps, tree = tree_flatten(params)
+    grads = [jnp.zeros(p.shape) for p in ps]
+
+    energy_function = create_energy_fn(mol, vwf, separate=True)
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        energy_function = pmap(energy_function, in_axes=(None, 0))
+    
+    times = []
+    for step in range(cfg['n_it']+10):
+
+        t0 = time.time()
+
+        keys, subkeys = key_gen(keys)
+        walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
+        # grads, e_locs = grad_fn(params, walkers, step)
+        # pe, ke = energy_function(params, walkers)
+        grads, state = kfac_update(step, grads, state, walkers)
+        state = update(step, grads, state)
+        params = get_params(state)
+
+        t1 = time.time()
+        times.append(t1 - t0)
+    return times
+
+
+def time_energy(cfg, walkers=None):
+
+    print('executing measure time')
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
+
+    energy_function = create_energy_fn(mol, vwf, separate=True)
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        energy_function = pmap(energy_function, in_axes=(None, 0))
+
+    step_size = get_step_size(walkers, params, sampler, keys)
+
+    times = []
+    for i in range(cfg['n_it']+10):
+        t0 = time.time()
+
+        keys, subkeys = key_gen(keys)
+        walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
+        pe, ke = energy_function(params, walkers)
+
+        t1 = time.time()
+        times.append(t1 - t0)
+    return times
+
+
+
+def measure_kfac_and_energy_time(cfg, walkers=None):
+
+    
+    times = time_sample(cfg)
+    cfg['sampling_time'] = np.mean(times[10:])
+
+    # times = time_energy(cfg)
+    # cfg['sampling_and_energy_time'] = np.mean(times[10:])
+   
+    # times = time_grads(cfg)
+    # cfg['sampling_and_kfac_and_energy_time'] = np.mean(times[10:])
+
+    times = time_grads(cfg)
+    cfg['sampling_and_kfac_time'] = np.mean(times[10:])
+
+    cfg['kfac_time'] = cfg['sampling_and_kfac_time'] - cfg['sampling_time']
+    # cfg['energy_time'] = cfg['sampling_and_energy_time'] - cfg['sampling_time']
+    # cfg['kfac_time'] = cfg['sampling_and_kfac_and_energy_time'] - cfg['sampling_time'] - cfg['energy_time']
+
+    save_config_csv_and_pickle(cfg)
+    
+    return cfg
+
 
 def run_vmc(cfg, walkers=None):
 
@@ -138,10 +234,14 @@ def run_vmc(cfg, walkers=None):
     else:
         exit('Optimiser not available')
 
+    energy_function = create_energy_fn(mol, vwf, separate=True)
+    if bool(os.environ.get('DISTRIBUTE')) is True:
+        energy_function = pmap(energy_function, in_axes=(None, 0))
+
     # compute_mom = create_local_momentum_operator(mol, vwf)
     confirm_antisymmetric(mol, params, walkers)
 
-    steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='%s/training' % cfg['name'], disable=None)
+    steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='%s/training' % cfg['exp_name'], disable=None)
     step_size = get_step_size(walkers, params, sampler, keys)
 
     for step in steps:
@@ -167,30 +267,52 @@ def run_vmc(cfg, walkers=None):
         logger.log(step,
                    opt_state=state,
                    params=params,
-                   e_locs=e_locs,
+                   e_locs=e_locs.reshape(-1),
                    acceptance=acceptance)
 
         logger.writer('acceptance/step_size', float(jnp.mean(step_size)), step)
 
-        # for key, g in gs.items():
-        #     g = jnp.mean(jnp.abs(g))
-        #     logger.writer('grads/g_%s' % key, float(g), step)
+        if jnp.isnan(jnp.mean(e_locs)):
+            exit('found nans')
 
+        # if (step % 10000 == 0) and (not step == 0):
+            
+        #     values = {}
+        #     for i in range(1000):
+        #         keys, subkeys = key_gen(keys)
 
-        # for i, kg in enumerate(grads):
-        #     kg = jnp.mean(jnp.abs(kg))
-        #     logger.writer('kfac_grads/kg_%i' % i, float(kg), step)
+        #         walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
 
-        # up_mom, down_mom = compute_mom(params, walkers)
+        #         pe, ke = energy_function(params, walkers)
+        #         update_dict(values, 'pe', jnp.mean(pe))
+        #         update_dict(values, 'ke', jnp.mean(ke))
+        #         update_dict(values, 'energy', jnp.mean(pe+ke))
+        #         update_dict(values, 'energy_std', jnp.std(pe+ke))
 
-        # logger.writer('mom/up_mom_mean', float(up_mom.mean()), step)
-        # logger.writer('mom/up_mom_std', float(up_mom.std()), step)
+        #     n_particles = mol.n_atoms if mol.n_atoms != 0 else mol.n_el
+        #     n_samples = len((values['pe']))
+            
+        #     save_values = {}
+        #     save_values['live_pe_mean_i%i' % step] = np.mean(values['pe'])
+        #     save_values['pe_std_i%i' % step] = np.std(values['pe'])
+        #     save_values['pe_sem_i%i' % step] = np.std(values['pe']) / np.sqrt(n_samples)
 
-        # if not mol.n_down == 0:
-        #     logger.writer('mom/down_mom_std', float(down_mom.std()), step)
-        #     logger.writer('mom/down_mom_mean', float(down_mom.mean()), step)
-        #     logger.writer('mom/sum_mum', float(up_mom.mean()) + float(down_mom.mean()), step)
+        #     save_values['ke_mean_i%i' % step] = np.mean(values['ke'])
+        #     save_values['ke_std_i%i' % step] = np.std(values['ke'])
+        #     save_values['ke_sem_i%i' % step] = np.std(values['ke']) / np.sqrt(n_samples)
 
+        #     save_values['e_mean_i%i' % step] = np.mean(values['energy'])
+        #     save_values['e_std_i%i' % step] = np.std(values['energy'])
+        #     save_values['e_sem_i%i' % step] = np.std(values['energy']) / np.sqrt(n_samples)
+
+        #     save_values['e_std_mean_i%i' % step] = np.mean(values['energy_std'])
+        #     save_values['e_std_std_i%i' % step] = np.std(values['energy_std'])
+        #     save_values['e_std_sem_i%i' % step] = np.std(values['energy_std']) / np.sqrt(n_samples)
+
+        #     # save_values = compute_per_particle(save_values, n_particles)
+        #     cfg.update(save_values)
+
+        #     save_config_csv_and_pickle(cfg)
 
     write_summary_to_cfg(cfg, logger.summary)
     logger.walkers = walkers
@@ -322,13 +444,14 @@ def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     os.environ['DISTRIBUTE'] = 'True'
     
     mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
-    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=10000)
+    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=100000)
     energy_function = create_energy_fn(mol, vwf, separate=True)
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         energy_function = pmap(energy_function, in_axes=(None, 0))
     
-    step_size = get_step_size(walkers, params, sampler, keys)
+    # step_size = get_step_size(walkers, params, sampler, keys)
+    step_size = split_variables_for_pmap(cfg['n_devices'], 0.02)
     values = {}
     for i in range(n_it):
         keys, subkeys = key_gen(keys)
@@ -345,21 +468,21 @@ def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     n_samples = len((values['pe']))
     
     save_values = {}
-    save_values['equilibrated_pe_mean_i%i' % load_it] = np.mean(values['pe'])
-    save_values['equilibrate_pe_std_i%i' % load_it] = np.std(values['pe'])
-    save_values['equilibrate_pe_sem_i%i' % load_it] = np.std(values['pe']) / np.sqrt(n_samples)
+    save_values['pe_mean_i%i' % load_it] = np.mean(values['pe'])
+    save_values['pe_std_i%i' % load_it] = np.std(values['pe'])
+    save_values['pe_sem_i%i' % load_it] = np.std(values['pe']) / np.sqrt(n_samples)
 
-    save_values['equilibrate_ke_mean_i%i' % load_it] = np.mean(values['ke'])
-    save_values['equilibrate_ke_std_i%i' % load_it] = np.std(values['ke'])
-    save_values['equilibrate_ke_sem_i%i' % load_it] = np.std(values['ke']) / np.sqrt(n_samples)
+    save_values['ke_mean_i%i' % load_it] = np.mean(values['ke'])
+    save_values['ke_std_i%i' % load_it] = np.std(values['ke'])
+    save_values['ke_sem_i%i' % load_it] = np.std(values['ke']) / np.sqrt(n_samples)
 
-    save_values['equilibrated_energy_mean_i%i' % load_it] = np.mean(values['energy'])
-    save_values['equilibrated_energy_std_i%i' % load_it] = np.std(values['energy'])
-    save_values['equilibrated_energy_sem_i%i' % load_it] = np.std(values['energy']) / np.sqrt(n_samples)
+    save_values['e_mean_i%i' % load_it] = np.mean(values['energy'])
+    save_values['e_std_i%i' % load_it] = np.std(values['energy'])
+    save_values['e_sem_i%i' % load_it] = np.std(values['energy']) / np.sqrt(n_samples)
 
-    save_values['equilibrated_energystd_mean_i%i' % load_it] = np.mean(values['energy_std'])
-    save_values['equilibrated_energystd_std_i%i' % load_it] = np.std(values['energy_std'])
-    save_values['equilibrated_energystd_sem_i%i' % load_it] = np.std(values['energy_std']) / np.sqrt(n_samples)
+    save_values['e_std_mean_i%i' % load_it] = np.mean(values['energy_std'])
+    save_values['e_std_std_i%i' % load_it] = np.std(values['energy_std'])
+    save_values['e_std_sem_i%i' % load_it] = np.std(values['energy_std']) / np.sqrt(n_samples)
 
     # save_values = compute_per_particle(save_values, n_particles)
     cfg.update(save_values)

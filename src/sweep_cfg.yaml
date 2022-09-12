@@ -1,0 +1,36 @@
+
+# base config
+base_cfg:
+  exp_name: HEG_PRX/cusps_jastrow
+  system: HEG
+  n_walkers: 512
+  n_sh: 32
+  n_ph: 16
+  orbitals: real_plane_waves
+  n_el: 14
+  n_up: 7
+  opt: kfac
+  n_det: 1
+  density_parameter: 1.
+  lr: 1e-3
+  atol: 1e-6
+  n_layers: 2
+  correlation_length: 10
+  n_pre_it: 500
+  pretrain: True
+  backflow_coords: True
+  psplit_spins: True
+  target_acceptance: 0.5
+  sweep: True
+  n_it: 100000
+  save_every: 10000
+  input_activation_nonlinearity: 3sin+3cos
+  nonlinearity: cos
+  bf_af: tanh
+# sweep variables
+sweep:
+  # input_activation_nonlinearity: ['1sin+1cos', '2sin+2cos', '3sin+3cos']
+  # nonlinearity: ['tanh', 'sin', 'cos', 'silu', 'snake']
+  # bf_af: ['tanh', 'cos', 'sin', 'silu', 'snake', 'no_af'] # 
+  jastrow: [True, False]
+  seed: [0, 1] # 

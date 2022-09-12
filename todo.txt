@@ -1,0 +1,49 @@
+
+# 12/09/22
+
+- Why are the distances not sqrt(3*scale**2)? 
+    - Not loading the pbc sampler
+    - pbc sampling is broken?
+        - test this quickly
+
+
+# 07/09/22
+
+- plot the envelope
+    - what is the scale? 1e-2 - 1 - lots of points
+    - when calculate 
+    - always use opposite spins
+
+- how to factor in the density parameter to the units? 
+    - we are in electron gas units
+        - cusp is r_s / 4
+        - mean distance 
+        - write down the units math 
+
+- g(r) pair correlation function
+    - we expect to go to density at large distance (divide by denisty 3/4\pi, in the units we use the density this as L=1)
+    - the counts should be divided by 4 \pi r^2 dr * density (number of particles expected if uniform)
+    - density not r_s
+    - go through math, check the normalisation!
+
+- retake the activation sweep data
+
+# 05/09/22
+
+- g(r) pair correlation function
+
+# 01/09/22
+
+- Write script to summarise over seeds *
+- Write script to summarise over experiments via seeds *
+- Write script to read in the sweep config keys then print the items of interest (jupyter) *
+- Add basic activation analysis to done list * 
+- Analyse the jastrow models against the kato cusp conditions ~ 
+- Saverio notes and equations 
+
+- Cusp finish
+    - Plot of psi against distance
+    - Do we get the same number for all electrons
+    - what is the derivative of a log
+- other calcs do
+- write prx response

@@ -1,3 +1,4 @@
+from cmath import isclose
 import itertools
 import os
 from functools import partial
@@ -35,17 +36,19 @@ def create_grad_function(mol, vwf):
     compute_energy = create_energy_fn(mol, vwf)
 
     def _forward_pass(params, walkers, step):
-        e_locs = compute_energy(params, walkers) 
+        e_locs = compute_energy(params, walkers)
         e_locs_g = e_locs * mol.n_atoms if not mol.n_atoms == 0 else e_locs * mol.n_el
+        e_locs_g = e_locs_g * mol.density_parameter**(1. + mol.density_parameter/100.)
         e_locs_clipped = clip(e_locs_g, step)
         e_locs_centered = e_locs_clipped - jnp.mean(e_locs_clipped) # takes the mean of the data on each device and does not distribute
         log_psi = vwf(params, walkers)
-        return jnp.mean(lax.stop_gradient(e_locs_centered) * log_psi), e_locs
+        e_locs_centered = lax.stop_gradient(e_locs_centered)
+        return jnp.mean(e_locs_centered * log_psi), e_locs
 
     _param_grad_fn = grad(_forward_pass, has_aux=True)  # has_aux indicates the number of outputs is greater than 1
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
-        _param_grad_fn = pmap(_param_grad_fn, in_axes=(None, 0, None), axis_name='n')
+        _param_grad_fn = pmap(_param_grad_fn, in_axes=(None, 0, None))
 
     '''nb: it is not possible to undevice variables within a pmap'''
 
@@ -54,7 +57,7 @@ def create_grad_function(mol, vwf):
         grads, tree = tree_flatten(grads)
         grads = [g.mean(0) for g in grads]
         grads = tree_unflatten(tree, grads)
-        return grads, jax.device_put(e_locs, jax.devices()[0]).reshape(-1)
+        return grads, e_locs
 
     def __grad_fn(params, walkers, step):  # doing it this way avoids jit of a pmap, is it ugly? yes. 
         grads, e_locs = _param_grad_fn(params, walkers, step)
@@ -86,7 +89,7 @@ def create_energy_fn(mol, vwf, separate=False):
         else:
             return potential_energy + kinetic_energy
         
-    return jit(_compute_local_energy)
+    return _compute_local_energy
 
 
 def create_local_kinetic_energy(vwf):
@@ -175,10 +178,12 @@ def create_potential_energy(mol, n_walkers=512, find_kappa=True):
         charges = jnp.concatenate([mol.z_atoms, e_charges], axis=0) if not mol.r_atoms is None else e_charges # (n_particle, )
         q_q = charges[None, :] * charges[:, None]  # q_i * q_j  (n_particle, n_particle)
 
+        metrics = {}
+
         if find_kappa:
             min_kappa = 0.75
-            min_real_cut = 3
-            min_reciprocal_cut = 4
+            min_real_cut = 5
+            min_reciprocal_cut = 5
         
         else:
 
@@ -202,14 +207,15 @@ def create_potential_energy(mol, n_walkers=512, find_kappa=True):
             compute_real_term = jit(vmap(compute_real_term_i, in_axes=(0, 0, None, None, None)))
             compute_reciprocal_term = jit(vmap(compute_reciprocal_term_i, in_axes=(0, None, None, None)))
             found_params = False
+            
             for kappa in kappas:
                 reciprocal_sum = jnp.ones((n_walkers,)) * 99999999
-                reciprocal_converged = False
+
                 for reciprocal_cut in reciprocal_cuts:    
                     reciprocal_lattice = fast_generate_lattice(mol.reciprocal_basis, reciprocal_cut)
+                    
                     rl_inner_product = inner(reciprocal_lattice, reciprocal_lattice)
                     rl_factor = (4.*jnp.pi / mol.volume) * jnp.exp(-rl_inner_product / (4.*kappa**2)) / rl_inner_product
-
                     reciprocal_sum_tmp =  compute_reciprocal_term(p_p_vectors, rl_factor, reciprocal_lattice, q_q)
 
                     isclose_reciprocal = jnp.isclose(reciprocal_sum, reciprocal_sum_tmp, rtol=0.0, atol=mol.atol).all()
@@ -220,13 +226,12 @@ def create_potential_energy(mol, n_walkers=512, find_kappa=True):
                     reciprocal_sum = reciprocal_sum_tmp
 
                     if isclose_reciprocal:
-                        reciprocal_converged = True
                         break
 
-                if reciprocal_converged:
+                if isclose_reciprocal:
                     real_sum = jnp.ones((n_walkers,)) * 99999999
+                    
                     for real_cut in real_cuts:
-
                         real_lattice = fast_generate_lattice(basis, real_cut)  # (n_lattice, 3)
                         
                         real_sum_tmp = compute_real_term(walkers, p_p_distances, kappa, real_lattice, q_q)
@@ -237,9 +242,8 @@ def create_potential_energy(mol, n_walkers=512, find_kappa=True):
                             (kappa, real_cut, reciprocal_cut, jnp.mean(real_sum), jnp.mean(real_sum_tmp), str(isclose_real.all())))
 
                         real_sum = real_sum_tmp
+                        
                         if isclose_real:
-                            # real_cut -= 1
-                            # reciprocal_cut -= 1
                             diff = real_cut - reciprocal_cut 
                             cut_sum = real_cut + reciprocal_cut 
                             if diff <= min_diff and cut_sum <= min_cut_sum:
@@ -257,7 +261,7 @@ def create_potential_energy(mol, n_walkers=512, find_kappa=True):
                     break
 
             if min_diff == 100:
-                exit('Ewalds sum not converged')
+                raise Exception('Ewalds sum not converged')
 
             print('Taking kappa %.3f, real cut %i, and reciprocal cut %i' % (min_kappa, min_real_cut, min_reciprocal_cut))
                     
@@ -420,15 +424,15 @@ def sgd(params, grads, lr=1e-4):
 
 
 def clip_and_center(e_locs):
-    # pmean the center ?????
     e_locs = clip(e_locs)
-    return e_locs - jnp.mean(e_locs)  #  - jax.lax.pmean(e_locs, 'n')
+    return e_locs - jnp.mean(e_locs)
 
 
 def clip(e_locs, step):
     median = jnp.median(e_locs)
     total_var = jnp.mean(jnp.abs(e_locs - median))
-    scale = jnp.clip(step / 100, a_min=5, a_max=10)
+    scale = jnp.clip(step / 1000, a_min=5, a_max=20)
+    # scale = 5.
     lower, upper = median - scale * total_var, median + scale * total_var
     e_locs = jnp.clip(e_locs, a_min=lower, a_max=upper)
     return e_locs

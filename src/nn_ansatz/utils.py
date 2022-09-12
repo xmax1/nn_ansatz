@@ -30,6 +30,27 @@ PATH = os.path.abspath(os.path.dirname(__file__))
 systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
 
 
+def save_pk_and_csv(x, path):
+    with open(path+'.pk', 'wb') as f:
+        pk.dump(x, f)
+    df = pd.DataFrame.from_dict(x) 
+    df.to_csv (path+'.csv', index = False, header=True)
+
+def load_pk(path):
+    with open(path, 'rb') as f:
+        x = pk.load(f)
+    return x
+
+oj = os.path.join
+
+def dict_append(data, results):
+    if len(data) == 0:
+        data = {k: [v] for k, v in results.items()}
+    else:
+        [data[k].append(v) for k, v in results.items()]
+    return data
+
+
 def split_variables_for_pmap(n_devices, *args):
     if bool(os.environ.get('DISTRIBUTE')) is True:
         new_args = []
@@ -198,9 +219,10 @@ def get_n_devices():
     return n_devices
 
 
-def setup(system: str = 'Be',
-          name = None,
-          save_every: int = 5000,
+def setup(system: str = 'HEG',
+          exp_name = None,
+          run_dir: str = None,
+          save_every: int = 1000,
           print_every: int = 1000,
           
           n_el=None,
@@ -211,30 +233,32 @@ def setup(system: str = 'Be',
           real_cut=6,
           reciprocal_cut=6,
           kappa=0.5,
-          atol=1e-5,
+          atol=1e-3,
 
           opt: str = 'kfac',
           lr: float = 1e-3,
           damping: float = 1e-4,
           norm_constraint: float = 1e-4,
           n_it: int = 1000,
-          n_walkers: int = 1024,
+          n_walkers: int = 2048,
 
           step_size: float = 0.02,
-          correlation_length: int = 10,
+          correlation_length: int = 20,
 
-          n_layers: int = 2,
-          n_sh: int = 32,
-          n_ph: int = 8,
+          n_layers: int = 3,
+          n_sh: int = 128,
+          n_ph: int = 32,
           n_det: int = 1,
           scalar_inputs: bool = False,
-          orbitals: str = 'anisotropic',
+          orbitals: str = 'real_plane_waves',
           einsum: bool = False, 
           nonlinearity: str = 'cos',
           input_activation_nonlinearity: str = 'cos',
-          jastrow: bool = True,
+          jastrow: bool = False,
           backflow_coords: bool = True,
           psplit_spins: bool = True,
+          target_acceptance: float = 0.5,
+          bf_af: str = 'tanh',
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 500,
@@ -256,14 +280,14 @@ def setup(system: str = 'Be',
     version = today # version = subprocess.check_output(["git", "describe"]).strip()
     root = os.path.join(os.getcwd(), 'experiments')
 
-    if name is None: name = os.path.join(today, 'junk')
+    if exp_name is None: exp_name = os.path.join(today, 'junk')
 
     ansatz_hyperparameter_name = '%s_%s_%s_%s_%s' % (n2n(n_el, 'el'), n2n(n_sh, 's'), n2n(n_ph, 'p'), n2n(n_layers, 'l'), n2n(n_det, 'det'))
 
     hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
-    exp_dir = join_and_create(root, system, name, hyperparameter_name + ansatz_hyperparameter_name)
+    exp_dir = run_dir #join_and_create(root, system, exp_name, hyperparameter_name + ansatz_hyperparameter_name)
     run = 'run%i' % get_run(exp_dir)
-    exp_dir = os.path.join(exp_dir, run)
+    # exp_dir = os.path.join(exp_dir, run)
 
     system_config = get_system(system,
                                n_el, 
@@ -275,9 +299,10 @@ def setup(system: str = 'Be',
     if system_config['pbc']: hyperparameter_name += '_%s_dp%s_%s' % (input_activation_nonlinearity, str(system_config['density_parameter']), '%i%i%i' % tuple(simulation_cell))
     pre_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
 
+    print(exp_dir)
     events_dir = join_and_create(exp_dir, 'events')
-    timing_dir = join_and_create(events_dir, 'timing')
     models_dir = join_and_create(exp_dir, 'models')
+    timing_dir = join_and_create(events_dir, 'timing')
     opt_state_dir = join_and_create(models_dir, 'opt_state')
 
     csv_cfg_path, pk_cfg_path = create_config_paths(exp_dir)
@@ -287,7 +312,7 @@ def setup(system: str = 'Be',
               'n_devices': n_devices,
               'save_every': save_every,
               'print_every': print_every,
-              'name':name,
+              'exp_name':exp_name,
 
               # PATHS
               'exp_dir': exp_dir,
@@ -322,7 +347,8 @@ def setup(system: str = 'Be',
               'jastrow': jastrow,
               'backflow_coords': backflow_coords,
               'psplit_spins': psplit_spins and (not (n_el == system_config['n_up'])),
-
+              'bf_af': bf_af,
+              
               # TRAINING HYPERPARAMETERS
               'opt': opt,
               'lr': lr,
@@ -334,6 +360,7 @@ def setup(system: str = 'Be',
               'n_walkers_per_device': n_walkers // n_devices,
               'step_size': step_size,
               'correlation_length': correlation_length,
+              'target_acceptance': target_acceptance, 
 
               # PRETRAINING HYPERPARAMETERS
               'pre_lr': pre_lr,

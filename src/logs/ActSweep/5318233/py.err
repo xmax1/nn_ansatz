@@ -1,0 +1,15 @@
+/home/energy/amawi/miniconda3/envs/sparkle/lib/python3.9/site-packages/jax/experimental/optimizers.py:28: FutureWarning: jax.experimental.optimizers is deprecated, import jax.example_libraries.optimizers instead
+  warnings.warn('jax.experimental.optimizers is deprecated, '
+usage: run_with_args.py [-h] [-s SYSTEM] [-nw N_WALKERS] [-n_sh N_SH]
+                        [-n_ph N_PH] [-orb ORBITALS] [-n_el N_EL] [-n_up N_UP]
+                        [-inact INPUT_ACTIVATION_NONLINEARITY] [-opt OPT]
+                        [-n_det N_DET] [-dp DENSITY_PARAMETER] [-lr LR]
+                        [-atol ATOL] [-name NAME] [-n_it N_IT]
+                        [-act NONLINEARITY]
+                        [-sim SIMULATION_CELL [SIMULATION_CELL ...]]
+                        [-nl N_LAYERS] [-cl CORRELATION_LENGTH]
+                        [-npre N_PRE_IT] [-pretrain PRETRAIN] [--sweep]
+                        [-backflow_coords BACKFLOW_COORDS] [-jastrow JASTROW]
+                        [-psplit_spins PSPLIT_SPINS] [-ta TARGET_ACCEPTANCE]
+                        [-seed SEED]
+run_with_args.py: error: unrecognized arguments: --p_split_spins False False

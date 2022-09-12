@@ -95,6 +95,7 @@ class SystemAnsatz():
                  input_activation_nonlinearity: str = 'sin',
                  jastrow: bool = False,
                  backflow_coords: bool = True,
+                 bf_af: str='tanh',
                  psplit_spins: bool = True,
                  n_layers=2,
                  n_sh=64,
@@ -110,15 +111,18 @@ class SystemAnsatz():
                  scale_cell=1.,
                  print_ansatz=True,
                  atol=1e-5,
+                 target_acceptance=0.5,
                  **kwargs):
 
         self.system = system
         self.jastrow = jastrow
         self.psplit_spins = psplit_spins
+        self.target_acceptance = target_acceptance
 
         self.device, self.dtype = device, dtype
         self.n_walkers_per_device = kwargs['n_walkers_per_device']
         self.n_devices = kwargs['n_devices']
+        self.bf_af = bf_af
 
         # ELECTRONS
         if simulation_cell is not None: n_el = int(n_el * jnp.prod(jnp.array(simulation_cell)))
@@ -166,6 +170,7 @@ class SystemAnsatz():
 
             if print_ansatz:
                 print('Cell: \n',
+                'pbc': pbc, '\n',
                 'basis:', '\n', self.basis, '\n',
                 'inv_basis:', '\n', self.inv_basis, '\n',
                 'scale_cell: ', '\n', self.scale_cell, '\n',
@@ -265,12 +270,12 @@ def generate_k_shells(n_shells):
             if len(k_shells) == n_shells:
                 break
             norm = norm_tmp
-            k_shells[norm] = [k_point]
+            k_shells[float(norm)] = [k_point]
         else:
-            if np.any([(k_point == x).all() for x in k_shells[norm]]):
+            if np.any([(k_point == x).all() for x in k_shells[float(norm)]]):
                 continue # because we include the opposite k_point in the sequence this statement avoids repeats
-            k_shells[norm].append(k_point)
-        k_shells[norm].append(-k_point)
+            k_shells[float(norm)].append(k_point)
+        k_shells[float(norm)].append(-k_point)
     return k_shells
 
 

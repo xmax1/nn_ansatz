@@ -1,0 +1,33 @@
+
+# base config
+system: HEG
+n_walkers: 512
+n_sh: 64
+n_ph: 32
+orbitals: real_plane_waves
+n_el: 14
+n_up: 7
+opt: kfac
+n_det: 1
+density_parameter: 1.
+lr: 1e-3
+atol: 1e-6
+name: ActSweep
+n_layers: 2
+correlation_length: 10 
+n_pre_it: 500
+pretrain: True
+backflow_coords: True
+jastrow: False
+psplit_spins: True
+target_acceptance: 0.5
+sweep: True
+n_it: 100000
+
+input_activation_nonlinearity: 1sin+1cos
+nonlinearity: tanh
+# sweep variables
+# input_activation_nonlinearity: ['1sin+1cos', '2sin+2cos', '3sin+3cos']
+# nonlinearity: ['tanh', 'sin', 'cos', 'silu', 'snake']
+
+seed: [0, 1, 2]

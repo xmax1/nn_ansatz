@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import pickle as pk
 import scipy
-from .utils import find_all_files_in_dir
+from .utils import find_all_files_in_dir, oj
 from bokeh.io import output_notebook, export_png
 from bokeh.plotting import figure, show
 from bokeh.palettes import Dark2_5 as palette
@@ -16,6 +16,50 @@ import csv
 #           'legend.handlelength': 3}
 
 # plt.rcParams.update(params)
+
+
+def plot_lines(xs: list, 
+               ys: list, 
+               xlabels: list=None, 
+               ylabels: list=None, 
+               titles: list=None,
+               fig_title: str=None,
+               fig_path: str=None,
+               marker: str='x',
+               linestyle: str=None):
+    
+    assert len(xs) == len(ys)
+
+    n_plots = len(xs)
+    n_side = int(np.ceil(np.sqrt(n_plots)))
+    fig, axs = plt.subplots(n_side, n_side)
+    axs = [ax for sub in axs for ax in sub]
+
+    format_elements = [xlabels, ylabels, titles]
+    format_elements = [[None] * n_plots if f is None else f for f in format_elements]
+    for f in format_elements:
+        assert len(f) == n_plots
+
+    for ax, x, y, xl, yl, ti in zip(axs, xs, ys, *format_elements):
+
+        ax.plot(x, y, 
+                color = 'blue',
+                linestyle = linestyle,  # solid, dotted
+                marker = marker,
+                markerfacecolor = 'purple', 
+                markersize = 5)
+
+        ax.set_xlabel(xl)
+        ax.set_ylabel(yl)
+        ax.set_title(ti)
+
+    fig.suptitle(fig_title)
+    fig.tight_layout()
+    if fig_path is not None: fig.savefig(fig_path)
+    
+
+    return fig
+
 
 
 def create_error_str_from_numbers(value, val_error):
@@ -35,11 +79,18 @@ def create_error_str_from_numbers(value, val_error):
         # print(new_value)
         decimal = [c for c in new_value[1]]   # line up the decimal values
         idx_digits = len(split_precision[1].rstrip('0'))  # get the index of the precision
+        print(decimal)
+        if int(decimal[idx_digits]) >= 5:  # round up
+            error += 1
+            # decimal[idx_digits-1] = str(int(decimal[idx_digits-1])+1)
+
         decimal[idx_digits] = '(%i)' % error   # replace the correct precision with the error
+
+        
         new_number.extend(decimal[:idx_digits+1])  # build the list of the new number
         new_value = str(''.join(new_number))  # join
     
-    print('value: ', value, 'error: ', val_error, 'new_value: ', new_value)
+    # print('value: ', value, 'error: ', val_error, 'new_value: ', new_value)
     return new_value
 
 
@@ -52,7 +103,8 @@ def generate_latex_table(origin, target, keep_cols=[]):
     with open(origin, "r") as file:
         for line in file:
             line = line.split(',')
-            line = '&'.join(line[i].strip() for i in keep_cols).strip()
+            print(line)
+            line = '\t\t &'.join(line[i].strip() for i in keep_cols).strip()
             # new_line = line.strip().replace(',', '&')
             # line += ' \\\\ \n'
             line += '\n'
@@ -90,6 +142,7 @@ def create_error_cols(origin, merge_cols, method=None, method_column=None):
             err = row[1][old_err]
             # print(err)
             new_val = create_error_str_from_numbers(row[1][old_col], err)
+            print(row[1]['rs'], new_val)
             df[new_col].iloc[i] = new_val
 
     df.to_csv(origin, index=False)
@@ -232,7 +285,7 @@ def get_data(target_dir, groupby=None, data_filename='config1.pk', dicts=[]):
             try:
                 min_i = int(re.findall('\d+', min_col)[0])
                 min_e = row[min_col]
-                min_std = row['equilibrated_energystd_std_i%i' % min_i]
+                min_std = row['equilibrated_energy_std_i%i' % min_i]
                 min_sem = row['equilibrated_energy_sem_i%i' % min_i]
                 
             except Exception as e:
@@ -248,8 +301,8 @@ def get_data(target_dir, groupby=None, data_filename='config1.pk', dicts=[]):
 
         df['n_it_best_model'] = min_is
         df['equilibrated_energy_mean'] = min_es
-        df['std_of_stds'] = min_stds
-        df['variance'] = df['std_of_stds']**2
+        df['std_of_means'] = min_stds
+        df['variance'] = df['std_of_means'] / np.sqrt(1000)
         df['equilibrated_energy_sem'] = min_sems
         df['energy (Ry)'] = df['equilibrated_energy_mean'] * 2.
         df = get_n_inputs(df)

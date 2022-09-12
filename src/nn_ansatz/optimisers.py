@@ -153,7 +153,7 @@ def damp(maa, mss, sl_factor, damping):
     eye_a = jnp.eye(dim_a, dtype=maa.dtype)
     eye_s = jnp.eye(dim_s, dtype=maa.dtype)
 
-    m_aa_damping = jnp.sqrt((pi * damping / sl_factor))
+    m_aa_damping = jnp.sqrt((pi * damping))
     m_ss_damping = jnp.sqrt((damping / (pi * sl_factor)))
 
     maa += eye_a * jnp.clip(m_aa_damping, a_min=1e-7, a_max=1e-1)
@@ -237,7 +237,7 @@ def get_sl_factors(activations):
     return sl_factors
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.8):
+def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.9):
 
     cov_moving_weight = jnp.min(jnp.array([step, cov_moving_weight]))
 
