@@ -203,7 +203,8 @@ def input_activation(inputs: jnp.array,
                      nonlinearity: str = 'sin',
                      kpoints: Optional[jnp.array] = None,
                      single_stream: bool = False):
-    inputs_transformed = transform_vector_space(inputs, inv_basis)
+    inputs_transformed = transform_vector_space(inputs, inv_basis, on=True)
+
     split = nonlinearity.split('+')
     
     if 'sin' in nonlinearity:
@@ -245,8 +246,8 @@ def apply_minimum_image_convention(displacement_vectors, basis, inv_basis):
         - int(2 * element distances) will either be 0, 1 or -1
         # displacement_vectors = displacement_vectors - lax.stop_gradient(displace)  #
     '''
-    displace = (2. * transform_vector_space(displacement_vectors, inv_basis)).astype(int).astype(displacement_vectors.dtype)
-    displace = transform_vector_space(displace, basis)
+    displace = (2. * transform_vector_space(displacement_vectors, inv_basis, on=True)).astype(int).astype(displacement_vectors.dtype)
+    displace = transform_vector_space(displace, basis, on=True)
     displacement_vectors = displacement_vectors - displace
     return displacement_vectors
 
@@ -285,18 +286,18 @@ def compute_inputs_i(walkers: jnp.array,
     return single_inputs, pairwise_inputs
 
 
-def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im):
-    ''' computes the inputs as only the distances between particles '''
+# def compute_inputs_scalar_inputs_i(walkers, ae_vectors_min_im):
+#     ''' computes the inputs as only the distances between particles '''
 
-    n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
-    single_inputs = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
-    single_inputs = single_inputs.reshape(n_electrons, 1 * n_atoms)
+#     n_electrons, n_atoms = ae_vectors_min_im.shape[:2]
+#     single_inputs = jnp.linalg.norm(ae_vectors_min_im, axis=-1, keepdims=True)
+#     single_inputs = single_inputs.reshape(n_electrons, 1 * n_atoms)
 
-    ee_vectors = compute_ee_vectors_i(walkers)
-    ee_vectors = drop_diagonal_i(ee_vectors)
-    ee_vectors_min_im = apply_minimum_image_convention(ee_vectors)
-    pairwise_inputs = jnp.linalg.norm(ee_vectors_min_im, axis=-1, keepdims=True)
-    return single_inputs, pairwise_inputs
+#     ee_vectors = compute_ee_vectors_i(walkers)
+#     ee_vectors = drop_diagonal_i(ee_vectors)
+#     ee_vectors_min_im = apply_minimum_image_convention(ee_vectors, )
+#     pairwise_inputs = jnp.linalg.norm(ee_vectors_min_im, axis=-1, keepdims=True)
+#     return single_inputs, pairwise_inputs
 
 
 def create_masks(n_electrons, n_up, n_layers):

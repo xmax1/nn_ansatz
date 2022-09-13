@@ -304,6 +304,7 @@ def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute
         keys, subkeys = key_gen(keys)
 
         walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
+        
         if compute_energy:
             e_locs = compute_energy(params, walkers)
             if it % 100 == 0:

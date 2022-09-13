@@ -36,12 +36,13 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
 
     key = rnd.PRNGKey(seed)
 
-    models_path = oj(run_dir, 'models')
 
     cfg = load_pk(oj(run_dir, 'config1.pk'))
     n_el, n_up = cfg['n_el'], cfg['n_up']
 
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg | {'load_it': 90000}, walkers=None)
+    models_path = oj(run_dir, 'models')
+    params_path = oj(models_path, f'i{load_it}.pk')
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, params_path=params_path)
     swf = create_wf(mol, signed=True)
     energy_function = create_energy_fn(mol, vwf, separate=True)
     pe, ke = energy_function(params, walkers)

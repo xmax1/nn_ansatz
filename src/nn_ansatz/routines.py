@@ -84,7 +84,7 @@ def confirm_antisymmetric(mol, params, walkers):
         print('swap downs || difference %.2f sign difference %.2f' % (down_swap_mean, down_swap_smean))
 
 
-def initialise_system_wf_and_sampler(cfg, params_path=None):
+def initialise_system_wf_and_sampler(cfg, params_path=None, walkers=None):
     keys = rnd.PRNGKey(cfg['seed'])
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
@@ -99,8 +99,9 @@ def initialise_system_wf_and_sampler(cfg, params_path=None):
     else:
         params = load_pk(params_path)
 
-    walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
-    walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=100)
+    if walkers is None:
+        walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
+        walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=100)
 
     if (params_path is None) and cfg['pretrain']:
         params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
