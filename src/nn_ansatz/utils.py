@@ -30,6 +30,17 @@ PATH = os.path.abspath(os.path.dirname(__file__))
 systems_data = toml.load(os.path.join(PATH, 'systems_data.toml'))
 
 
+oj = os.path.join
+
+
+def ojm(*args):
+    path = oj(*args)
+    if '.' in args[-1]:
+        path = '/'.join(args[:-1])
+    os.makedirs(path, exist_ok=True)
+    return oj(*args)
+
+
 def save_pk_and_csv(x, path):
     with open(path+'.pk', 'wb') as f:
         pk.dump(x, f)
@@ -41,7 +52,7 @@ def load_pk(path):
         x = pk.load(f)
     return x
 
-oj = os.path.join
+
 
 def dict_append(data, results):
     if len(data) == 0:

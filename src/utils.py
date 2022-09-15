@@ -12,10 +12,15 @@ import numpy as np
 oj = os.path.join
 
 
+oj = os.path.join
+
+
 def ojm(*args):
     path = oj(*args)
+    if '.' in args[-1]:
+        path = '/'.join(args[:-1])
     os.makedirs(path, exist_ok=True)
-    return path
+    return oj(*args)
 
 
 def save_pretty_table(df: pd.DataFrame, path='table.txt', cols=None, top=100, bottom=0.01):

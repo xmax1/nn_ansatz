@@ -203,7 +203,7 @@ def input_activation(inputs: jnp.array,
                      nonlinearity: str = 'sin',
                      kpoints: Optional[jnp.array] = None,
                      single_stream: bool = False):
-    inputs_transformed = transform_vector_space(inputs, inv_basis, on=True)
+    inputs_transformed = transform_vector_space(inputs, inv_basis, on=False)
 
     split = nonlinearity.split('+')
     
@@ -237,7 +237,7 @@ def input_activation(inputs: jnp.array,
     return jnp.concatenate([*sin_features, *cos_features, *rho_k], axis=-1)
     
 
-def apply_minimum_image_convention(displacement_vectors, basis, inv_basis):
+def apply_minimum_image_convention(displacement_vectors, basis, inv_basis, on=False):
     '''
     pseudocode:
         - translate to the unit cell 
@@ -246,8 +246,8 @@ def apply_minimum_image_convention(displacement_vectors, basis, inv_basis):
         - int(2 * element distances) will either be 0, 1 or -1
         # displacement_vectors = displacement_vectors - lax.stop_gradient(displace)  #
     '''
-    displace = (2. * transform_vector_space(displacement_vectors, inv_basis, on=True)).astype(int).astype(displacement_vectors.dtype)
-    displace = transform_vector_space(displace, basis, on=True)
+    displace = (2. * transform_vector_space(displacement_vectors, inv_basis, on=on)).astype(int).astype(displacement_vectors.dtype)
+    displace = transform_vector_space(displace, basis, on=on)
     displacement_vectors = displacement_vectors - displace
     return displacement_vectors
 

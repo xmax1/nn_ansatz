@@ -1,9 +1,11 @@
 from turtle import Shape
 
-from nn_ansatz.utils import save_config_csv_and_pickle
+from nn_ansatz.utils import save_config_csv_and_pickle, ojm
+from nn_ansatz.ansatz_base import apply_minimum_image_convention
 from utils import append_dict_to_dict, collect_args, load_pk, oj, save_pretty_table, append_to_txt
 from nn_ansatz.ansatz import create_wf
 from nn_ansatz.routines import initialise_system_wf_and_sampler
+from nn_ansatz.sampling import equilibrate, keep_in_boundary
 from jax import random as rnd, numpy as jnp
 from jax import grad
 import numpy as np
@@ -35,24 +37,33 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
     ):
 
     key = rnd.PRNGKey(seed)
-
-
+    
     cfg = load_pk(oj(run_dir, 'config1.pk'))
     n_el, n_up = cfg['n_el'], cfg['n_up']
 
     models_path = oj(run_dir, 'models')
-    params_path = oj(models_path, f'i{load_it}.pk')
+    load_file = f'i{load_it}.pk'
+    params_path = oj(models_path, load_file)
     mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, params_path=params_path)
-    swf = create_wf(mol, signed=True)
-    energy_function = create_energy_fn(mol, vwf, separate=True)
-    pe, ke = energy_function(params, walkers)
-    print('es', jnp.mean(pe), jnp.mean(ke))
-
-    log_psi = vwf(params, walkers)
-    xs = [np.squeeze(np.array(log_psi))]
-    plot(xs, xlabels=['log psi'], plot_type='hist', fig_title='histogram log psi initial walkers')
     
-    walkers = walkers[0, :, :][None, ...]  # (1, n_el, 3)
+    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=True, n_it=20000)
+    walkers_dir = oj(run_dir, 'walkers')
+    walkers_path = ojm(walkers_dir, load_file)
+    walkers, step_size = equilibrate(params, 
+                                        walkers, 
+                                        keys, 
+                                        mol=mol, 
+                                        vwf=vwf,
+                                        walkers_path=walkers_path,
+                                        sampler=sampler, 
+                                        compute_energy=True, 
+                                        n_it=20000, 
+                                        step_size_out=True)
+    walkers = walkers[:1]
+    
+    swf = create_wf(mol, signed=True)
+    
+    energy_fn = create_energy_fn(mol, vwf, separate=True)
 
     print('Walkers shape ', walkers.shape)
 
@@ -80,6 +91,7 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
             pos_e1 = pos_e0 + grid  # (n_g, 1, 3) = (1, 1, 3) + (n_g, 1, 3)
             
             walkers_coalesce = jnp.where(mask, pos_e1, walkers)
+            walkers_coalesce = keep_in_boundary(walkers_coalesce, mol.basis, mol.inv_basis)
 
             log_psi_c, sign_c = swf(params, walkers_coalesce)
             psi_c = sign_c * jnp.exp(log_psi_c)
@@ -90,7 +102,7 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
             gf_psi = grad(lambda w: jnp.sum(jnp.exp(vwf(params, w))))
             gx_psi = gf_psi(walkers_coalesce)[:, e1_idx, 0]
 
-            pe, ke = energy_function(params, walkers_coalesce)
+            pe, ke = energy_fn(params, walkers_coalesce)
             
             exp_stats = append_dict_to_dict(exp_stats, 
             {k: np.squeeze(np.array(v)) for k, v in 
@@ -101,7 +113,8 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
                         'psi': psi_c,
                         'gx_psi': gx_psi,
                         'pe': pe,
-                        'ke': ke
+                        'ke': ke,
+                        'e': pe+ke
                 }.items()
             })
 
@@ -113,16 +126,15 @@ def cusp_line(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
         pretty_results_file = exp_stats_name[:exp_stats_name.rindex('.')]+'.txt'
         save_pretty_table(exp_stats.copy(), path=pretty_results_file)
 
-        ylabels = ['log_psi', 'gx_log_psi', 'psi', 'gx_psi', 'pe', 'ke']
-        xs = [exp_stats['dx']] * len(ylabels)
-        ys = [exp_stats[y] for y in ylabels]
+        ylabels = ['log_psi', 'gx_log_psi', 'psi', 'gx_psi', 'pe', 'ke', 'e']
+        
         fig = plot(
-            xs, 
-            ys, 
-            xlabels=['dx']*len(ylabels), 
-            ylabels=ylabels,
-            marker='.', 
-            linestyle=None,
+            xdata=exp_stats['dx'], 
+            ydata=[exp_stats[y] for y in ylabels], 
+            xlabel='dx', 
+            ylabel=ylabels,
+            marker=None, 
+            linestyle='-',
             fig_title=result_string,
             fig_path=oj(plot_dir, result_string + '.png')
         )

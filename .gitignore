@@ -6,5 +6,9 @@
 *tmp*
 *.vscode
 papers/
-*slurm*
+**/logs
+**/exp
+**/dft
+./out
+**/scripts
 

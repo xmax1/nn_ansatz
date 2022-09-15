@@ -1,6 +1,6 @@
 from turtle import Shape
 
-from nn_ansatz.utils import save_config_csv_and_pickle
+from nn_ansatz.utils import save_config_csv_and_pickle, ojm
 from utils import append_dict_to_dict, collect_args, load_pk, oj, save_pretty_table, append_to_txt
 from nn_ansatz.ansatz import create_wf
 from nn_ansatz.routines import initialise_system_wf_and_sampler
@@ -9,7 +9,8 @@ from jax import grad
 import numpy as np
 import pandas as pd
 from scipy import stats
-
+from nn_ansatz.sampling import equilibrate, keep_in_boundary
+from nn_ansatz.plot import plot
 
 '''
 load in the configuration
@@ -80,28 +81,51 @@ def compute_wf_rij(params, walkers, key, vwf, e0_idx, e1_idx, rij):
     return jnp.sum(log_psi)
     
 
+from nn_ansatz.vmc import create_energy_fn
+
+
 def compute_cusp_condition(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
                            load_it: int=100000,
-                           e_idxs: list[list[int]] = [[0,1],],
+                           e_idxs: list[list[int]] = [[0,1],[0,7]],
                            seed: int=0,
                            n_batch: int=10,
+                           n_walkers_max: int=256,
+                           plot_dir: str=None,
+                           single: bool=True,
                            **kwargs         
     ):
 
     key = rnd.PRNGKey(seed)
-
-    models_path = oj(run_dir, 'models')
-
+    
     cfg = load_pk(oj(run_dir, 'config1.pk'))
     n_el, n_up = cfg['n_el'], cfg['n_up']
+    load_file = f'i{load_it}.pk'
+    models_path = oj(run_dir, 'models')
+    params_path = oj(models_path, load_file)
 
-    params = oj(models_path, f'i{load_it}.pk')
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers=None, load_params=params)
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, params_path=params_path)
+      
+    walkers_dir = oj(run_dir, 'walkers')
+    walkers_path = ojm(walkers_dir, load_file)
+    walkers, step_size = equilibrate(params, 
+                                        walkers, 
+                                        keys, 
+                                        mol=mol, 
+                                        vwf=vwf,
+                                        walkers_path=walkers_path,
+                                        sampler=sampler, 
+                                        compute_energy=True, 
+                                        n_it=20000, 
+                                        step_size_out=True)
+    
+    if single: 
+        walkers = walkers[:1] # this does not reduce the dim as with selecting a single idx [0]
+        walkers = jnp.repeat(walkers, n_walkers_max, axis=0)
+    
     swf = create_wf(mol, signed=True)
     
-    n_walkers = walkers.shape[0] // cfg['n_devices']
-    walkers = walkers[:n_walkers]
-    walkers = jnp.repeat(walkers[0, ...][None, ...], n_walkers, axis=0)
+    energy_fn = create_energy_fn(mol, vwf, separate=True)
+
     print('Walkers shape ', walkers.shape)
 
     ids = {k:'up' for k in range(cfg['n_up'])} | {k:'down' for k in range(cfg['n_up'], cfg['n_el'])}
@@ -113,11 +137,12 @@ def compute_cusp_condition(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed
     mode = 'resample'
     sphere_r_init = 1e-6
     key, subkey = rnd.split(key, 2)
-    sphere_sample = sample_sphere((n_walkers,), subkey, sphere_r=sphere_r_init)
+    sphere_sample = sample_sphere((n_walkers_max,), subkey, sphere_r=sphere_r_init, check=True)
     norm_sphere_sample = sphere_sample / sphere_r_init
 
-    results = {}
     for e0_idx, e1_idx in e_idxs:
+        result_string = f'e{e0_idx}{ids[e0_idx]}_e{e1_idx}{ids[e1_idx]}_cusp'
+        print('\n', result_string)
 
         mask = jnp.array([False if i != e1_idx else True for i in range(n_el)])[None, :, None]
         # pos_e0 = jnp.repeat(walkers[:, e0_idx, :][:, None, :], n_el, axis=1)
@@ -133,15 +158,15 @@ def compute_cusp_condition(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed
                 key, subkey = rnd.split(key, 2)
 
                 if mode == 'resample':
-                    sphere_sample = sample_sphere((n_walkers,), subkey, sphere_r=sphere_r)
+                    sphere_sample = sample_sphere((n_walkers_max,), subkey, sphere_r=sphere_r)
                     norm_sphere_sample = jnp.squeeze(sphere_sample / sphere_r)
                 else:
                     exit('Potentially move single walkers in a straight line')
 
                 pos_e1 = pos_e0 + sphere_sample
                 
-                walkers_coalesce = jnp.where(mask, pos_e1, walkers)
-                walkers_equal = jnp.where(mask, pos_e0, walkers)
+                walkers_coalesce = keep_in_boundary(jnp.where(mask, pos_e1, walkers), mol.basis, mol.inv_basis)
+                walkers_equal = keep_in_boundary(jnp.where(mask, pos_e0, walkers), mol.basis, mol.inv_basis)
 
                 log_psi_c, sign_c = swf(params, walkers_coalesce)
                 psi_c = sign_c * jnp.exp(log_psi_c)
@@ -156,12 +181,14 @@ def compute_cusp_condition(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed
                 g_psi = gf_psi(walkers_coalesce)[:, e1_idx, :] 
                 grij_psi = jnp.mean(jnp.squeeze(jnp.inner(g_psi, norm_sphere_sample)) * jnp.squeeze(sign_c))
 
-                psip_psi = psi_c / psi_e
+                psip_psi = psi_c / psi_e  # \Psi(rvec_1,rvec_1+xvec,rvec_3,....)/\Psi(rvec_1,rvec_1,rvec_3,....)
 
                 wf_rij = lambda rij: compute_wf_rij(params, walkers, subkey, vwf, e0_idx, e1_idx, rij)
                 log_psi_wf_rij = wf_rij(sphere_r)
                 gf_wf_rij = grad(wf_rij)
                 g_wf_rij = gf_wf_rij(sphere_r)
+
+                pe, ke = energy_fn(params, walkers_coalesce)
                 
                 exp_stat = append_dict_to_dict(exp_stat, 
                 {
@@ -174,27 +201,34 @@ def compute_cusp_condition(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed
                             'grij_psi': float(jnp.mean(grij_psi)),
                             'psip_psi': float(jnp.mean(psip_psi)),
                             'log_psi_wf_rij': float(jnp.mean(log_psi_wf_rij)),
-                            'g_wf_rij': float(jnp.mean(g_wf_rij))
+                            'g_wf_rij': float(jnp.mean(g_wf_rij)),
+                            'pe': float(jnp.mean(pe)),
+                            'ke': float(jnp.mean(ke)),
+                            'e': float(jnp.mean(ke+pe))
                 })
             
             mean_exp_stat = {k: np.mean(np.array(v)) for k, v in exp_stat.items()}
             exp_stats = append_dict_to_dict(exp_stats, mean_exp_stat)
             
         exp_stats = {k:np.array(v) for k, v in exp_stats.items()}
-
-        result_string = f'e{e0_idx}{ids[e0_idx]}_e{e1_idx}{ids[e1_idx]}_cusp'
-        print('\n', result_string)
-        # print('grads', grads)
-
-        results[result_string] = float(grij_log_psi)
-
-        # \Psi(rvec_1,rvec_1+xvec,rvec_3,....)/\Psi(rvec_1,rvec_1,rvec_3,....)
         exp_stats = pd.DataFrame.from_dict(exp_stats)
-        exp_stats_name = oj(run_dir,f'{result_string}_stats.csv')
+        exp_stats_name = oj(plot_dir, f'{result_string}_stats.csv')
         exp_stats.to_csv(exp_stats_name)
-
         pretty_results_file = exp_stats_name[:exp_stats_name.rindex('.')]+'.txt'
         save_pretty_table(exp_stats.copy(), path=pretty_results_file)
+
+        ylabels = [y for y in exp_stats.keys() if not y == 'r']
+        
+        plot(
+            xdata=exp_stats['r'], 
+            ydata=[exp_stats[y] for y in ylabels], 
+            xlabel='r', 
+            ylabel=ylabels,
+            marker=None, 
+            linestyle='-',
+            fig_title=result_string + '_sphere_average',
+            fig_path=oj(plot_dir, result_string + '.png')
+        )
 
         try:
             slope, intercept, r_value, p_value, std_err = stats.linregress(exp_stats['r'], exp_stats['log_psi'])
@@ -209,12 +243,6 @@ def compute_cusp_condition(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed
             append_to_txt(pretty_results_file, result)
         except Exception as e:
             print('fit failed psi', e)
-
-    cfg.update(results)
-    save_config_csv_and_pickle(cfg)
-
-    print(walkers_coalesce[0])
-    print(walkers_equal[0])
 
 
 # get the mean of the gradients

@@ -1,7 +1,9 @@
 from turtle import Shape
 
+import os
 from nn_ansatz.utils import save_config_csv_and_pickle, save_pk
-from utils import append_dict_to_dict, collect_args, load_pk, oj
+from nn_ansatz.sampling import equilibrate
+from utils import append_dict_to_dict, collect_args, load_pk, oj, ojm
 from nn_ansatz.ansatz import create_wf
 from nn_ansatz.routines import initialise_system_wf_and_sampler
 from jax import random as rnd, numpy as jnp
@@ -19,12 +21,12 @@ def compute_distances(walkers, mol, rj=None):
         return jnp.array([])
 
     if rj is None:
-        rj_walkers = jnp.copy(walkers)
+        rj_walkers = walkers
     else:
         rj_walkers = rj
 
     displacement = walkers[..., None, :] - jnp.expand_dims(rj_walkers, axis=-3)
-    displacement = apply_minimum_image_convention(displacement, mol.basis, mol.inv_basis)
+    displacement = apply_minimum_image_convention(displacement, mol.basis, mol.inv_basis, on=True)
     distances = jnp.linalg.norm(displacement, axis=-1)
     return distances  # (n_walkers, n_i, n_j)
 
@@ -39,22 +41,28 @@ def split_spin_walkers(walkers, n_up):
 
 
 
-def compute_gr(distances, n_bins=100):
+def compute_gr(dr, distances, volume_cell, r0=1e-6):
+        '''
+        http://www.physics.emory.edu/faculty/weeks//idl/gofr2.html
+        '''
         n_walkers = len(distances)
-        distances = distances.reshape(-1)
-        max_distance = max(distances)
-        n_el_target = jnp.prod(jnp.array(distances.shape[1:]))
-
-        dr = max_distance/float(n_bins)
-        rs = np.linspace(0.000001, max_distance, n_bins)  # 0.000001 cuts off zeros
+        max_distance = np.max(distances)
+        n_ri, n_rj = distances.shape[1:]  # number of reference particles, number target
+        number_density = n_rj / volume_cell  # is the number density n_ri or 
         
-        pdfs = []
-        for r in rs:
-            outer_edge = r + dr
-            counts = float(np.sum((r<distances)*(distances<outer_edge)))
-            volume = (4.*np.pi/3.) * (outer_edge**3 - r**3)
-            pdf = counts / (n_walkers * volume)
+        rs, pdfs = [], []
+        while r0 < (max_distance+dr):
+            r_dr = r0+dr
+            
+            counts = float(np.sum((r0<=distances)*(distances<=r_dr))) / n_ri
+            # volume = (4.*np.pi/3.) * (outer_edge**3 - r**3)
+            volume = 4.* np.pi * r0**2 * dr  # this is approximate, why not use exact?
+            pdf = counts / (n_walkers * volume * number_density)
+
+            r0 = r_dr
+            rs.append(r0 - dr/2.)
             pdfs.append(pdf)
+
         return rs, np.array(pdfs)
     
 
@@ -65,27 +73,39 @@ def compute_pair_correlation(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/se
                              n_batch: int=10,
                              n_points: int=100,
                              plot_dir: str=None,
+                             n_walkers_max: int=256,
                              **exp         
     ):
 
     key = rnd.PRNGKey(seed)
 
     models_path = oj(run_dir, 'models')
+    walkers_dir = oj(run_dir, 'walkers')
+    load_file = f'i{load_it}.pk'
 
     cfg = load_pk(oj(run_dir, 'config1.pk'))
     n_el, n_up = cfg['n_el'], cfg['n_up']
-    n_devices = cfg['n_devices']
-    cfg['n_devices'] = 1
-    print('n_devices = ', n_devices)
 
-    params_path = oj(models_path, f'i{load_it}.pk')
+    params_path = oj(models_path, load_file)
     mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, params_path=params_path)
+    walkers = walkers[:n_walkers_max]
     
-    n_walkers = walkers.shape[0] // n_devices
-    walkers = walkers[:n_walkers]
+    walkers_dir = oj(run_dir, 'walkers')
+    walkers_path = ojm(walkers_dir, load_file)
+    
+    walkers, step_size = equilibrate(params, 
+                                        walkers, 
+                                        keys, 
+                                        mol=mol, 
+                                        vwf=vwf,
+                                        walkers_path=walkers_path,
+                                        sampler=sampler, 
+                                        compute_energy=True, 
+                                        n_it=20000, 
+                                        step_size_out=True)
+    walkers = walkers[:n_walkers_max]
+    
     print('Walkers shape ', walkers.shape)
-
-    step_size = mol.step_size
 
     exp_stats = {}
     for nb in range(n_batch):
@@ -98,7 +118,6 @@ def compute_pair_correlation(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/se
             - I'm not sure we are in r_s units... wHaT
             - split into up and down pair correlation? 
         '''
-
         key, sam_subkey = rnd.split(key, 2)
 
         for i in range(100):
@@ -122,33 +141,38 @@ def compute_pair_correlation(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/se
     # n_max = max([len(v) for v in exp_stats.values()])
     # exp_stats = {k: np.concatenate([v, np.full((n_max-len(v), v.shape[1], v.shape[2]), np.nan)]) for k, v in exp_stats.items()}
     
-    rs_ud, up_down_gr = compute_gr(exp_stats['up_down_d'], n_bins=n_points)
-    rs_uu, up_up_gr = compute_gr(exp_stats['up_d'], n_bins=n_points)
-    rs_dd, down_down_gr = compute_gr(exp_stats['down_d'], n_bins=n_points)
-    
-    xs = [rs_uu, rs_dd, rs_ud]
-    ys = [up_up_gr, down_down_gr, up_down_gr]
-    titles = ['gr_up_up', 'gr_down_down', 'gr_up_down']
-    ylabels = ['electron density g(r)'] * 3
-    xlabels = ['r'] * 3
+    max_distance = (3*mol.scale_cell**2)**0.5
+    # max_distance = mol.scale_cell
+    print((exp_stats['up_down_d'] <= max_distance).all(), \
+          (exp_stats['up_d'] <= max_distance).all(), \
+          (exp_stats['down_d'] <= max_distance).all())
+    print('This is not necessarily true, because there are the corners of the box')
+    # when are they counted twice? 
+    # an arc at the edge of the cube 
+
+    dr = max_distance / n_points
+    rs_ud, up_down_gr = compute_gr(dr, exp_stats['up_down_d'], mol.volume)
+    rs_uu, up_up_gr = compute_gr(dr, exp_stats['up_d'], mol.volume)
+    rs_dd, down_down_gr = compute_gr(dr, exp_stats['down_d'], mol.volume)
     
     plot(
-        xs, 
-        ys, 
-        xlabels=xlabels, 
-        ylabels=ylabels, 
-        titles=titles,
+        xdata=[rs_uu, rs_dd, rs_ud], 
+        ydata=[up_up_gr, down_down_gr, up_down_gr], 
+        xlabel='r', 
+        ylabel='pair correlation g(r)', 
+        title=['gr_up_up', 'gr_down_down', 'gr_up_down'],
+        vlines=mol.scale_cell, 
         marker=None,
         linestyle='-',
         fig_title='gr',
-        fig_path=oj(plot_dir, 'gr.png')
+        fig_path=oj(plot_dir, 'gr.png'),
     )
     
     exp_stats = exp_stats | {'r_up_up': rs_uu, 'r_down_down': rs_dd, 'r_up_down': rs_ud}
 
-    save_pk(exp_stats, oj(plot_dir, 'samples.pk'))
+    save_pk(exp_stats, oj(plot_dir, 'exp_stats.pk'))
     
-    
+    print('n_walkers total ', len(exp_stats['up_down_d']))
 
 
 

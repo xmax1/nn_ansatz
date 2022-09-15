@@ -7,7 +7,7 @@ from jax import random as rnd
 from jax import jit, vmap, pmap
 
 from .vmc import create_energy_fn
-from .utils import key_gen, split_variables_for_pmap
+from .utils import key_gen, split_variables_for_pmap, save_pk, load_pk
 from .ansatz import create_wf
 
 
@@ -286,29 +286,52 @@ def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
 
 
 
-def equilibrate(params, walkers, keys, mol=None, vwf=None, sampler=None, compute_energy=False, n_it=1000, step_size=0.02):
+def equilibrate(params, 
+                walkers, 
+                keys, 
+                mol=None, 
+                vwf=None, 
+                sampler=None, 
+                compute_energy=False, 
+                n_it=1000, 
+                step_size=0.02,
+                step_size_out=False,
+                walkers_path: str='./this_directory_does_not_exist'):
     
-    if sampler is None:
-        if vwf is None:
-            vwf = create_wf(mol)
-        sampler = create_sampler(mol, vwf)
-    if compute_energy:
-        if vwf is None:
-            vwf = create_wf(mol)
-        compute_energy = create_energy_fn(mol, vwf)
-        compute_energy = pmap(compute_energy, in_axes=(None, 0)) if bool(os.environ.get('DISTRIBUTE')) is True else compute_energy
-
     step_size = split_variables_for_pmap(walkers.shape[0], step_size)
 
-    for it in range(n_it):
-        keys, subkeys = key_gen(keys)
-
-        walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
-        
+    if not os.path.exists(walkers_path):
+        print('Equilibration')
+        if sampler is None:
+            if vwf is None:
+                vwf = create_wf(mol)
+            sampler = create_sampler(mol, vwf)
         if compute_energy:
-            e_locs = compute_energy(params, walkers)
-            if it % 100 == 0:
-                print('step %i energy %.4f' % (it, jnp.mean(e_locs)))
+            if vwf is None:
+                vwf = create_wf(mol)
+            compute_energy = create_energy_fn(mol, vwf)
+            compute_energy = pmap(compute_energy, in_axes=(None, 0)) if bool(os.environ.get('DISTRIBUTE')) is True else compute_energy
+
+        for it in range(n_it):
+            keys, subkeys = key_gen(keys)
+
+            walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
+            
+            if compute_energy:
+                if it % 1000 == 0:
+                    e_locs = compute_energy(params, walkers)
+                    print(f'It {it} | Energy {jnp.mean(e_locs):.4f} | Acc {acc:.2f}')
+        save_pk(walkers, walkers_path)
+    else:
+        print(f'Loading walkers {walkers_path}')
+        walkers = load_pk(walkers_path)
+
+        for it in range(100):
+            keys, subkeys = key_gen(keys)
+            walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
+
+    if step_size_out is True:
+        return walkers, step_size
 
     return walkers
 

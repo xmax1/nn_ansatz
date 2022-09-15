@@ -10,7 +10,18 @@ from bokeh.plotting import figure, show
 from bokeh.palettes import Dark2_5 as palette
 import itertools
 import re
-import csv 
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from typing import List, Dict, Tuple, Union, NamedTuple
+from dataclasses import dataclass
+import matplotlib as mpl
+import inspect
+
+plot_arguments = inspect.getfullargspec(mpl.lines.Line2D).args
+plot_arguments.remove('xdata')
+plot_arguments.remove('ydata')
 
 # params = {'legend.fontsize': 16,
 #           'legend.handlelength': 3}
@@ -18,59 +29,117 @@ import csv
 # plt.rcParams.update(params)
 
 
-def plot(
-    xs: list, 
-    ys: list=None, 
-    xlabels: list=None, 
-    ylabels: list=None, 
-    titles: list=None,
-    fig_title: str=None,
-    fig_path: str=None,
-    marker: str='x',
-    linestyle: str=None,
-    plot_type: str='line',
-    **kwargs
-):
+def get_fig_shape(n_plots):
+    n_col = int(np.ceil(np.sqrt(n_plots)))
+    n_plots_sq = n_col**2
+    diff = n_plots_sq - n_plots
+    n_row = n_col
+    if diff >= n_col:
+        n_row -= 1
+    return n_col, n_row  # first is the bottom axis, second is the top axis
+
+
+def get_fig_size(n_col, n_row, ratio=0.75, base=5, scaling=0.85):
+    additional_space_a = [base * scaling**x for x in range(1, n_col+1)]
+    additional_space_b = [ratio * base * scaling**x for x in range(1, n_row+1)]
+    return (sum(additional_space_a), sum(additional_space_b))
+
+
+def plot(xdata: Union[np.ndarray, list, List[list]], 
+         ydata: Union[np.ndarray, list, List[list], None]=None, 
+         labels: Union[List[list], None]=None, 
+         
+         xlabel: Union[str, list, None]=None,  
+         ylabel: Union[str, list, None]=None, 
+         title: Union[str, list, None]=None,
+
+         color: Union[str, list, None]='blue',
+
+         hline: Union[float, list, dict, None]=None,
+         vline: Union[float, list, dict, None]=None,
+
+         plot_type: str='line', 
+         fig_title: str=None,
+         fig_path: str=None,
+         **kwargs):
+    '''
+
+    nb
+    - if multiple h/v lines repeated make a list of lists
+    - for data_labels (key) only need in case of multiple lines
+    '''
     
-    if ys is None: ys = [None] * len(xs)  # for histogram case
-    assert len(xs) == len(ys)
+    args = locals()
+    args = {k:v for k, v in args.items() if not 'fig' in k}
 
-    n_plots = len(xs)
-    n_side = int(np.ceil(np.sqrt(n_plots)))
-    fig, axs = plt.subplots(n_side, n_side)
-    if n_side == 1: axs = [[axs],]
-    axs = [ax for sub in axs for ax in sub]
+    nx = len(xdata) if isinstance(xdata, list) else 1
+    ny = len(ydata) if isinstance(ydata, list) else 1
+    n_plots = max(nx, ny)
 
-    format_elements = [xlabels, ylabels, titles]
-    format_elements = [[None] * n_plots if f is None else f for f in format_elements]
-    for f in format_elements:
-        assert len(f) == n_plots
+    n_col, n_row = get_fig_shape(n_plots)
+    figsize = get_fig_size(n_col, n_row)
+    fig, axs = plt.subplots(ncols=n_col, nrows=n_row, figsize=figsize)  # a columns, b rows
+    axs = axs.flatten() # creates an iterator
 
-    for ax, x, y, xl, yl, ti in zip(axs, xs, ys, *format_elements):
+    # each element of this list
+    # is a dictionary of the args for that plot
+    # and accounts for 
+    # 1) argument not provided as list (applies to all)
+    # 2) provided as list but only 1 element (list of list hlines case)
+    # 3) provided for all plots
+    # Fail case: will fail if len(v) not equal 1 or n_plots
+    # Fixed now copies to all future
+    args = [{k:v if not isinstance(v, list) else v[min(len(v)-1, i)] for k, v in args.items()} for i in range(n_plots)]
+
+    for i, (ax, arg) in enumerate(zip(axs, args)):
+        plot_kwargs = {k:v for k,v in arg.items() if k in plot_arguments}
         
-        if plot_type is 'line':
+        if plot_type == 'line':
+
             ax.plot(
-                x, y, 
-                color = 'blue',
-                linestyle = linestyle,  # solid, dotted
-                marker = marker,
-                markerfacecolor = 'purple', 
-                markersize = 5
+                arg['xdata'],
+                arg['ydata'],
+                **plot_kwargs
             )
 
-        if plot_type is 'hist':
+        if plot_type == 'hist':
+            '''
+            bins=None, range=None, density=False, weights=None, cumulative=False, bottom=None, 
+            histtype='bar', align='mid', orientation='vertical', rwidth=None, log=False, 
+            color=None, label=None, stacked=False, *, data=None, **kwargs
+            '''
             ax.hist(
-                x,
+                arg.get('x'),
                 **kwargs
             )
 
-        ax.set_xlabel(xl)
-        ax.set_ylabel(yl)
-        ax.set_title(ti)
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+
+        for fn, lines, lims in zip([ax.hlines, ax.vlines], ['hlines', 'vlines'], [xlim, ylim]):
+            if not arg.get(lines) is None:
+                if isinstance(arg[lines], dict):
+                    kwargs = {k:v for k,v in arg[lines].items() if not k == 'lines'}
+                    lines = arg[lines]['lines']
+                else:
+                    kwargs = {}
+                    lines = arg[lines]
+
+                fn(lines, *lims, **kwargs)
+
+        ax.set_xlabel(arg.get('xlabel'))
+        ax.set_ylabel(arg.get('ylabel'))
+        ax.set_title(arg.get('title'))
+
+        ax.ticklabel_format(axis='both', style='sci', scilimits=(-2, 3), useMathText=True, useOffset=True)
+        ax.tick_params(axis='both', pad=3.)  # pad default is 4.
+
+    [ax.remove() for ax in axs[n_plots:]]
 
     fig.suptitle(fig_title)
     fig.tight_layout()
-    if fig_path is not None: fig.savefig(fig_path)
+    if fig_path is not None: 
+        fig.savefig(fig_path)
 
     return fig
 

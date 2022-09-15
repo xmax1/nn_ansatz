@@ -9,14 +9,6 @@ from .parameters import initialise_d0s
 from .ansatz_base import *
 
 
-def keep_in_boundary(walkers, basis, inv_basis):
-    talkers = transform_vector_space(walkers, inv_basis)
-    talkers = jnp.fmod(talkers, 1.)
-    talkers = jnp.where(talkers < 0., talkers + 1., talkers)
-    talkers = transform_vector_space(talkers, basis)
-    return talkers
-
-
 def create_wf(mol, kfac: bool=False, orbitals: bool=False, signed: bool=False, distribute=False):
     ''' initializes the wave function ansatz for various applications '''
 

@@ -1,4 +1,11 @@
 
+
+# 14/09/22
+
+- Richard Needs - electron / phonon coupling  ~20yrs
+    - 
+
+
 # 12/09/22
 
 - Why are the distances not sqrt(3*scale**2)? 
