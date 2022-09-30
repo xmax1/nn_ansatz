@@ -269,9 +269,18 @@ if __name__ == '__main__':
     }
 
     exp = {'run_dir': './experiments/HEG/final1001/14el/baseline/kfac_1lr-3_1d-4_1nc-4_m2048_el14_s128_p32_l3_det1/run41035',
-           'exp_name': 'analysis',
+           'exp_name': 'gr_and_mom',
            'e_idxs': e_idxs,
-           'seed': 0,}
+           'seed': 0}
+
+    root = '/home/energy/amawi/projects/nn_ansatz/src/experiments/HEG/final1001/14el/baseline/kfac_1lr-3_1d-4_1nc-4_m2048_el14_s128_p32_l3_det1/'
+    
+    paths = os.listdir(root)
+    # paths = ['run41035', ]
+    for path in paths:
+        r = {'run_dir': os.path.join(root, path)}
+
+        exp = exp | r
 
     # python slurm.py --execution_file pair_correlation.py --exp_name final --n_batch 10
     # python slurm.py --execution_file plot_cusp.py --exp_name plot_cusp_1e5 --n_point_side 200
@@ -279,11 +288,12 @@ if __name__ == '__main__':
     # python slurm.py --execution_file cusp.py --n_batch 10 --exp_name cusp_sphere
     # python slurm.py --execution_file pair_correlation.py --n_points 50 --exp_name gr --n_batch 100
     # python slurm.py --execution_file pair_correlation.py --n_points 30 --exp_name TEST --n_batch 10
+    # python slurm.py --execution_file pair_correlation.py --n_points 50 --exp_name gr_and_mom --n_batch 100
 
 
-    exp = exp | typed_args
+        exp = exp | typed_args
 
-    run_slurm(**exp)
+        run_slurm(**exp)
 
 
 

@@ -1,4 +1,10 @@
 
+# 9/23/22
+
+- run all rs and plot gr 
+- include the std?? 
+- read markus email 
+
 
 # 14/09/22
 

@@ -285,7 +285,6 @@ def sample_until_no_infs(vwf, sampler, params, walkers, keys, step_size):
     return walkers
 
 
-
 def equilibrate(params, 
                 walkers, 
                 keys, 
@@ -300,7 +299,7 @@ def equilibrate(params,
     
     step_size = split_variables_for_pmap(walkers.shape[0], step_size)
 
-    if not os.path.exists(walkers_path):
+    if not os.path.exists(walkers_path) or (walkers_path == './this_directory_does_not_exist'):
         print('Equilibration')
         if sampler is None:
             if vwf is None:

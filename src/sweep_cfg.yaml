@@ -32,5 +32,5 @@ sweep:
   # input_activation_nonlinearity: ['1sin+1cos', '2sin+2cos', '3sin+3cos']
   # nonlinearity: ['tanh', 'sin', 'cos', 'silu', 'snake']
   # bf_af: ['tanh', 'cos', 'sin', 'silu', 'snake', 'no_af'] # 
-  jastrow: [True, False]
-  seed: [0, 1] # 
+  # jastrow: [True, False]
+  # seed: [0, 1] # 
