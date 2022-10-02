@@ -19,6 +19,8 @@ from dataclasses import dataclass
 import matplotlib as mpl
 import inspect
 
+from typing import Iterable
+
 plot_arguments = inspect.getfullargspec(mpl.lines.Line2D).args
 plot_arguments.remove('xdata')
 plot_arguments.remove('ydata')
@@ -79,7 +81,13 @@ def plot(xdata: Union[np.ndarray, list, List[list]],
     n_col, n_row = get_fig_shape(n_plots)
     figsize = get_fig_size(n_col, n_row)
     fig, axs = plt.subplots(ncols=n_col, nrows=n_row, figsize=figsize)  # a columns, b rows
-    axs = axs.flatten() # creates an iterator
+    
+    if not isinstance(axs, Iterable):
+        axs = [axs]
+    
+    if n_col > 1 and n_row > 1:
+        axs = axs.flatten() # creates an iterator
+    
 
     # each element of this list
     # is a dictionary of the args for that plot
