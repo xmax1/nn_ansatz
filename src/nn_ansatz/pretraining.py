@@ -8,7 +8,7 @@ from jax import value_and_grad, vmap, jit, pmap
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from jax.experimental.optimizers import adam
+from optax import adam
 
 from .vmc import create_energy_fn
 from .sampling import to_prob, create_sampler, equilibrate

@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import pickle as pk
 import scipy
-from .utils import find_all_files_in_dir, oj
 from bokeh.io import output_notebook, export_png
 from bokeh.plotting import figure, show
 from bokeh.palettes import Dark2_5 as palette

@@ -297,9 +297,8 @@ def equilibrate(params,
                 step_size_out=False,
                 walkers_path: str='./this_directory_does_not_exist'):
     
-    step_size = split_variables_for_pmap(walkers.shape[0], step_size)
-
-    if not os.path.exists(walkers_path) or (walkers_path == './this_directory_does_not_exist'):
+    if (not os.path.exists(walkers_path)) or (walkers_path == './this_directory_does_not_exist'):
+        step_size = split_variables_for_pmap(walkers.shape[0], step_size)
         print('Equilibration')
         if sampler is None:
             if vwf is None:
@@ -329,8 +328,9 @@ def equilibrate(params,
             keys, subkeys = key_gen(keys)
             walkers, acc, step_size = sampler(params, walkers, subkeys, step_size)
 
+        step_size = split_variables_for_pmap(walkers.shape[0], step_size)
+
     if step_size_out is True:
         return walkers, step_size
 
     return walkers
-

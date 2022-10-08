@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 import tensorflow as tf
 import time
 from jax import jit
-from jax.experimental import optimizers
+import optax
 import tensorflow as tf
 import jax
 import jax.random as rnd
@@ -539,7 +539,7 @@ class Logging():
             try:  # differences between kfac and adam state objects
                 save_pk(opt_state, os.path.join(self.opt_state_dir, 'i%i.pk' % step))
             except TypeError as e:
-                opt_state = optimizers.unpack_optimizer_state(opt_state)
+                opt_state = optax.unpack_optimizer_state(opt_state)
                 save_pk(opt_state, os.path.join(self.opt_state_dir, 'i%i.pk' % step))
                 # best_opt_state = optimizers.pack_optimizer_state(best_params)
 

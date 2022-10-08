@@ -127,7 +127,7 @@ def make_slurm(time_h, n_cmds, submission_name):
 def run_single_slurm(execution_file = 'cusp.py ',
                      submission_name = 'analysis',
                      cfg_file = 'sweep_cfg.yaml',
-                     env = 'sparkle',
+                     env = 'gpu',
                      time_h: int = 24,                     
                      **exp):
 
@@ -171,7 +171,7 @@ def run_slurm_sweep(execution_file = 'run_with_args.py ',
                     submission_name = 'sweep',
                     cfg_file = 'sweep_cfg.yaml',
                     use_array = True,
-                    env = 'sparkle',
+                    env = 'dw',
                     exp_name = None,
                     time_h = 24,
                     ):
@@ -251,49 +251,45 @@ if __name__ == '__main__':
     from utils import collect_args, type_args
     from itertools import combinations
 
-    run_slurm = run_single_slurm
-
     args = collect_args()
     typed_args = type_args(args, run_single_slurm)
 
-    all_up = combinations(range(7), 2)
-    all_down = combinations(range(7, 14), 2)
-    e_idxs = [list(x) for x in (list(all_up) + list(all_down))]
-    e_idxs = [list(x) for x in combinations(range(5, 9), 2)]
-    e_idxs = [[0,7], [0, 1]]
-
-    exp = {'run_dir': './experiments/HEG_PRX/cusps_jastrow_0/JstrwFals/seed0/run_0',
-           'exp_name': 'analysis',
-           'e_idxs': e_idxs,
-           'seed': 0,
-    }
-
-    exp = {'run_dir': './experiments/HEG/final1001/14el/baseline/kfac_1lr-3_1d-4_1nc-4_m2048_el14_s128_p32_l3_det1/run41035',
-           'exp_name': 'gr_and_mom',
-           'e_idxs': e_idxs,
-           'seed': 0}
-
     root = '/home/energy/amawi/projects/nn_ansatz/src/experiments/HEG/final1001/14el/baseline/kfac_1lr-3_1d-4_1nc-4_m2048_el14_s128_p32_l3_det1/'
-    
-    paths = os.listdir(root)
-    # paths = ['run41035', ]
+
+    exe_files = ['obs_pair_corr.py', 'obs_one_body.py', 'obs_mom_dist.py']
+
+    test_path = 'run41035'
+    paths = list(os.listdir(root))
+    # paths.remove(test_path)
+    # paths = [test_path,]
     for path in paths:
-        r = {'run_dir': os.path.join(root, path)}
+        for exe_file in exe_files:
+            exp = {
+                'run_dir': os.path.join(root, path),
+                'd3': False,
+                'n_points': 25,
+                'n_walkers_max': 1024,
+                'n_walkers': None,
+                'execution_file': exe_file,
+            }
+            exp['exp_name'] = exe_file.split('.')[0] + f'_d3{str(exp["d3"])}' + f'_nw{exp["n_walkers"]}'
 
-        exp = exp | r
+            exp = exp | typed_args
+            if 'pair_corr' in exe_file:
+                exp['n_walkers'] = None
 
-    # python slurm.py --execution_file pair_correlation.py --exp_name final --n_batch 10
-    # python slurm.py --execution_file plot_cusp.py --exp_name plot_cusp_1e5 --n_point_side 200
-    # python slurm.py --execution_file cusp_line.py --n_points 1000 --exp_name cusp_line
-    # python slurm.py --execution_file cusp.py --n_batch 10 --exp_name cusp_sphere
-    # python slurm.py --execution_file pair_correlation.py --n_points 50 --exp_name gr --n_batch 100
-    # python slurm.py --execution_file pair_correlation.py --n_points 30 --exp_name TEST --n_batch 10
-    # python slurm.py --execution_file pair_correlation.py --n_points 50 --exp_name gr_and_mom --n_batch 100
+            run_single_slurm(**exp, time_h=24)
+        
 
+    # python slurm.py --execution_file compute_observables.py --exp_name 100batch_d1 --n_batch 1000 --n_points 25 --d3 False
+    # python slurm.py --execution_file compute_observables.py --exp_name 1006/100b --n_batch 100 --n_points 25 --d3 False
+    # python slurm.py --execution_file compute_observables.py --exp_name 100batch_d3 --n_batch 100 --n_points 25 --d3 True
+    # python slurm.py --execution_file compute_observables.py --exp_name 10batch_d3 --n_batch 10 --n_points 25 --d3 True
 
-        exp = exp | typed_args
-
-        run_slurm(**exp)
+    # python slurm.py --execution_file compute_observables.py --exp_name 10batch_xyz --n_batch 10 --n_points 25
+    # python slurm.py --execution_file compute_observables.py --exp_name gen_walkers
+    
+        
 
 
 

@@ -6,7 +6,8 @@ from jax._src.tree_util import tree_flatten
 import jax.random as rnd
 import jax.numpy as jnp
 from jax import jit, pmap, vmap
-from jax.experimental.optimizers import adam
+# from jax.experimental.optimizers import adam
+from optax import adam
 from tqdm import trange
 import sys
 import numpy as np
@@ -84,7 +85,7 @@ def confirm_antisymmetric(mol, params, walkers):
         print('swap downs || difference %.2f sign difference %.2f' % (down_swap_mean, down_swap_smean))
 
 
-def initialise_system_wf_and_sampler(cfg, params_path=None, walkers=None):
+def initialise_system_wf_and_sampler(cfg, params_path=None, walkers=None, walkers_path=None):
     keys = rnd.PRNGKey(cfg['seed'])
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
@@ -97,17 +98,19 @@ def initialise_system_wf_and_sampler(cfg, params_path=None, walkers=None):
     if params_path is None:
         params = initialise_params(mol, keys)
     else:
+        print(f'Loading params: \n {params_path}')
         params = load_pk(params_path)
 
-    if walkers is None:
-        walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
-        walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=100)
+    if walkers_path is None:
+        if walkers is None:
+            walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
+            walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=100)
 
     if (params_path is None) and cfg['pretrain']:
         params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
     
     return mol, vwf, walkers, params, sampler, keys
-
+    
 
 def time_sample(cfg, walkers=None):
     
