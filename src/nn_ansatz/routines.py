@@ -7,7 +7,7 @@ import jax.random as rnd
 import jax.numpy as jnp
 from jax import jit, pmap, vmap
 # from jax.experimental.optimizers import adam
-from optax import adam
+from optax import adam, apply_updates
 from tqdm import trange
 import sys
 import numpy as np
@@ -103,8 +103,9 @@ def initialise_system_wf_and_sampler(cfg, params_path=None, walkers=None, walker
 
     if walkers_path is None:
         if walkers is None:
+            print('Initialising and equilibrating walkers')
             walkers = initialise_walkers(mol, vwf, sampler, params, keys, walkers=walkers)
-            walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=100)
+            walkers = equilibrate(params, walkers, keys, mol, vwf=vwf, sampler=sampler, n_it=1000)
 
     if (params_path is None) and cfg['pretrain']:
         params, walkers = pretrain_wf(mol, params, keys, sampler, walkers, **cfg)
@@ -220,18 +221,20 @@ def measure_kfac_and_energy_time(cfg, walkers=None):
 
 def run_vmc(cfg, walkers=None):
 
+    for k, v in cfg.items():
+        print(k, '\n', v, '\n')
+        
     logger = Logging(**cfg)
 
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg)
 
     grad_fn = create_grad_function(mol, vwf)
 
     if cfg['opt'] == 'kfac':
         update, get_params, kfac_update, state = kfac(mol, params, walkers, cfg['lr'], cfg['damping'], cfg['norm_constraint'])
     elif cfg['opt'] == 'adam':
-        init, update, get_params = adam(cfg['lr'])
-        update = jit(update)
-        state = init(params)
+        optimizer = adam(cfg['lr'])
+        state = optimizer.init(params)
     else:
         exit('Optimiser not available')
 
@@ -252,18 +255,16 @@ def run_vmc(cfg, walkers=None):
         
         grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
 
-        # gs = grads.copy()
-
         if cfg['opt'] == 'kfac':
             grads, state = kfac_update(step, grads, state, walkers)
-
-        state = update(step, grads, state)
-        params = get_params(state)
+            state = update(step, grads, state)
+            params = get_params(state)
+        else:
+            grads, state = optimizer.update(grads, state)
+            params = apply_updates(params, grads)
 
         steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
         steps.refresh()
-
-        # kgs, tree = tree_flatten(grads)
 
         logger.log(step,
                    opt_state=state,
@@ -276,48 +277,8 @@ def run_vmc(cfg, walkers=None):
         if jnp.isnan(jnp.mean(e_locs)):
             exit('found nans')
 
-        # if (step % 10000 == 0) and (not step == 0):
-            
-        #     values = {}
-        #     for i in range(1000):
-        #         keys, subkeys = key_gen(keys)
-
-        #         walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
-
-        #         pe, ke = energy_function(params, walkers)
-        #         update_dict(values, 'pe', jnp.mean(pe))
-        #         update_dict(values, 'ke', jnp.mean(ke))
-        #         update_dict(values, 'energy', jnp.mean(pe+ke))
-        #         update_dict(values, 'energy_std', jnp.std(pe+ke))
-
-        #     n_particles = mol.n_atoms if mol.n_atoms != 0 else mol.n_el
-        #     n_samples = len((values['pe']))
-            
-        #     save_values = {}
-        #     save_values['live_pe_mean_i%i' % step] = np.mean(values['pe'])
-        #     save_values['pe_std_i%i' % step] = np.std(values['pe'])
-        #     save_values['pe_sem_i%i' % step] = np.std(values['pe']) / np.sqrt(n_samples)
-
-        #     save_values['ke_mean_i%i' % step] = np.mean(values['ke'])
-        #     save_values['ke_std_i%i' % step] = np.std(values['ke'])
-        #     save_values['ke_sem_i%i' % step] = np.std(values['ke']) / np.sqrt(n_samples)
-
-        #     save_values['e_mean_i%i' % step] = np.mean(values['energy'])
-        #     save_values['e_std_i%i' % step] = np.std(values['energy'])
-        #     save_values['e_sem_i%i' % step] = np.std(values['energy']) / np.sqrt(n_samples)
-
-        #     save_values['e_std_mean_i%i' % step] = np.mean(values['energy_std'])
-        #     save_values['e_std_std_i%i' % step] = np.std(values['energy_std'])
-        #     save_values['e_std_sem_i%i' % step] = np.std(values['energy_std']) / np.sqrt(n_samples)
-
-        #     # save_values = compute_per_particle(save_values, n_particles)
-        #     cfg.update(save_values)
-
-        #     save_config_csv_and_pickle(cfg)
-
     write_summary_to_cfg(cfg, logger.summary)
     logger.walkers = walkers
-    
     return logger
 
 
@@ -334,9 +295,13 @@ def run_vmc_debug(cfg, walkers=None):
     if cfg['opt'] == 'kfac':
         update, get_params, kfac_update, state = kfac(mol, params, walkers, cfg['lr'], cfg['damping'], cfg['norm_constraint'])
     elif cfg['opt'] == 'adam':
-        init, update, get_params = adam(cfg['lr'])
-        update = jit(update)
-        state = init(params)
+        # init, update, get_params = adam(cfg['lr'])
+        # update = jit(update)
+        # state = init(params)
+        optimizer = adam(cfg['lr'])
+        opt_state = optimizer.init(params)
+        updates, opt_state = optimizer.update(grads, opt_state)
+        params = optax.apply_updates(params, updates)
     else:
         exit('Optimiser not available')
 
@@ -436,23 +401,27 @@ def get_step_size(walkers, params, sampler, keys):
     return split_variables_for_pmap(n_devices, step_size)
 
 
-def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
+oj = os.path.join 
+
+def approximate_energy(cfg, run_dir=None, load_it=None, n_it=1000, walkers=None):
     cfg['pretrain'] = False
     
     if load_it is not None:
         cfg['load_it'] = load_it
 
-    os.environ['DISTRIBUTE'] = 'True'
+    if run_dir is not None:
+        models_path = oj(run_dir, 'models')
+        load_file = f'i{load_it}.pk'
+        params_path = oj(models_path, load_file)
     
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers)
-    walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=100000)
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, walkers=walkers, params_path=params_path)
+    walkers, step_size = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=100000, step_size_out=True)
     energy_function = create_energy_fn(mol, vwf, separate=True)
     
     if bool(os.environ.get('DISTRIBUTE')) is True:
         energy_function = pmap(energy_function, in_axes=(None, 0))
     
     # step_size = get_step_size(walkers, params, sampler, keys)
-    step_size = split_variables_for_pmap(cfg['n_devices'], 0.02)
     values = {}
     for i in range(n_it):
         keys, subkeys = key_gen(keys)
@@ -485,11 +454,10 @@ def approximate_energy(cfg, load_it=None, n_it=1000, walkers=None):
     save_values['e_std_std_i%i' % load_it] = np.std(values['energy_std'])
     save_values['e_std_sem_i%i' % load_it] = np.std(values['energy_std']) / np.sqrt(n_samples)
 
-    # save_values = compute_per_particle(save_values, n_particles)
     cfg.update(save_values)
 
     save_config_csv_and_pickle(cfg)
-    return values
+    return cfg
 
 
 def approximate_pair_distribution_function(cfg, load_it=None, n_bins=100, n_it=1000, walkers=None):

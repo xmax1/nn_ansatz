@@ -5,12 +5,17 @@ from utils import append_dict_to_dict, collect_args, load_pk, oj, save_pretty_ta
 from nn_ansatz.ansatz import create_wf
 from nn_ansatz.routines import initialise_system_wf_and_sampler
 from jax import random as rnd, numpy as jnp
-from jax import grad
+from jax import grad, jit
 import numpy as np
 import pandas as pd
 from scipy import stats
 from nn_ansatz.sampling import equilibrate, keep_in_boundary
 from nn_ansatz.plot import plot
+from nn_ansatz.vmc import create_energy_fn
+from math import ceil, log
+from walle_utils import StatsCollector, save_pk
+import os
+from pathlib import Path
 
 '''
 load in the configuration
@@ -20,25 +25,6 @@ compute the quantity
 '''
 
 SEED = 0
-
-
-# def sample_sphere(shape, key, sphere_r=1e-5):
-#     subkeys = rnd.split(key, 3)
-#     theta = 2*jnp.pi * rnd.uniform(subkeys[0], shape)
-#     phi = 1.-(2.*rnd.uniform(subkeys[1], shape))
-    
-#     # u = jnp.random.uniform(subkeys[2], shape)
-#     # theta = jnp.arccos(costheta)
-#     # r = sphere_r * jnp.cbrt(u)
-
-#     x = sphere_r * jnp.sin( phi) * jnp.cos( theta )
-#     y = sphere_r * jnp.sin( phi) * jnp.sin( theta )
-#     z = sphere_r * jnp.cos( phi )
-
-#     sphere_sample = jnp.stack([x, y, z], axis=-1)[:, None, :]
-#     # r = jnp.sqrt(jnp.sum(sphere_sample**2, axis=-1, keepdims=True))
-#     return sphere_sample
-
 
 def sample_sphere(shape, key, sphere_r, check=False):
     # http://corysimon.github.io/articles/uniformdistn-on-sphere/
@@ -75,60 +61,124 @@ def compute_wf_rij(params, walkers, key, vwf, e0_idx, e1_idx, rij):
     pos_e1 = pos_e0 + sphere_sample            
     walkers_coalesce = jnp.where(mask, pos_e1, walkers)
     
-    
     log_psi = vwf(params, walkers_coalesce)
     
     return jnp.sum(log_psi)
-    
-
-from nn_ansatz.vmc import create_energy_fn
 
 
-def compute_cusp_condition(run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
-                           load_it: int=100000,
-                           e_idxs: list[list[int]] = [[0,1],[0,7]],
-                           seed: int=0,
-                           n_batch: int=10,
-                           n_walkers_max: int=256,
-                           plot_dir: str=None,
-                           single: bool=True,
-                           **kwargs         
-    ):
-
+def compute_cusp_condition(   
+    run_dir: str='./experiments/HEG_PRX/bf_af_0/BfCs/seed0/run_0',
+    load_it: int=100000,
+    e_idxs: list[list[int]] = [[0,1],[0,7]],
+    seed: int=0,
+    n_batch: int=10,
+    n_walkers_max: int=256,
+    plot_dir: str=None,
+    single: bool=True,
+    n_walkers: int = 1024, 
+    **kwargs       
+):  
     key = rnd.PRNGKey(seed)
-    
+
+    models_path = oj(run_dir, 'models')
+    walkers_dir = oj(run_dir, 'walkers')
+    load_file = f'i{load_it}.pk'
+
     cfg = load_pk(oj(run_dir, 'config1.pk'))
     n_el, n_up = cfg['n_el'], cfg['n_up']
-    load_file = f'i{load_it}.pk'
-    models_path = oj(run_dir, 'models')
-    params_path = oj(models_path, load_file)
 
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, params_path=params_path)
-      
     walkers_dir = oj(run_dir, 'walkers')
     walkers_path = ojm(walkers_dir, load_file)
-    walkers, step_size = equilibrate(params, 
-                                        walkers, 
-                                        keys, 
-                                        mol=mol, 
-                                        vwf=vwf,
-                                        walkers_path=walkers_path,
-                                        sampler=sampler, 
-                                        compute_energy=True, 
-                                        n_it=20000, 
-                                        step_size_out=True)
+    if not os.path.exists(walkers_path):
+        walkers_path = None
+
+    params_path = oj(models_path, load_file)
+    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg, params_path=params_path, walkers_path=walkers_path)
+    swf = jit(create_wf(mol, signed=True))
     
+    closest = lambda x: int(ceil(log(x) / log(2)))
+    cut = int((100000//n_walkers_max) * n_walkers_max)
+    all_walkers = jnp.array(load_pk(ojm(run_dir, f'eq_walkers_i{load_it}.pk')))
+    all_walkers = all_walkers[cut:cut+int((n_walkers//n_walkers_max) * n_walkers_max)] if n_walkers is not None else all_walkers[cut:]
+    # n_walkers_all = len(all_walkers)
+    # all_walkers = jnp.split(all_walkers, len(all_walkers)//n_walkers_max, axis=0)
+    # print('n_walkers_all ', n_walkers_all)
+
+    max_distance = mol.scale_cell
+    print('Max distance: ', max_distance, 'Scale: ', mol.scale_cell)
+
+    energy_fn = create_energy_fn(mol, vwf, separate=True)
+
+    walker = all_walkers[[0], ...]
+    print('Walkers shape ', walker.shape)
+
+    ids = {k:'up' for k in range(cfg['n_up'])} | {k:'down' for k in range(cfg['n_up'], cfg['n_el'])}
+    e_idxs = [[0,1], [0,7], [7,8]]
+    r_init, r_end = -5e-2, 5e-2
+    
+    for e0_idx, e1_idx in e_idxs:
+        result_string = f'cusp_e{e0_idx}{ids[e0_idx]}_e{e1_idx}{ids[e1_idx]}'
+        print('\n', result_string)
+        
+        pos_e0 = walker[:, [e0_idx], :]
+
+        mask = jnp.array([False if i != e1_idx else True for i in range(n_el)])[None, :, None]
+
+        exp = StatsCollector()
+        for r in jnp.linspace(r_init, r_end, 100):
+            r = jnp.array([r, 0.0, 0.0])[None, None, :]
+
+            walker_shifted = jnp.where(mask, pos_e0 + r, walker)
+            walker_shifted = keep_in_boundary(walker_shifted, mol.basis, mol.inv_basis)
+            
+            log_psi, sgn = swf(params, walker_shifted)
+            psi = sgn * jnp.exp(log_psi)
+
+            log_psi_eq, sgn_eq = swf(params, walker)
+            psi_eq = sgn_eq * jnp.exp(log_psi_eq)
+            
+            gf_log_psi = grad(lambda w: jnp.sum(vwf(params, w)))
+            gx_log_psi = gf_log_psi(walker_shifted)[:, e1_idx, 0] 
+
+            gf_psi = grad(lambda w: jnp.sum(jnp.exp(vwf(params, w))))
+            gx_psi = sgn * gf_psi(walker_shifted)[:, e1_idx, 0]
+
+            pe, ke = energy_fn(params, walker_shifted)
+
+            psip_psi = psi / psi_eq
+
+            exp.r = r
+            exp.log_psi = log_psi
+            exp.sgn = sgn
+            exp.psi = psi
+            exp.psi_eq = psi_eq
+            exp.gx_log_psi = gx_log_psi
+            exp.gx_psi = gx_psi
+            exp.psip_psi = psip_psi
+            exp.ke = ke
+            exp.pe = pe
+            exp.e = ke + pe
+
+            sphere = sample_sphere((1024, ), key, r, check=False)
+            walker_shifted = jnp.where(mask, pos_e0 + sphere, walker)
+            log_psi, sgn = swf(params, walker_shifted)
+            psi = sgn * jnp.exp(log_psi)
+            gx_psi = sgn * gf_psi(walker_shifted)[:, e1_idx, 0]
+
+            exp.sphere_log_psi = jnp.mean(log_psi)
+            exp.sphere_psi = jnp.mean(psi)
+            exp.sphere_gx_psi = jnp.mean(gx_psi)
+
+        path = Path(run_dir, f'res_{result_string}.pk')
+        save_pk(exp.to_dict(), path)
+
+    print('Experiment ended successfully')
+
+def stop():
+
     if single: 
         walkers = walkers[:1] # this does not reduce the dim as with selecting a single idx [0]
         walkers = jnp.repeat(walkers, n_walkers_max, axis=0)
-    
-    swf = create_wf(mol, signed=True)
-    
-    energy_fn = create_energy_fn(mol, vwf, separate=True)
-
-    print('Walkers shape ', walkers.shape)
-
-    ids = {k:'up' for k in range(cfg['n_up'])} | {k:'down' for k in range(cfg['n_up'], cfg['n_el'])}
 
     if e_idxs is None: 
         e_idxs = [[0, 1],] 

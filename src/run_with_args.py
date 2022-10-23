@@ -4,11 +4,31 @@
 import argparse
 from nn_ansatz import setup, run_vmc, approximate_energy
 from distutils.util import strtobool
+import numpy as np
+from jax import numpy as jnp
+import time
+import string
+import pickle as pk
+import numpy as np
+import random
+import os
+from pathlib import Path
 
 def input_bool(x):
+    from distutils.util import strtobool
     x = strtobool(x)
     if x: return True
     else: return False
+
+def save_pk(x, path):
+    with open(path, 'wb') as f:
+        pk.dump(x, f)
+
+def mkdir(path: Path):
+    path = Path(path)
+    if path.suffix != '':
+        path = path.parent
+    path.mkdir(parents=True, exist_ok=True)
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -38,10 +58,11 @@ def get_args():
     parser.add_argument('-psplit_spins', '--psplit_spins', default=True, type=input_bool)
     parser.add_argument('-ta', '--target_acceptance', default=0.5, type=float)
     parser.add_argument('-seed', '--seed', default=0, type=int)
-    parser.add_argument('-run_dir', '--run_dir', default=None, type=str)
     parser.add_argument('-exp_name', '--exp_name', default=None, type=str)
     parser.add_argument('-save_every', '--save_every', default=10000, type=int)
     parser.add_argument('-bf_af', '--bf_af', default='cos', type=str)
+    parser.add_argument('-run_dir', '--run_dir', default=None, type=str)
+    parser.add_argument('-out_dir', '--out_dir', default='', type=str)
     args = parser.parse_args()
     return args
 
@@ -54,6 +75,28 @@ log = run_vmc(cfg)
 
 if args.sweep == True:
     for load_it in range(args.save_every, args.n_it+1, args.save_every):
-        approximate_energy(cfg, load_it=load_it)
+        approximate_energy(cfg, run_dir=args.run_dir, load_it=load_it, n_it=20000)
 else:
-    approximate_energy(cfg, load_it=args.n_it)
+    cfg = approximate_energy(cfg, run_dir=args.run_dir, load_it=args.n_it, n_it=20000)
+
+new_cfg = {}
+for k, v in cfg.items():
+    if isinstance(v, jnp.ndarray):
+        v = np.array(v)
+    new_cfg[k] = v
+
+uppers = string.ascii_uppercase
+lowers = string.ascii_lowercase
+numbers = ''.join([str(i) for i in range(10)])
+characters = uppers + lowers + numbers
+name = ''.join([random.choice(characters) for i in range(20)]) + '.pk'
+
+print('SAVING THE FUCKING FILE')
+
+folder = f'/home/energy/amawi/projects/nn_ansatz/src/experiments/{args.exp_name}/results'
+path = Path(folder + f'/{name}')
+mkdir(path)
+save_pk(new_cfg, path)
+
+
+

@@ -8,7 +8,7 @@ from jax import value_and_grad, vmap, jit, pmap
 import jax
 import jax.numpy as jnp
 import jax.random as rnd
-from optax import adam
+from optax import adam, apply_updates
 
 from .vmc import create_energy_fn
 from .sampling import to_prob, create_sampler, equilibrate
@@ -52,8 +52,10 @@ def pretrain_wf(mol,
     pre_walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=n_eq_it)
     walkers = jnp.array(pre_walkers, copy=True)
 
-    init, update, get_params = adam(lr)
-    state = init(params)
+    optimizer = adam(lr)
+    state = optimizer.init(params)
+    # init, update, get_params = adam(lr)
+    # state = init(params)
 
     step_size = split_variables_for_pmap(walkers.shape[0], pre_step_size)
     steps = trange(0, n_pre_it, initial=0, total=n_pre_it, desc='pretraining', disable=None)
@@ -65,8 +67,10 @@ def pretrain_wf(mol,
         keys, subkey = key_gen(keys)
 
         loss_value, grads = loss_function(params, pre_walkers)
-        state = update(step, grads, state)
-        params = get_params(state)
+        grads, state = optimizer.update(grads, state)
+        params = apply_updates(params, grads)
+        # state = update(step, grads, state)
+        # params = get_params(state)
 
         walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
         # e_locs = compute_local_energy(params, walkers)

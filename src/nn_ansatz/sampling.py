@@ -13,8 +13,6 @@ from .ansatz import create_wf
 
 def create_sampler(mol, vwf, nan_safe=False):
 
-    print(mol.pbc, mol.basis, mol.inv_basis)
-    
     _step = step if not mol.pbc else partial(pbc_step, basis=mol.basis, inv_basis=mol.inv_basis)
 
     _sampler = partial(sample_metropolis_hastings, 
@@ -190,6 +188,7 @@ def initialise_walkers(mol,
 
     if walkers is None:
         walkers = generate_walkers(mol.n_el_atoms, mol.atom_positions, mol.n_walkers, mol.n_el)
+    
     elif not len(walkers) == mol.n_walkers:
         n_replicate = ceil(mol.n_walkers / len(walkers))
         walkers = jnp.concatenate([walkers for i in range(n_replicate)], axis=0)

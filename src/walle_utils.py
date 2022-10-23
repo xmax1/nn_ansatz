@@ -189,11 +189,15 @@ class BaseGet():
         return [self.__dict__.get(name, alternate) for name in new_names]
 
     def get_dict(self):
+        d = {k: np.array(v) for k, v in self.__dict__.items()}
+        return d
+    
+    def to_dict(self):
         return self.__dict__
 
-    def __getattr__(self, __key: str) -> Any:
-        __key = self.check_and_fudge_key(__key)
-        return self.__dict__.get(__key)
+    # def __getattr__(self, __key: str) -> Any:
+    #     __key = self.check_and_fudge_key(__key)
+    #     return self.__dict__.get(__key)
 
     def check_and_fudge_key(self, key):
         keys = self.__dict__.keys()
@@ -229,13 +233,13 @@ class StatsCollector(BaseGet):
     def set_by_name(self, k, v):
         self.__setattr__(k, v)
 
-    def process(self, names: str | list, fn: Callable):
+    def process(self, names: str | list, apply_fn: Callable = None):
         
         if isinstance(names, str):
-            self.__dict__[names] = np.array(fn(self.__dict__[names]))
-        else:
-            for name in names:
-                self.__dict__[name] = np.array(fn(self.__dict__[name]))
+            names = [names]
+        
+        for name in names:
+            self.__dict__[name] = np.array(apply_fn(self.__dict__[name]))
 
     def overwrite(self, k, v):
         self.__dict__[k] = np.array(v)

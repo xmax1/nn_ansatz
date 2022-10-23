@@ -1,13 +1,16 @@
 
 # base config
 base_cfg:
-  exp_name: HEG_PRX/cusps_jastrow
+  exp_name: PRX_Responses/af
+  n_it: 50000
+  save_every: 25000
+
   system: HEG
-  n_walkers: 512
-  n_sh: 32
-  n_ph: 16
+  n_walkers: 1024
+  n_sh: 64
+  n_ph: 32
   orbitals: real_plane_waves
-  n_el: 14
+  n_el: 7
   n_up: 7
   opt: kfac
   n_det: 1
@@ -19,18 +22,15 @@ base_cfg:
   n_pre_it: 500
   pretrain: True
   backflow_coords: True
+  jastrow: False
   psplit_spins: True
   target_acceptance: 0.5
-  sweep: True
-  n_it: 100000
-  save_every: 10000
+  sweep: False
   input_activation_nonlinearity: 3sin+3cos
   nonlinearity: cos
-  bf_af: tanh
-# sweep variables
+
 sweep:
-  # input_activation_nonlinearity: ['1sin+1cos', '2sin+2cos', '3sin+3cos']
-  # nonlinearity: ['tanh', 'sin', 'cos', 'silu', 'snake']
-  # bf_af: ['tanh', 'cos', 'sin', 'silu', 'snake', 'no_af'] # 
-  # jastrow: [True, False]
-  # seed: [0, 1] # 
+  # bf_af: ['tanh', ]
+  # seed: [0,]
+  bf_af: ['tanh', 'cos', 'sin', 'silu', 'no_af']
+  seed: [0,1,2]
