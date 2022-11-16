@@ -138,8 +138,10 @@ def backflow_block(params: dict,
         new_coords = linear_split(params['bf_up'], data_up, activations, d0s['bf_up'])[:, None, :]
         if not n_down == 0:
             new_coords_down = linear_split(params['bf_down'], data_down, activations, d0s['bf_down'])[:, None, :]
-            new_coords = jnp.concatenate([new_coords, new_coords_down], axis=0)
-        single_stream_vectors += layer_activation(new_coords, nonlinearity=bf_af)
+            # new_coords = jnp.concatenate([new_coords, new_coords_down], axis=0)
+            new_coords = layer_activation(jnp.concatenate([new_coords, new_coords_down], axis=0), nonlinearity='tanh')
+        single_stream_vectors += new_coords
+        # single_stream_vectors += layer_activation(new_coords, nonlinearity=bf_af)
     return data_up, data_down, single_stream_vectors
 
 
@@ -383,29 +385,57 @@ def logabssumdet_dep(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) ->
     return log_psi, sign
 
 
+
 def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp.array:
     # Special case if there is only one electron in any channel
     # We can avoid the log(0) issue by not going into the log domain
     
     xs = [orb_up, orb_down] if not orb_down is None else [orb_up]
-    dets = [x.sum(0) for x in xs if x.shape[-1] == 1]
-    dets = jnp.prod(jnp.array(dets)) if len(dets) > 0 else 1
+    dets = [x.reshape(-1) for x in xs if x.shape[-1] == 1]
+    dets = reduce(
+        lambda a, b: a*b, dets
+    ) if len(dets) > 0 else 1
 
     slogdets = [jnp.linalg.slogdet(x) for x in xs if x.shape[-1] > 1]
     maxlogdet = 0
     if len(slogdets) > 0:
-        signs = [x[0] for x in slogdets]
-        logdets = [x[1] for x in slogdets]
-        maxlogdets = [jnp.max(x) for x in logdets]
-        det = [(sign * jnp.exp(logdet - maxlogdet)).sum(0) for (sign, logdet, maxlogdet) in zip(signs, logdets, maxlogdets)]
-        result = dets * jnp.prod(jnp.array(det))
-        maxlogdet = jnp.sum(jnp.array(maxlogdets))
-    else:
-        result = dets
+        sign_in, logdet = reduce(
+            lambda a, b: (a[0]*b[0], a[1]+b[1]), slogdets
+        )
 
+        maxlogdet = jnp.max(logdet)
+        det = sign_in * dets * jnp.exp(logdet - maxlogdet)
+    else:
+        det = dets
+
+    result = jnp.sum(det)
     sign_out = jnp.sign(result)
     log_out = jnp.log(jnp.abs(result)) + maxlogdet
     return log_out, sign_out
+
+# def logabssumdet(orb_up: jnp.array, orb_down: Optional[jnp.array] = None) -> jnp.array:
+#     # Special case if there is only one electron in any channel
+#     # We can avoid the log(0) issue by not going into the log domain
+    
+#     xs = [orb_up, orb_down] if not orb_down is None else [orb_up]
+#     dets = [x.sum(0) for x in xs if x.shape[-1] == 1]
+#     dets = jnp.prod(jnp.array(dets)) if len(dets) > 0 else 1
+
+#     slogdets = [jnp.linalg.slogdet(x) for x in xs if x.shape[-1] > 1]
+#     maxlogdet = 0
+#     if len(slogdets) > 0:
+#         signs = [x[0] for x in slogdets]
+#         logdets = [x[1] for x in slogdets]
+#         maxlogdets = [jnp.max(x) for x in logdets]
+#         det = [(sign * jnp.exp(logdet - maxlogdet)).sum(0) for (sign, logdet, maxlogdet) in zip(signs, logdets, maxlogdets)]
+#         result = dets * jnp.prod(jnp.array(det))
+#         maxlogdet = jnp.sum(jnp.array(maxlogdets))
+#     else:
+#         result = dets
+
+#     sign_out = jnp.sign(result)
+#     log_out = jnp.log(jnp.abs(result)) + maxlogdet
+#     return log_out, sign_out
 
 
 

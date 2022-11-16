@@ -1,7 +1,7 @@
 from .parameters import initialise_d0s
 import jax
-import jax.numpy as jnp
-from jax import lax, vmap, jit, grad, value_and_grad, pmap
+from jax import numpy as jnp, random as rnd
+from jax import lax, vmap, jit, grad, pmap
 from jax.tree_util import tree_unflatten, tree_flatten
 
 import numpy as np
@@ -11,8 +11,23 @@ from functools import partial
 from .ansatz import create_wf
 
 
-def kfac(mol, params, walkers, lr, damping, norm_constraint):
+def gaussian_clipping(key, g, g_decay):
+    sgn = jnp.sign(g)
+    mean = jnp.mean(g)
+    bound = 2.*jnp.std(g)
+    g_clip = jnp.clip(g, mean-bound, mean+bound)
+    g_diff = g - g_clip
+    # + g + clip + diff
+    # + g - clip (not poss)
+    # - g - clip - diff 
+    # - g + clip - diff
+    # diff vector clip to g
+    # subtract the randomly adjusted difference from the real value to reduce value
+    return g_decay * (rnd.uniform(key, g_clip.shape, minval=0.1, maxval=0.5) * g_diff)
 
+
+def kfac(mol, params, walkers, lr, damping, norm_constraint):
+    
     kfac_update, substate = create_natural_gradients_fn(mol, params, walkers)
 
     def _get_params(state):
@@ -24,7 +39,6 @@ def kfac(mol, params, walkers, lr, damping, norm_constraint):
         params, tree = tree_flatten(params)
         params = [p - g for p, g in zip(params, grads)]
         params = tree_unflatten(tree, params)
-
         return [params, *state[1:3], lr, damping, norm_constraint]
 
     state = [*substate, lr, damping, norm_constraint]
@@ -34,13 +48,20 @@ def kfac(mol, params, walkers, lr, damping, norm_constraint):
 
 def create_natural_gradients_fn(mol, params, walkers):
 
-    kfac_wf = create_wf(mol, kfac=True)
-    
+    _kfac_wf = create_wf(mol, kfac=True)
     d0s = initialise_d0s(mol, expand=True)  # expand adds leading dimensions for multiple devices
 
-    def sum_log_psi(params, walkers, d0s):
+    try:
+        print(walkers.shape)
+        print(d0s['split0'].shape)
+    except:
+        print('fail')
+
+    def sum_log_psi(params, walkers, d0s, kfac_wf):
         log_psi, activations = kfac_wf(params, walkers, d0s)
         return log_psi.sum(), activations
+
+    _sum_log_psi = partial(sum_log_psi, kfac_wf=_kfac_wf)
 
     def compute_covariances(activations, sensitivities):  # (m, sl, nf)
         activations, _ = tree_flatten(activations)
@@ -68,15 +89,15 @@ def create_natural_gradients_fn(mol, params, walkers):
 
         return aas, sss
 
-    compute_sensitivities = grad(sum_log_psi, argnums=2, has_aux=True)
+    compute_sensitivities = grad(_sum_log_psi, argnums=2, has_aux=True)
 
     sl_factor_idx = 1
     if bool(os.environ.get('DISTRIBUTE')) is True:
-        compute_sensitivities = pmap(compute_sensitivities, in_axes=(None, 0, 0))
-        compute_covariances = pmap(compute_covariances, in_axes=(0, 0))
+        _compute_sensitivities = pmap(compute_sensitivities, in_axes=(None, 0, 0))
+        _compute_covariances = pmap(compute_covariances, in_axes=(0, 0))
         sl_factor_idx += 1
     
-    sensitivities, activations = compute_sensitivities(params, walkers, d0s)
+    sensitivities, activations = _compute_sensitivities(params, walkers, d0s)
     activations, _ = tree_flatten(activations)
     sensitivities, _ = tree_flatten(sensitivities)
     maas = [jnp.zeros((a.shape[-1], a.shape[-1])) for a in activations]
@@ -85,8 +106,7 @@ def create_natural_gradients_fn(mol, params, walkers):
     print('sl_factors: \n', sl_factors)
     substate = (params, maas, msss)
 
-    @jit
-    def compute_natural_gradients_local(step, gradients, aas, sss, maas, msss, lr, damping, norm_constraint):
+    def compute_natural_gradients_local(step, gradients, aas, sss, maas, msss, lr, damping, norm_constraint, key):
 
         if bool(os.environ.get('DISTRIBUTE')) is True:
             aas = [aa.mean(0) for aa in aas]
@@ -94,15 +114,14 @@ def create_natural_gradients_fn(mol, params, walkers):
 
         lr_current = decay_variable(lr, step, decay=1e-4, floor=1e-4)
         damping_current = decay_variable(damping, step, decay=1e-3, floor=1e-6)
-        norm_constraint_current = decay_variable(norm_constraint, step, decay=1e-3, floor=1e-6)
+        norm_constraint_current = decay_variable(norm_constraint, step, decay=1e-3, floor=1e-8)
+        g_decay = decay_variable(1., step, decay=1e-2, floor=1e-4)
 
         gradients, _ = tree_flatten(gradients)
         
         ngs, new_maas, new_msss = [], [], []
-
         for g, aa, ss, maa, mss, sl_factor in zip(gradients, aas, sss, maas, msss, sl_factors):
             # sl_factor = sl_factor**2
-
             maa, mss = update_maa_and_mss(step, maa, aa, mss, ss, sl_factor)
 
             dmaa, dmss = damp(maa, mss, sl_factor, damping_current)
@@ -118,6 +137,9 @@ def create_natural_gradients_fn(mol, params, walkers):
 
             ng = inv_dmaa @ g @ inv_dmss * sl_factor
 
+            key, subkey = rnd.split(key)
+            ng = ng - gaussian_clipping(subkey, ng, g_decay)
+
             ngs.append(ng)
             new_maas.append(maa)
             new_msss.append(mss)
@@ -128,12 +150,13 @@ def create_natural_gradients_fn(mol, params, walkers):
 
     def compute_natural_gradients(step, grads, state, walkers):
 
+        key = rnd.PRNGKey(step)
+
         params, maas, msss, lr, damping, norm_constraint = state
+        sensitivities, activations = _compute_sensitivities(params, walkers, d0s)
+        aas, sss = _compute_covariances(activations, sensitivities)
 
-        sensitivities, activations = compute_sensitivities(params, walkers, d0s)
-        aas, sss = compute_covariances(activations, sensitivities)
-
-        grads, state = compute_natural_gradients_local(step, grads, aas, sss, maas, msss, lr, damping, norm_constraint)
+        grads, state = compute_natural_gradients_local(step, grads, aas, sss, maas, msss, lr, damping, norm_constraint, key)
 
         return grads, (params, *state)
     
@@ -156,8 +179,8 @@ def damp(maa, mss, sl_factor, damping):
     m_aa_damping = jnp.sqrt((pi * damping))
     m_ss_damping = jnp.sqrt((damping / (pi * sl_factor)))
 
-    maa += eye_a * jnp.clip(m_aa_damping, a_min=1e-7, a_max=1e-1)
-    mss += eye_s * jnp.clip(m_ss_damping, a_min=1e-7, a_max=1e-1)
+    maa += eye_a * jnp.clip(m_aa_damping, a_min=1e-5, a_max=1e-1)
+    mss += eye_s * jnp.clip(m_ss_damping, a_min=1e-5, a_max=1e-1)
     return maa, mss
 
 
@@ -237,16 +260,13 @@ def get_sl_factors(activations):
     return sl_factors
 
 
-def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.9):
-
+def update_maa_and_mss(step, maa, aa, mss, ss, sl_factor, cov_moving_weight=0.8):
+    #yhup
     cov_moving_weight = jnp.min(jnp.array([step, cov_moving_weight]))
-
     cov_instantaneous_weight = 1. - cov_moving_weight
     total = cov_moving_weight + cov_instantaneous_weight
-
     maa = (cov_moving_weight * maa + cov_instantaneous_weight * aa) / total
     mss = (cov_moving_weight * mss + cov_instantaneous_weight * ss) / total
-
     return maa, mss
 
 

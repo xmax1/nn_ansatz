@@ -2,7 +2,8 @@
 
 
 import argparse
-from nn_ansatz import setup, run_vmc, approximate_energy
+from nn_ansatz import setup, run_vmc
+from nn_ansatz.routines import compute_energy_from_save
 from distutils.util import strtobool
 import numpy as np
 from jax import numpy as jnp
@@ -59,44 +60,39 @@ def get_args():
     parser.add_argument('-ta', '--target_acceptance', default=0.5, type=float)
     parser.add_argument('-seed', '--seed', default=0, type=int)
     parser.add_argument('-exp_name', '--exp_name', default=None, type=str)
-    parser.add_argument('-save_every', '--save_every', default=10000, type=int)
-    parser.add_argument('-bf_af', '--bf_af', default='cos', type=str)
+    parser.add_argument('-save_every', '--save_every', default=5000, type=int)
+    parser.add_argument('-bf_af', '--bf_af', default='no_af', type=str)
     parser.add_argument('-run_dir', '--run_dir', default=None, type=str)
     parser.add_argument('-out_dir', '--out_dir', default='', type=str)
+    parser.add_argument('-final_sprint', '--final_sprint', default=0.05, type=float)
+    parser.add_argument('-n_walkers_per_device', '--n_walkers_per_device', default=256, type=int)
+    parser.add_argument('-n_compute', '--n_compute', default=1000, type=int)
+    parser.add_argument('-load_it', '--load_it', default=0, type=int)
+    parser.add_argument('-do', '--do', default='vmc', type=str)
     args = parser.parse_args()
+    # if you add a key ADD IT HERE AND IN UTILS
     return args
 
 args = get_args()
+cfg = vars(args)
 
-print(vars(args))
-cfg = setup(**vars(args))
-
-log = run_vmc(cfg)
-
-if args.sweep == True:
-    for load_it in range(args.save_every, args.n_it+1, args.save_every):
-        approximate_energy(cfg, run_dir=args.run_dir, load_it=load_it, n_it=20000)
-else:
-    cfg = approximate_energy(cfg, run_dir=args.run_dir, load_it=args.n_it, n_it=20000)
-
-new_cfg = {}
+print('PRE SETUP')
 for k, v in cfg.items():
-    if isinstance(v, jnp.ndarray):
-        v = np.array(v)
-    new_cfg[k] = v
+    print(k, '\n', v)
 
-uppers = string.ascii_uppercase
-lowers = string.ascii_lowercase
-numbers = ''.join([str(i) for i in range(10)])
-characters = uppers + lowers + numbers
-name = ''.join([random.choice(characters) for i in range(20)]) + '.pk'
+cfg = setup(**cfg)
 
-print('SAVING THE FUCKING FILE')
+print('POST SETUP')
+for k, v in cfg.items():
+    print(k, '\n', v)
 
-folder = f'/home/energy/amawi/projects/nn_ansatz/src/experiments/{args.exp_name}/results'
-path = Path(folder + f'/{name}')
-mkdir(path)
-save_pk(new_cfg, path)
+if cfg["do"] == 'vmc':
+    print(f'RUNNING {cfg["do"]}')
+    
+    log = run_vmc(cfg)
+elif cfg["do"] == 'compute_e':
+    print(f'RUNNING {cfg["do"]}')
+    compute_energy_from_save(cfg)
 
 
 

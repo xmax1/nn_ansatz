@@ -61,23 +61,21 @@ if [ "$1" == "oneloop" ]; then
         -n_sh 128 \
         -n_ph 32 \
         -nl 3 \
-        -n_det 8 \
+        -n_det 1 \
         -orb real_plane_waves \
-        -n_el 7 \
+        -n_el 14 \
         -n_up 7 \
         -inact 5cos+5sin+19kpoints \
         -dp $hypam \
-        -name sumlogdet_8det/7el \
+        -name the_reup \
         -n_it 100000 \
         -backflow_coords True \
-        -jastrow False \
         -psplit_spins True \
+        -jastrow False \
         -lr 0.001 \
-        -cl 20 \
+        -cl 10 \
         -ta 0.5"
-        # 
-        # -atol 0.001 \
-        sbatch --gres=gpu:RTX3090:$ngpu --job-name=e7dp$hypam $submission_path $cmd
+        sbatch --gres=gpu:RTX3090:$ngpu --job-name=e14dp$hypam $submission_path $cmd
         echo $cmd
         echo ngpu $ngpu
     done

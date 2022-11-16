@@ -2,7 +2,7 @@ import os
 from functools import partial
 from math import ceil
 
-import jax.numpy as jnp
+from jax import numpy as jnp
 from jax import random as rnd
 from jax import jit, vmap, pmap
 
@@ -11,25 +11,93 @@ from .utils import key_gen, split_variables_for_pmap, save_pk, load_pk
 from .ansatz import create_wf
 
 
-def create_sampler(mol, vwf, nan_safe=False):
 
-    _step = step if not mol.pbc else partial(pbc_step, basis=mol.basis, inv_basis=mol.inv_basis)
+def pbc_step(walkers, key, shape, step_size, basis, inv_basis):
+    ''' takes a random step, moves anything that stepped outside the simulation cell back inside '''
+    ''' go to debugging/cell for more investigation '''
+    walkers = walkers + rnd.normal(key, shape) * step_size
+    walkers = keep_in_boundary(walkers, basis, inv_basis)
+    return walkers
 
-    _sampler = partial(sample_metropolis_hastings, 
-                        vwf=vwf, 
-                        step_walkers=_step, 
-                        correlation_length=mol.correlation_length, 
-                        nan_safe=nan_safe,
-                        target_acceptance=mol.target_acceptance)
-    
+
+def create_sampler(mol, vwf):
+
+    # walkers, key, shape, step_size, basis, inv_basis
+    if mol.pbc:
+        _pbc_step = partial(pbc_step, basis=mol.basis, inv_basis=mol.inv_basis)
+        _sampler = partial(sample_metropolis_hastings, 
+                           vwf=vwf, 
+                           step_walkers=_pbc_step,
+                           correlation_length=mol.correlation_length,
+                           )
+    else:
+        _sampler = partial(sample_metropolis_hastings, 
+                           vwf=vwf, 
+                           step_walkers=step, 
+                           correlation_length=mol.correlation_length
+                           )
+
     if bool(os.environ.get('DISTRIBUTE')) is True:
-        _sampler = pmap(_sampler, in_axes=(None, 0, 0, 0))
-        return _sampler
-
-    if  bool(os.environ.get('DEBUG')) is True:
-        return  _sampler
+        print('DISTRIBUTING SAMPLER')
+        return pmap(_sampler, in_axes=(None, 0, 0, 0))
 
     return jit(_sampler)
+
+
+
+def sample_metropolis_hastings(
+    params, 
+    curr_w, 
+    key,
+    step_size, 
+    vwf,
+    correlation_length,
+    step_walkers, 
+    step_size_std=0.001,
+    target_acc = 0.5
+    ):
+
+    def c_prob(log_psi):
+        return jnp.exp(log_psi)**2
+
+    curr_p = c_prob(vwf(params, curr_w))
+
+    acc = []
+    for _ in range(correlation_length//2):
+        key, subkey = rnd.split(key)
+        new_w = step_walkers(curr_w, subkey, curr_w.shape, step_size)
+        new_p = c_prob(vwf(params, new_w))
+
+        key, subkey = rnd.split(key)
+        mask_p = (new_p / curr_p) > rnd.uniform(subkey, new_p.shape)
+        curr_w = jnp.where(mask_p[:, None, None], new_w, curr_w)
+        curr_p = jnp.where(mask_p, new_p, curr_p)
+        
+        acc += [jnp.mean(mask_p)]
+    acc = jnp.array(acc).mean()
+
+    step_size_new = jnp.clip(step_size + step_size_std*rnd.normal(subkey), a_min=0.0001, a_max=1.)
+
+    acc_new = []
+    for _ in range(correlation_length//2):
+        key, subkey = rnd.split(key)
+        new_w = step_walkers(curr_w, subkey, curr_w.shape, step_size_new)
+        new_p = c_prob(vwf(params, new_w))
+
+        key, subkey = rnd.split(key)
+        mask_p = (new_p / curr_p) > rnd.uniform(subkey, new_p.shape)
+        curr_w = jnp.where(mask_p[:, None, None], new_w, curr_w)
+        curr_p = jnp.where(mask_p, new_p, curr_p)
+        
+        acc_new += [jnp.mean(mask_p)]
+    acc_new = jnp.array(acc_new).mean()
+
+    
+    mask = jnp.array((target_acc-acc)**2 < (target_acc-acc_new)**2, dtype=jnp.float32)
+    not_mask = ((mask-1.)*-1.)
+    step_size = mask*step_size + not_mask*step_size_new
+
+    return curr_w, (acc+acc_new)/2., step_size
 
 
 def to_prob(amplitudes, nan_safe=False):
@@ -49,12 +117,7 @@ def step(walkers, key, shape, step_size):
     return walkers + rnd.normal(key, shape) * step_size
 
 
-def pbc_step(walkers, key, shape, step_size, basis, inv_basis):
-    ''' takes a random step, moves anything that stepped outside the simulation cell back inside '''
-    ''' go to debugging/cell for more investigation '''
-    walkers = walkers + rnd.normal(key, shape) * step_size
-    walkers = keep_in_boundary(walkers, basis, inv_basis)
-    return walkers
+
 
 
 def transform_vector_space_sam(vectors: jnp.array, basis: jnp.array) -> jnp.array:
@@ -76,106 +139,65 @@ def keep_in_boundary(walkers, basis, inv_basis):
     return talkers
 
 
-def sample_metropolis_hastings(params, 
-                               curr_walkers, 
+def sample_metropolis_hastings_skippy(params, 
+                               curr_w, 
                                key, 
                                step_size, 
                                vwf,
                                step_walkers, 
-                               correlation_length, 
-                               nan_safe,
-                               target_acceptance=0.5):
+                               correlation_length):
+                               
+    adjust = [0.001, 0.01, 0.1]
+    tar_acc = 0.5
 
-    shape = curr_walkers.shape
+    curr_p = jnp.exp(vwf(params, curr_w))**2
+    
+    key, subkey = rnd.split(key)
+    new_w = step_walkers(curr_w, subkey, curr_w.shape, out_stsi:=step_size)
+    new_p = jnp.exp(vwf(params, new_w))**2
+    
+    key, subkey = rnd.split(key)
+    mask_p = (new_p / curr_p) > rnd.uniform(subkey, new_p.shape)
+    
+    out_acc = jnp.mean(mask_p)
+    curr_w = jnp.where(mask_p[:, None, None], new_w, curr_w)
+    curr_p = jnp.where(mask_p, new_p, curr_p)
 
-    amps = vwf(params, curr_walkers)
-    curr_probs = to_prob(amps, nan_safe=nan_safe)
+    for std in adjust:
+        key, subkey = rnd.split(key)
+        new_stsi = jnp.clip(step_size + std*rnd.normal(subkey), a_min=0.001, a_max=0.4)
 
-    acceptance_total = 0.
+        for step in range(len(adjust)):
+            key, subkey = rnd.split(key)
+            new_w = step_walkers(curr_w, subkey, curr_w.shape, new_stsi)
+            new_p = jnp.exp(vwf(params, new_w))**2
 
-    # iterate with step size
-    for _ in range(correlation_length//2):
-        
-        key, *subkeys = rnd.split(key, num=3)
+            key, subkey = rnd.split(key)
+            mask_p = (new_p / curr_p) > rnd.uniform(subkey, new_p.shape)
+            curr_w = jnp.where(mask_p[:, None, None], new_w, curr_w)
+            curr_p = jnp.where(mask_p, new_p, curr_p)
 
-        # next sample
-        new_walkers = step_walkers(curr_walkers, subkeys[0], shape, step_size)
-        new_probs = to_prob(vwf(params, new_walkers), nan_safe=nan_safe)
+            new_acc = jnp.mean(mask_p)
 
-        # update sample
-        alpha = new_probs / curr_probs
-        mask_probs = alpha > rnd.uniform(subkeys[1], (shape[0],))
+        mask_stsi = (jnp.abs(out_acc - tar_acc) < jnp.abs(new_acc - tar_acc)).astype(float)  # float(True) = 1
+        out_acc = mask_stsi*out_acc + jnp.abs(mask_stsi-1.)*new_acc
+        out_stsi = mask_stsi*out_stsi + jnp.abs(mask_stsi-1.)*new_stsi
 
-        curr_walkers = jnp.where(mask_probs[:, None, None], new_walkers, curr_walkers)
-        curr_probs = jnp.where(mask_probs, new_probs, curr_probs)
+    acc = 0.0
+    for step in range(correlation_length):
+        key, subkey = rnd.split(key)
+        new_w = step_walkers(curr_w, subkey, curr_w.shape, out_stsi)
+        new_p = jnp.exp(vwf(params, new_w))**2
 
-        acceptance_total += mask_probs.mean()
-        
-    acceptance = acceptance_total / float(correlation_length//2)
+        key, subkey = rnd.split(key)
+        mask_p = (new_p / curr_p) > rnd.uniform(subkey, new_p.shape)
+        curr_w = jnp.where(mask_p[:, None, None], new_w, curr_w)
+        curr_p = jnp.where(mask_p, new_p, curr_p)
 
-    new_step_size = adjust_step_size(step_size, acceptance, key)
+        acc += jnp.mean(mask_p)
 
-    acceptance_total = 0.
+    return curr_w, acc / correlation_length, out_stsi
 
-    # iterate with new step size
-    for _ in range(correlation_length//2):
-        
-        key, *subkeys = rnd.split(key, num=3)
-
-        # next sample
-        new_walkers = step_walkers(curr_walkers, subkeys[0], shape, new_step_size)
-        new_probs = to_prob(vwf(params, new_walkers), nan_safe=nan_safe)
-
-        # update sample
-        alpha = new_probs / curr_probs
-        mask_probs = alpha > rnd.uniform(subkeys[1], (shape[0],))
-
-        curr_walkers = jnp.where(mask_probs[:, None, None], new_walkers, curr_walkers)
-        curr_probs = jnp.where(mask_probs, new_probs, curr_probs)
-
-        acceptance_total += mask_probs.mean()
-        
-    new_acceptance = acceptance_total / float(correlation_length//2)
-
-    step_size = jnp.where(jnp.abs(acceptance - target_acceptance) < jnp.abs(new_acceptance - target_acceptance), \
-                                    step_size, new_step_size)
-
-    return curr_walkers, (acceptance + new_acceptance) / 2, step_size
-
-
-def metropolis_hastings_step(vwf, params, curr_walkers, curr_probs, key, shape, step_size, step_walkers):
-    key, *subkeys = rnd.split(key, num=3)
-
-    # next sample
-    new_walkers = step_walkers(curr_walkers, subkeys[0], shape, step_size)
-    new_probs = to_prob(vwf(params, new_walkers))
-
-    # update sample
-    alpha = new_probs / curr_probs
-    mask_probs = alpha > rnd.uniform(subkeys[1], (shape[0],))
-
-    curr_walkers = jnp.where(mask_probs[:, None, None], new_walkers, curr_walkers)
-    curr_probs = jnp.where(mask_probs, new_probs, curr_probs)
-    return curr_walkers, curr_probs, mask_probs
-
-
-# def adjust_step_size(step_size, acceptance, target_acceptance=0.5):
-#     decrease = ((acceptance < target_acceptance).astype(acceptance.dtype) * -2.) + 1.  # +1 for false, -1 for true
-#     delta = decrease * 1. / 10000.
-#     return jnp.clip(step_size + delta, 0.005, 0.2)
-
-
-def adjust_step_size(step_size, acceptance, key, target_acceptance=0.5, std=0.001):
-    step_size += std * rnd.normal(key, step_size.shape)
-    return jnp.clip(step_size, 0.001, 1.)
-
-
-def adjust_step_size_with_controlflow(step_size, acceptance, target_acceptance=0.5):
-    if acceptance < target_acceptance:
-        step_size -= 0.001
-    else:
-        step_size += 0.001
-    return step_size
 
 
 
@@ -198,7 +220,7 @@ def initialise_walkers(mol,
         walkers = walkers.reshape(mol.n_devices, -1, *walkers.shape[1:])
 
     if mol.pbc:
-        sampler = create_sampler(mol, vwf, nan_safe=True)
+        sampler = create_sampler(mol, vwf)
         print('sampling no infs, this could take a while')
         walkers = keep_in_boundary(walkers, mol.basis, mol.inv_basis)
         walkers = sample_until_no_infs(vwf, sampler, params, walkers, keys, mol.step_size)

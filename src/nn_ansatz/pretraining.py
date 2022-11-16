@@ -6,7 +6,7 @@ import os
 
 from jax import value_and_grad, vmap, jit, pmap
 import jax
-import jax.numpy as jnp
+from jax import numpy as jnp
 import jax.random as rnd
 from optax import adam, apply_updates
 
@@ -35,58 +35,36 @@ def pretrain_wf(mol,
                 pre_path=None,
                 seed=1,
                 **kwargs):
-    pre_key = rnd.PRNGKey(seed)
-
+    
     vwf = create_wf(mol)
     vwf_orbitals = create_wf(mol, orbitals=True)
-
-    # compute_local_energy = create_energy_fn(mol, vwf)
-    # if bool(os.environ.get('DISTRIBUTE')) is True:
-        # compute_local_energy = pmap(compute_local_energy, in_axes=(None, 0))
-
     loss_function, pre_sampler = create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals)
     loss_function = value_and_grad(loss_function)
 
-    print('starting pretrain equilibration')
-
-    pre_walkers = equilibrate(params, walkers, keys, mol=mol, vwf=vwf, sampler=sampler, compute_energy=False, n_it=n_eq_it)
-    walkers = jnp.array(pre_walkers, copy=True)
-
     optimizer = adam(lr)
     state = optimizer.init(params)
-    # init, update, get_params = adam(lr)
-    # state = init(params)
-
-    step_size = split_variables_for_pmap(walkers.shape[0], pre_step_size)
     steps = trange(0, n_pre_it, initial=0, total=n_pre_it, desc='pretraining', disable=None)
 
     print('starting pretraining')
-
+    from time import time
+    t0 = time()
+    shape0 = walkers.shape
+    print(shape0)
+    walkers = walkers.reshape(-1, *walkers.shape[1:])
+    print(walkers.shape)
     for step in steps:
-        pre_key, pre_subkey = rnd.split(pre_key)
         keys, subkey = key_gen(keys)
-
-        loss_value, grads = loss_function(params, pre_walkers)
+        loss_value, grads = loss_function(params, walkers)
         grads, state = optimizer.update(grads, state)
         params = apply_updates(params, grads)
-        # state = update(step, grads, state)
-        # params = get_params(state)
-
-        walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
-        # e_locs = compute_local_energy(params, walkers)
-
-        pre_walkers, mix_acceptance = pre_sampler(params, pre_walkers, pre_subkey, pre_step_size)
-        # e_locs_mixed = compute_local_energy(params, pre_walkers)
-
-        # print('step %i | e_mean %.2f | e_mixed %.2f | loss %.2f | wf_acc %.2f | mix_acc %.2f |'
-            #   % (step, jnp.mean(e_locs), jnp.mean(e_locs_mixed), mia(loss_value), mia(acceptance), mia(mix_acceptance)))
+        walkers, _ = pre_sampler(params, walkers, subkey[0], pre_step_size)
         print('step {step:.0f} | loss {loss:.2f}'.format(step=step, loss=loss_value))
-        # steps.set_postfix(E=f'{e_locs.mean():.6f}')
 
     if not pre_path is None:
         save_pk([params, walkers], pre_path)
 
-    return params, walkers
+    print('pre exit', walkers.shape)
+    return params, walkers.reshape(shape0)
 
 
 def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length: int=10):
@@ -99,7 +77,7 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
                                                           inv_basis=mol.inv_basis, 
                                                           einsum=mol.einsum, 
                                                           kpoints=mol.kpoints)
-            @jit
+        
             def _hf_orbitals(walkers):
                 walkers = transform_vector_space(walkers, mol.inv_basis, on=True)
                 if mol.n_up == mol.n_el:
@@ -109,7 +87,6 @@ def create_pretrain_loss_and_sampler(mol, vwf, vwf_orbitals, correlation_length:
                     walkers_up, walkers_down = jnp.split(walkers, [mol.n_up], axis=0)
                     orb_up = real_plane_wave_orbitals(None, walkers_up, None).squeeze(axis=0)  # expects (n_k, n_el, n_el)
                     orb_down = real_plane_wave_orbitals(None, walkers_down, None).squeeze(axis=0)  # expects (n_k, n_el, n_el)
-
                 return orb_up, orb_down
             _hf_orbitals = vmap(_hf_orbitals, in_axes=(0,))
             

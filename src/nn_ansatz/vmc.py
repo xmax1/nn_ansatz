@@ -186,7 +186,6 @@ def create_potential_energy(mol, n_walkers=512, find_kappa=True):
             min_reciprocal_cut = 5
         
         else:
-
             real_cuts = jnp.arange(1, 8, 1)
             reciprocal_cuts = jnp.arange(1, 8, 1)
             kappas = jnp.arange(0.25, 6., 0.5)

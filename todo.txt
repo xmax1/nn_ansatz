@@ -1,4 +1,12 @@
 
+# flix
+
+- change opt to nan safe
+- fix new crash obs
+
+-  if nan again, yper 
+
+
 # 9/23/22
 
 - run all rs and plot gr 

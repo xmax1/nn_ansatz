@@ -90,14 +90,18 @@ def create_dir_structure(root, exp):
 
 
 def boilerplate(env):
-    cmd = f'module purge \n \
-            source ~/.bashrc \n \
+    cmd = f'source ~/.bashrc \n \
+            module purge \n \
             module load GCC \n \
             module load CUDA/11.4.1 \n \
             module load cuDNN/8.2.2.26-CUDA-11.4.1 \n \
             conda activate {env} \n \
+            export MKL_NUM_THREADS=1 \n \
+            export NUMEXPR_NUM_THREADS=1 \n \
+            export OMP_NUM_THREADS=1 \n \
+            export OPENBLAS_NUM_THREADS=1 \n \
             pwd \n \
-            nvidia-smi'
+            nvidia-smi '
     return cmd
 
 
@@ -110,15 +114,15 @@ def write_exps_list(submission_cmds):
 
 def make_slurm(time_h, n_cmds, submission_name):
     slurm = Slurm(
-                mail_type='FAIL',
-                partition='sm3090',
-                N=1,  # n_node
-                n=8,  # n_cpu
-                time=f'0-{time_h}:00:00',
-                output=f'{OUT_TMP_DIR}/o-%j.out',
-                error=f'{OUT_TMP_DIR}/e-%j.err',
-                gres='gpu:RTX3090:1',
-                job_name=submission_name
+                mail_type   = 'FAIL',
+                partition   = 'sm3090',
+                N           = 1,  # n_node
+                n           = 8,  # n_cpu
+                time        = f'0-{time_h}:00:00',
+                output      = f'{OUT_TMP_DIR}/o-%j.out',
+                error       = f'{OUT_TMP_DIR}/e-%j.err',
+                gres        = 'gpu:RTX3090:1',
+                job_name    = submission_name
             )
     if n_cmds > 1:
         # https://help.rc.ufl.edu/doc/SLURM_Job_Arrays %5 for max 5 jobs at a time
@@ -301,31 +305,66 @@ if __name__ == '__main__':
 
     elif experiment == 'obs':
         typed_args = type_args(args, run_single_slurm)
-        root = '/home/energy/amawi/projects/nn_ansatz/src/experiments/PRX_Responses/runs'
+        root = '/home/energy/amawi/projects/nn_ansatz/src/experiments/3110_hallow'
 
-        paths = ['run301115']
-        # paths = list(os.listdir(root))
+        paths = list(os.listdir(root))
+        paths = ['rs1', ]  # 'rs5', 'rs100'
         for path in paths:
             exp = {
                 'run_dir': os.path.join(root, path),
-                'seed': 1, 
-                'load_it': 100000,
+                'seed': 2, 
+                'load_it': 200000,
                 'n_dim_exp': 3, 
-                'n_points': 15,
-                'n_walkers_max': 1024,
+                'n_points': 50,
+                'n_walkers_max': 512,
                 'execution_file': 'obs.py',
-                'exp_name': 'obs_10k',
-                'n_walkers': 10000,
-                'equilibrate': True,
+                'exp_name': 'obs_final',
+                'n_walkers': 500000,
+                'equilibrate': False,
+                'compute_energy_from_walkers': True,
                 'n_points_hypercube': 10,
-                'n_average_sphere': 64
+                'n_average_sphere': 1,
+                'walkers_name': 'DOESNOTEXIST.pk'
             }
             
             ### CHANGE THE EQUILIBRATION NUMBER BACK 
             exp = exp | typed_args
 
             run_single_slurm(**exp, time_h=24, submission_name='obs')
+
+    elif experiment == 'eq':
+        typed_args = type_args(args, run_single_slurm)
+        root = '/home/energy/amawi/projects/nn_ansatz/src/experiments/PRX_Responses/runs'
+
+        paths = ['run41035']
+        # paths = list(os.listdir(root))
+        import numpy as np
+        load_its = np.arange(80000, 105000, 5000)
+        load_its = [5000,]
+        for it in load_its:
+            exp = {
+                'run_dir': os.path.join(root, path),
+                'seed': 1, 
+                'n_dim_exp': 3, 
+                'n_points': 15,
+                'load_it': it,
+                'n_walkers_max': 512,
+                'execution_file': 'eq.py',
+                'exp_name': 'eq_all_models',
+                'n_walkers': 100000,
+                'equilibrate': False,
+                'n_points_hypercube': 10,
+                'n_average_sphere': 1,
+                'train': False,
+            }
             
+            ### CHANGE THE EQUILIBRATION NUMBER BACK 
+            exp = exp | typed_args
+
+            run_single_slurm(**exp, time_h=2, submission_name='obs')
+
+        print(load_its)
+        
 
         # python slurm.py --execution_file compute_observables.py --exp_name 100batch_d1 --n_batch 1000 --n_points 25 --d3 False
         # python slurm.py --execution_file compute_observables.py --exp_name 1006/100b --n_batch 100 --n_points 25 --d3 False

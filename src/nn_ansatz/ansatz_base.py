@@ -302,8 +302,13 @@ def compute_inputs_i(walkers: jnp.array,
 
 def create_masks(n_electrons, n_up, n_layers):
 
-    masks = [create_masks_layer(n_electrons, n_up)]
+    up, down = create_masks_layer(n_electrons, n_up)
+    masks = [[up, down]]
 
+    # print(up.sum(0))
+    # print(down.sum(0))
+    # print(down.sum(0) + up.sum(0))
+    
     for _ in range(n_layers):
         masks.append(create_masks_layer(n_electrons, n_up))
 
@@ -320,21 +325,18 @@ def create_masks_layer(n_electrons, n_up):
 
     pairwise_up_mask = []
     pairwise_down_mask = []
-    mask = np.zeros((n_electrons, n_electrons))
 
     for electron in range(n_electrons):
-        mask_up = mask.copy()
+        mask_up = np.zeros((n_electrons, n_electrons))
         mask_up[electron, :] = ups
         pairwise_up_mask.append(mask_up)
         # mask_up = mask_up[eye_mask].reshape(-1) # for when drop diagonal enforced
-
-        mask_down = mask.copy()
+        mask_down = np.zeros((n_electrons, n_electrons))
         mask_down[electron, :] = downs
         pairwise_down_mask.append(mask_down)
 
     pairwise_up_mask = jnp.stack(pairwise_up_mask, axis=0)[..., None]
     pairwise_down_mask = jnp.stack(pairwise_down_mask, axis=0)[..., None]
-
     return pairwise_up_mask, pairwise_down_mask
 
 

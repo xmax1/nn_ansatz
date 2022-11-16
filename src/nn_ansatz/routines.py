@@ -1,8 +1,7 @@
 import os
 from collections import OrderedDict
+from itertools import product 
 
-import jax
-from jax._src.tree_util import tree_flatten
 import jax.random as rnd
 import jax.numpy as jnp
 from jax import jit, pmap, vmap
@@ -11,21 +10,300 @@ from optax import adam, apply_updates
 from tqdm import trange
 import sys
 import numpy as np
-import tensorflow as tf
+from jax.tree_util import tree_flatten
+from jax import tree_util
 import time
+from pathlib import Path
 
 from .ansatz_base import apply_minimum_image_convention, drop_diagonal_i, split_and_squeeze
-
 from .python_helpers import save_pk, update_dict
-
-from .sampling import create_sampler, initialise_walkers, equilibrate
+from .sampling import create_sampler, initialise_walkers
 from .ansatz import create_wf
 from .parameters import initialise_params
 from .systems import SystemAnsatz
 from .pretraining import pretrain_wf
-from .vmc import compute_potential_energy_i, create_energy_fn, create_grad_function, create_local_momentum_operator, create_potential_energy
+from .vmc import create_energy_fn, create_grad_function
 from .optimisers import kfac
-from .utils import Logging, compare, load_pk, key_gen, save_config_csv_and_pickle, split_variables_for_pmap, write_summary_to_cfg
+from .utils import Logging, load_pk, save_config_csv_and_pickle, split_variables_for_pmap
+
+
+def key_gen(keys):
+    if len(keys.shape) == 2:  # if distributed
+        keys = jnp.array([rnd.split(key) for key in keys])
+        keys = jnp.split(keys, 2, axis=1)
+        return [x.squeeze(axis=1) for x in keys]
+    return rnd.split(keys)
+
+# def key_gen(keys):
+#     if len(keys.shape) == 2:  # if distributed
+#         return jnp.stack([rnd.split(key) for key in keys])
+#         # keys = jnp.split(keys, 2, axis=1)
+#         # return [x.squeeze(axis=1) for x in keys]
+#     return rnd.split(keys)
+
+
+def create_key(seed, n_devices):
+    return rnd.split(rnd.PRNGKey(seed), n_devices).reshape(n_devices, 2), rnd.PRNGKey(seed)
+    
+
+def walker_init(n_walker, n_el, scale, n_device):
+    walker_device = []
+    shift = scale / 4.
+    for _ in range(n_device):
+        sites = np.linspace(0., scale, 4, endpoint=True)[:-1] + (shift/2.)
+        sites_all = np.array(list(product(*[sites, sites, sites])))
+        walker = []
+        for _ in range(n_walker):
+            idxs = np.random.choice(np.arange(len(sites_all)), size=n_el, replace=False)
+            w = sites_all[idxs]
+            walker += [w]   
+        walker_device += [jnp.array(np.stack(walker, axis=0))]
+    return jnp.stack(walker_device)
+
+
+def equilibrate(
+    key, 
+    param, 
+    walker, 
+    sampler, 
+    step_size=0.02, 
+    n_eq=1000, 
+    e_every=1, 
+    compute_e=None
+    ):
+
+    eq_stat = {'pe': [], 'ke': [], 'e': [], 'walker': []}
+    for step in range(n_eq):
+        
+        for _ in range(10):
+            key, subkey = key_gen(key)
+            walker, acc, step_size = sampler(param, walker, subkey, step_size)
+
+        eq_stat['walker'] += [np.array(walker)]
+        # print(jnp.mean(acc), jnp.mean(step_size), jnp.sum(jnp.isnan(walker)))
+        # print((compute_e is not None), (step % e_every == 0), step, e_every)
+        if (compute_e is not None) and (step % e_every == 0):
+            pe, ke = compute_e(param, walker)
+            e = pe+ke
+
+            eq_stat['pe'] += [np.array(pe)]  # like this to save GPU memory
+            eq_stat['ke'] += [np.array(ke)]
+            eq_stat['e'] += [np.array(e)]
+            
+            print(f'Step: {step} / {n_eq} | E: {jnp.mean(e):.7f} +- {jnp.std(e):.7f}')
+            print(f'Step_size: {float(jnp.mean(step_size)):.3f} | Acc.: {float(jnp.mean(acc)):.2f}')        
+
+    if compute_e is not None:
+        print(f'E: {jnp.mean(jnp.array(eq_stat["e"])):.7f} +- {jnp.std(jnp.array(eq_stat["e"])):.7f}')
+    return {k: np.concatenate(v, axis=0) for k,v in eq_stat.items() if len(v) > 0}
+
+
+def compute_energy_from_save(cfg):
+
+    key, key_local = create_key(cfg['seed'], cfg['n_devices'])  # (1, 2)
+    step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])  # (1,)
+
+    mol = SystemAnsatz(**cfg)
+    vwf = create_wf(mol)
+    sampler = create_sampler(mol, vwf)
+    compute_e = pmap(create_energy_fn(mol, vwf, separate=True), in_axes=(None, 0))
+    load_it = cfg['load_it']
+
+    print('BASIS')
+    print(mol.basis)
+    print(mol.inv_basis)
+
+    param_path = Path(cfg['run_dir'], 'models', f'i{load_it}.pk')
+    walker_path = Path(cfg['run_dir'], 'models', f'w_tr_i{load_it}.pk')
+
+    print(f'LOADING PARAM: \n {param_path}')
+    param = load_pk(param_path)
+
+    if walker_path is not None:
+        print(f'LOADING WALKER: \n {walker_path}')
+        walker = load_pk(walker_path)[:cfg['n_devices']]
+    else:
+        walker = walker_init(cfg['n_walkers_per_device'], cfg['n_el'], mol.scale_cell, cfg['n_devices'])
+        eq_stat = equilibrate(key, param, walker, sampler, step_size, n_eq=1000)
+
+    if len(walker) > cfg['n_walkers_per_device']:
+        walker = walker[:, :cfg['n_walkers_per_device']]
+
+    n_batch = ((cfg['n_compute'] // cfg['n_walkers_per_device']) + 1)
+    eq_stat = {'pe': [], 'ke': [], 'e': [], 'walker': []}
+    for step in range(n_batch):
+        for _ in range(10):
+            key, subkey = key_gen(key)
+            print(walker.shape, subkey.shape, step_size.shape)
+            print(param.shape)
+            walker, acc, step_size = sampler(param, walker, subkey, step_size)
+
+        pe, ke = compute_e(param, walker)
+        e = pe+ke
+
+        eq_stat['pe'] += [np.array(pe)]  # like this to save GPU memory
+        eq_stat['ke'] += [np.array(ke)]
+        eq_stat['e'] += [np.array(e)]
+        eq_stat['walker'] += [np.array(walker)]
+
+        print(f'Step: {step} / {n_batch} | E: {jnp.mean(e):.7f} +- {jnp.std(e):.7f}')
+        print(f'Step_size: {float(jnp.mean(step_size)):.3f} | Acc.: {float(jnp.mean(acc)):.2f}')        
+
+    print(f'E: {jnp.mean(jnp.array(eq_stat["e"])):.7f} +- {jnp.std(jnp.array(eq_stat["e"])):.7f}')
+    eq_stat = {k: np.concatenate(v, axis=0) for k,v in eq_stat.items()}
+    save_pk(eq_stat, os.path.join(cfg['run_dir'], f'eq_stats_i{load_it}.pk'))
+    return None
+
+
+def transform_vector_space(vectors: jnp.array, basis: jnp.array) -> jnp.array:
+    if basis.shape == (3, 3):
+        return jnp.dot(vectors, basis)
+    else:
+        return vectors * basis
+
+
+def keep_in_boundary(walkers, basis, inv_basis):   # some numerical errors
+    talkers = transform_vector_space(walkers, inv_basis)
+    talkers = jnp.fmod(talkers, 1.)  # y – The remainder of the division of x1 by x2.
+    talkers = jnp.where(talkers < 0., talkers + 1., talkers)
+    talkers = transform_vector_space(talkers, basis)
+    return talkers
+
+
+def run_vmc(cfg):
+
+    for k, v in cfg.items():
+        print(k, '\n', v, '\n')
+
+    key, key_local = create_key(cfg['seed'], cfg['n_devices'])
+    step_size = split_variables_for_pmap(cfg['n_devices'], cfg['step_size'])
+    print(step_size)
+        
+    logger = Logging(**cfg)
+    mol = SystemAnsatz(**cfg)
+    vwf = create_wf(mol)
+    sampler = create_sampler(mol, vwf)
+    compute_e = pmap(create_energy_fn(mol, vwf, separate=True), in_axes=(None, 0))
+    params = initialise_params(mol, key_local)
+    walkers = walker_init(cfg['n_walkers_per_device'], cfg['n_el'], mol.scale_cell, cfg['n_devices'])
+    walkers = keep_in_boundary(walkers, mol.basis, mol.inv_basis)
+    walkers = equilibrate(key, params, walkers, sampler, step_size, n_eq=100)['walker']  # because list accumulates them and pmap stuff
+    walkers = walkers[:cfg['n_devices']]
+    print(walkers.shape)
+    if walkers.ndim == 3:
+        walkers = walkers[None, ...]
+
+    print(walkers.shape)
+    if cfg['pretrain']:
+        params, walkers = pretrain_wf(mol, params, key, sampler, walkers, **cfg)  # OUTPUTS (n_walkers, ...)
+        for _ in range(1000):
+            key, subkey = key_gen(key)
+            walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
+
+    print(walkers.shape)
+    print(jnp.mean(step_size), step_size.shape)
+    grad_fn = create_grad_function(mol, vwf)
+
+    if cfg['opt'] == 'kfac':
+        update, get_params, kfac_update, state = kfac(mol, params, walkers, cfg['lr'], cfg['damping'], cfg['norm_constraint'])
+    elif cfg['opt'] == 'adam':
+        optimizer = adam(cfg['lr'])
+        state = optimizer.init(params)
+    else:
+        exit('Optimiser not available')
+
+    steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='%s/training' % cfg['exp_name'], disable=None)
+
+    e_locs_cpu = []
+    for step in steps:
+        step_from_1 = step + 1
+        key, subkey = key_gen(key)
+        walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
+        grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
+        
+        try:
+            def save_us_from_nans(w):
+                if jnp.sum(e_locs_nan := jnp.isnan(e_locs)):
+                    print('SAVING US FROM NANS')
+                    for i in range(10):
+                        key, subkey = key_gen(key)
+                        w, acceptance, step_size = sampler(params, w, subkey, step_size)
+                    w = jnp.where(e_locs_nan, w, walkers)
+                return w
+            walkers = save_us_from_nans(walkers)
+        except Exception as e:
+            print(f'BUG INDA NAN {e}')
+
+        # if (1.-(step/cfg['n_it'])) < cfg['final_sprint']:
+        #     grads, tree = tree_util.tree_flatten(grads)
+        #     for n_minus_1 in range(1, 10):
+        #         key, subkey = key_gen(key)
+        #         walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
+        #         grads_extra, e_locs_extra = grad_fn(params, walkers, jnp.array([step]))
+        #         grads_extra, _ = tree_util.tree_flatten(grads_extra)
+        #         grads = [g + g_e for g, g_e in zip(grads, grads_extra)]
+        #         e_locs = jnp.concatenate([e_locs, e_locs_extra])
+        #     grads = tree_util.tree_unflatten(tree, [g/n_minus_1 for g in grads])
+        #     step += 1
+
+        if cfg['opt'] == 'kfac':
+            grads, state = kfac_update(step, grads, state, walkers)
+            state = update(step, grads, state)
+            params = get_params(state)
+        else:
+            grads, state = optimizer.update(grads, state)
+            params = apply_updates(params, grads)
+
+        steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
+        steps.refresh()
+
+        logger.writer('w/step_size', float(jnp.mean(step_size)), step)
+        logger.writer('w/acc', float(jnp.mean(acceptance)), step)
+        logger.writer('w/e_mean', float(jnp.mean(e_locs)), step)
+        logger.writer('w/e_std', float(jnp.std(e_locs)), step)
+
+        if step_from_1 % 100 == 0:
+            print(f'Step {step_from_1}: Step_size: {float(jnp.mean(step_size)):.3f} | Acc.: {float(jnp.mean(acceptance)):.2f}')
+
+        e_locs_cpu += [np.array(e_locs)]
+        if step_from_1 % cfg['save_every'] == 0:
+            try:
+                save_pk(params, os.path.join(cfg['models_dir'], 'i%i.pk' % step_from_1))
+                save_pk(np.array(walkers), os.path.join(cfg['models_dir'], 'w_tr_i%i.pk' % step_from_1))
+                save_pk(np.concatenate(e_locs_cpu), os.path.join(cfg['models_dir'], 'e_tr_i%i.pk' % step_from_1))
+            except:
+                print('SAVING DID NOT WORK')
+
+        if jnp.isnan(jnp.mean(e_locs)):
+            exit('found nans')
+
+    print('WARMING UP EQ')
+    n_eq_walkers = 5000000 if cfg['n_it'] > 500 else cfg['n_walkers'] * 40
+    n_eq = int((n_eq_walkers//cfg['n_walkers'])) + 1
+    eq_stats = {'pe': [], 'ke': [], 'e': [], 'walkers': []}
+
+    for step_eq in range(n_eq):
+        for _ in range(10):
+            key, subkey = key_gen(key)
+            walkers, acceptance, step_size = sampler(params, walkers, subkey, step_size)
+        
+        if step_eq % 100:
+            pe, ke = compute_e(params, walkers)
+            e = pe+ke
+            eq_stats['pe'] += [np.array(pe)]
+            eq_stats['ke'] += [np.array(ke)]
+            eq_stats['e'] += [np.array(e)]
+        
+        print(f'Step: {step_eq} / {n_eq} | E: {jnp.mean(e):.7f} +- {jnp.std(e):.7f}')
+        print(f'Step_size: {float(jnp.mean(step_size)):.4f} | Acc.: {float(jnp.mean(acceptance)):.2f}')
+        
+        eq_stats['walkers'] += [np.array(walkers)]
+
+    print(f'E: {jnp.mean(jnp.array(eq_stats["e"])):.7f} +- {jnp.std(jnp.array(eq_stats["e"])):.7f}')
+    eq_stats = {k: np.concatenate(v, axis=0) for k,v in eq_stats.items()}
+    save_pk(eq_stats, os.path.join(cfg['run_dir'], f'eq_stats_i{step_eq}.pk'))
+    return None
+
 
 
 def check_inf_nan(arg):
@@ -217,69 +495,6 @@ def measure_kfac_and_energy_time(cfg, walkers=None):
     save_config_csv_and_pickle(cfg)
     
     return cfg
-
-
-def run_vmc(cfg, walkers=None):
-
-    for k, v in cfg.items():
-        print(k, '\n', v, '\n')
-        
-    logger = Logging(**cfg)
-
-    mol, vwf, walkers, params, sampler, keys = initialise_system_wf_and_sampler(cfg)
-
-    grad_fn = create_grad_function(mol, vwf)
-
-    if cfg['opt'] == 'kfac':
-        update, get_params, kfac_update, state = kfac(mol, params, walkers, cfg['lr'], cfg['damping'], cfg['norm_constraint'])
-    elif cfg['opt'] == 'adam':
-        optimizer = adam(cfg['lr'])
-        state = optimizer.init(params)
-    else:
-        exit('Optimiser not available')
-
-    energy_function = create_energy_fn(mol, vwf, separate=True)
-    if bool(os.environ.get('DISTRIBUTE')) is True:
-        energy_function = pmap(energy_function, in_axes=(None, 0))
-
-    # compute_mom = create_local_momentum_operator(mol, vwf)
-    confirm_antisymmetric(mol, params, walkers)
-
-    steps = trange(1, cfg['n_it']+1, initial=1, total=cfg['n_it']+1, desc='%s/training' % cfg['exp_name'], disable=None)
-    step_size = get_step_size(walkers, params, sampler, keys)
-
-    for step in steps:
-        keys, subkeys = key_gen(keys)
-
-        walkers, acceptance, step_size = sampler(params, walkers, subkeys, step_size)
-        
-        grads, e_locs = grad_fn(params, walkers, jnp.array([step]))
-
-        if cfg['opt'] == 'kfac':
-            grads, state = kfac_update(step, grads, state, walkers)
-            state = update(step, grads, state)
-            params = get_params(state)
-        else:
-            grads, state = optimizer.update(grads, state)
-            params = apply_updates(params, grads)
-
-        steps.set_postfix(E=f'{jnp.mean(e_locs):.6f}')
-        steps.refresh()
-
-        logger.log(step,
-                   opt_state=state,
-                   params=params,
-                   e_locs=e_locs.reshape(-1),
-                   acceptance=acceptance)
-
-        logger.writer('acceptance/step_size', float(jnp.mean(step_size)), step)
-
-        if jnp.isnan(jnp.mean(e_locs)):
-            exit('found nans')
-
-    write_summary_to_cfg(cfg, logger.summary)
-    logger.walkers = walkers
-    return logger
 
 
 def run_vmc_debug(cfg, walkers=None):

@@ -17,7 +17,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 os.environ['DISTRIBUTE'] = 'True'
 
 cfg = load_pk(args.cfg_path)
-# log = run_vmc(cfg)
+log = run_vmc(cfg)
 
 for load_it in range(10000, cfg['n_it']+1, 10000):
     approximate_energy(cfg, load_it=load_it)

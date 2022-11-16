@@ -86,6 +86,7 @@ def init_einsum(key, shape, bias=False):
 def initialise_params(mol, key):
     if len(key.shape) > 1:
         key = key[0]
+        
     n_layers, n_sh, n_ph, n_det, n_in, n_sh_in, n_ph_in = mol.n_layers, mol.n_sh, mol.n_ph, mol.n_det, mol.n_in, mol.n_sh_in, mol.n_ph_in
     n_atoms, n_up, n_down = mol.n_atoms, mol.n_up, mol.n_down
     orbitals = mol.orbitals

@@ -178,12 +178,12 @@ class BaseGet():
     def get(self, names: str | list, alternate: str | None = None) -> Any:
         
         if isinstance(names, str):
-            names = self.check_and_fudge_key(names)
+            # names = self.check_and_fudge_key(names)
             return self.__dict__.get(names, alternate)
 
         new_names = []
         for name in names:
-            name = self.check_and_fudge_key(name)
+            # name = self.check_and_fudge_key(name)
             new_names.append(name)
 
         return [self.__dict__.get(name, alternate) for name in new_names]

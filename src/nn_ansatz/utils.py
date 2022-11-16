@@ -62,22 +62,31 @@ def dict_append(data, results):
     return data
 
 
+# def split_variables_for_pmap(n_devices, *args):
+#     if bool(os.environ.get('DISTRIBUTE')) is True:
+#         new_args = []
+#         for arg in args:
+#             if type(arg) in (float, int):
+#                 new_arg = jnp.array(arg).repeat(n_devices)
+#             else:
+#                 print('argument for splitting is type %s' % str(type(arg)))
+#             new_args.append(new_arg)
+#         if len(new_args) == 1:  # needed to unpack the list if there is just one element
+#             return new_args[0]
+#         return new_args
+#     if len(args) == 1:
+#         return args[0]
+#     return args
+
+
 def split_variables_for_pmap(n_devices, *args):
-    if bool(os.environ.get('DISTRIBUTE')) is True:
-        new_args = []
-        for arg in args:
-            if type(arg) in (float, int):
-                new_arg = jnp.array(arg).repeat(n_devices)
-            else:
-                print('argument for splitting is type %s' % str(type(arg)))
-            new_args.append(new_arg)
-        
-        if len(new_args) == 1:  # needed to unpack the list if there is just one element
-            return new_args[0]
-        return new_args
-    if len(args) == 1:
-        return args[0]
-    return args
+    new_args = []
+    for a in args:
+        if not isinstance(a, np.ndarray | jnp.ndarray):
+            a = jnp.array([a])
+        a = a[None, ...]
+        new_args += [a.repeat(n_devices, axis=0)]
+    return new_args if len(new_args) > 1 else new_args[0]
 
 @jit
 def key_gen(keys):
@@ -137,14 +146,14 @@ def create_config_paths(exp_dir):
 
 
 def save_config_csv_and_pickle(config):
-    
-    with open(config['csv_cfg_path'], 'w') as f:
-        for key, val in config.items():
-            if not 'dir' in key:
-                f.write("%s,%s\n" % (key, val))
+    if not config['load_it'] > 0:
+        with open(config['csv_cfg_path'], 'w') as f:
+            for key, val in config.items():
+                if not 'dir' in key:
+                    f.write("%s,%s\n" % (key, val))
 
-    with open(config['pk_cfg_path'], 'wb') as f:
-        pk.dump(config, f)
+        with open(config['pk_cfg_path'], 'wb') as f:
+            pk.dump(config, f)
 
 
 def are_we_loading(load_it, load_dir):
@@ -269,15 +278,18 @@ def setup(system: str = 'HEG',
           backflow_coords: bool = True,
           psplit_spins: bool = True,
           target_acceptance: float = 0.5,
-          bf_af: str = 'tanh',
+          bf_af: str = 'no_af',
+          final_sprint: float = 0.0,
 
           pre_lr: float = 1e-4,
           n_pre_it: int = 500,
           pretrain: bool = True,
 
           load_it: int = 0,
+          do: str = 'vmc',
+          n_compute: int = 1000,
 
-          distribute: bool = True, 
+          distribute: bool = True,
           debug: bool = False,
 
           seed: int = 369,
@@ -297,7 +309,7 @@ def setup(system: str = 'HEG',
 
     hyperparameter_name = '%s_%s_%s_%s_%s_' % (opt, n2n(lr, 'lr'), n2n(damping, 'd'), n2n(norm_constraint, 'nc'), n2n(n_walkers, 'm'))
     exp_dir = run_dir #join_and_create(root, system, exp_name, hyperparameter_name + ansatz_hyperparameter_name)
-    run = 'run%i' % get_run(exp_dir)
+    # run = 'run%i' % get_run(exp_dir)
     # exp_dir = os.path.join(exp_dir, run)
 
     system_config = get_system(system,
@@ -307,7 +319,8 @@ def setup(system: str = 'HEG',
 
     pretrain_dir = join_and_create(root, system, 'pretrained')
     hyperparameter_name = '%s_%s_%s_%s' % (n2n(pre_lr, 'lr'), n2n(n_pre_it, 'i'), orbitals, nonlinearity)
-    if system_config['pbc']: hyperparameter_name += '_%s_dp%s_%s' % (input_activation_nonlinearity, str(system_config['density_parameter']), '%i%i%i' % tuple(simulation_cell))
+    if system_config['pbc']: 
+        hyperparameter_name += '_%s_dp%s_%s' % (input_activation_nonlinearity, str(system_config['density_parameter']), '%i%i%i' % tuple(simulation_cell))
     pre_path = os.path.join(pretrain_dir, ansatz_hyperparameter_name + '_' + hyperparameter_name + '.pk')
 
     print(exp_dir)
@@ -318,65 +331,70 @@ def setup(system: str = 'HEG',
 
     csv_cfg_path, pk_cfg_path = create_config_paths(exp_dir)
 
-    config = {'version': version,
-              'seed': seed,
-              'n_devices': n_devices,
-              'save_every': save_every,
-              'print_every': print_every,
-              'exp_name':exp_name,
+    config = {
+        'version': version,
+        'seed': seed,
+        'n_devices': n_devices,
+        'save_every': save_every,
+        'print_every': print_every,
+        'exp_name': exp_name,
 
-              # PATHS
-              'exp_dir': exp_dir,
-              'events_dir': events_dir,
-              'models_dir': models_dir,
-              'opt_state_dir': opt_state_dir,
-              'pre_path': pre_path,
-              'timing_dir': timing_dir,
-              'csv_cfg_path': csv_cfg_path,
-              'pk_cfg_path': pk_cfg_path,
+        # PATHS
+        'exp_dir': exp_dir,
+        'events_dir': events_dir,
+        'models_dir': models_dir,
+        'opt_state_dir': opt_state_dir,
+        'pre_path': pre_path,
+        'timing_dir': timing_dir,
+        'csv_cfg_path': csv_cfg_path,
+        'pk_cfg_path': pk_cfg_path,
+        'run_dir': run_dir,
 
-              # SYSTEM
-              **system_config,
-              'system': system,
-              'n_up': n_up, 
-              'real_cut': real_cut,
-              'reciprocal_cut': reciprocal_cut,
-              'kappa': kappa,
-              'simulation_cell': simulation_cell,
-              'atol':atol, 
+        # SYSTEM
+        **system_config,
+        'system': system,
+        'n_up': n_up, 
+        'real_cut': real_cut,
+        'reciprocal_cut': reciprocal_cut,
+        'kappa': kappa,
+        'simulation_cell': simulation_cell,
+        'atol':atol, 
 
-              # ANSATZ
-              'n_layers': n_layers,
-              'n_sh': n_sh,
-              'n_ph': n_ph,
-              'n_det': n_det,
-              'scalar_inputs': scalar_inputs, 
-              'orbitals': orbitals, 
-              'einsum': einsum,
-              'nonlinearity': nonlinearity,
-              'input_activation_nonlinearity': input_activation_nonlinearity,
-              'jastrow': jastrow,
-              'backflow_coords': backflow_coords,
-              'psplit_spins': psplit_spins and (not (n_el == system_config['n_up'])),
-              'bf_af': bf_af,
+        # ANSATZ
+        'n_layers': n_layers,
+        'n_sh': n_sh,
+        'n_ph': n_ph,
+        'n_det': n_det,
+        'scalar_inputs': scalar_inputs, 
+        'orbitals': orbitals, 
+        'einsum': einsum,
+        'nonlinearity': nonlinearity,
+        'input_activation_nonlinearity': input_activation_nonlinearity,
+        'jastrow': jastrow,
+        'backflow_coords': backflow_coords,
+        'psplit_spins': psplit_spins and (not (n_el == system_config['n_up'])),
+        'bf_af': bf_af,
+        'final_sprint': final_sprint,
               
-              # TRAINING HYPERPARAMETERS
-              'opt': opt,
-              'lr': lr,
-              'damping': damping,
-              'norm_constraint': norm_constraint,
-              'n_it': n_it,
-              'load_it': load_it,
-              'n_walkers': n_walkers,
-              'n_walkers_per_device': n_walkers // n_devices,
-              'step_size': step_size,
-              'correlation_length': correlation_length,
-              'target_acceptance': target_acceptance, 
+        # TRAINING HYPERPARAMETERS
+        'opt': opt,
+        'lr': lr,
+        'damping': damping,
+        'norm_constraint': norm_constraint,
+        'n_it': n_it,
+        'load_it': load_it,
+        'n_walkers': n_walkers,
+        'n_walkers_per_device': n_walkers//n_devices,
+        'step_size': step_size,
+        'correlation_length': correlation_length, 
+        'target_acceptance': target_acceptance, 
+        'do': do,
+        'n_compute': n_compute,
 
-              # PRETRAINING HYPERPARAMETERS
-              'pre_lr': pre_lr,
-              'n_pre_it': n_pre_it,
-              'pretrain': pretrain
+        # PRETRAINING HYPERPARAMETERS
+        'pre_lr': pre_lr,
+        'n_pre_it': n_pre_it,
+        'pretrain': pretrain
     }
 
     save_config_csv_and_pickle(config)
@@ -463,6 +481,8 @@ class Logging():
         self.times = {}
         self.e_means = []
         self.data = {}
+        self.printer = {}
+        self.summary = {}
 
         self.walkers = None
 
@@ -470,7 +490,6 @@ class Logging():
         value = np.array(value)
         if not np.isnan(value).any():
             self.summary[name] = value
-
 
     def writer(self, name, value, step):
         self.summary_writer.add_scalar(name, value, step)
@@ -496,9 +515,6 @@ class Logging():
         # for key, val in kwargs.items():
         #     if hasattr(val, "__len__"):
         #         self.write(step, key, val)
-
-        self.printer = {}
-        self.summary = {}
 
         if e_locs is not None:
             e_mean = float(jnp.mean(e_locs))
